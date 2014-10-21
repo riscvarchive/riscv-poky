@@ -109,7 +109,8 @@ while true; do
     arg=${1}
     case "$arg" in
         "qemux86" | "qemux86-64" | "qemuarm" | "qemumips" | "qemumipsel" | \
-        "qemumips64" | "qemush4"  | "qemuppc" | "qemumicroblaze" | "qemuzynq")
+        "qemumips64" | "qemush4"  | "qemuppc" | "qemumicroblaze" | \
+        "qemuzynq" | "qemuriscv")
             [ -z "$MACHINE" ] && MACHINE=$arg || \
                 error "conflicting MACHINE types [$MACHINE] and [$arg]"
             ;;
@@ -321,6 +322,9 @@ QEMUMICROBLAZE_DEFAULT_FSTYPE=cpio
 
 QEMUZYNQ_DEFAULT_KERNEL=uImage
 QEMUZYNQ_DEFAULT_FSTYPE=cpio
+
+QEMURISCV_DEFAULT_KERNEL=vmlinux-qemuriscv.bin
+QEMURISCV_DEFAULT_FSTYPE=ext2
 
 AKITA_DEFAULT_KERNEL=zImage-akita.bin
 AKITA_DEFAULT_FSTYPE=jffs2

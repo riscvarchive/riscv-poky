@@ -13,7 +13,8 @@ valid_archs = "alpha cris ia64 \
                sh sh64 um h8300   \
                parisc s390  v850 \
                avr32 blackfin \
-               microblaze"
+               microblaze \
+               riscv"
 
 def map_kernel_arch(a, d):
     import re
@@ -29,6 +30,7 @@ def map_kernel_arch(a, d):
     elif re.match('sh(3|4)$', a):               return 'sh'
     elif re.match('bfin', a):                   return 'blackfin'
     elif re.match('microblazeel', a):           return 'microblaze'
+    elif re.match('riscv', a):                  return 'riscv'
     elif a in valid_archs:                      return a
     else:
         bb.error("cannot map '%s' to a linux kernel architecture" % a)

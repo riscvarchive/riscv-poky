@@ -285,6 +285,7 @@ case "$MACHINE" in
     "qemux86") ;;
     "qemux86-64") ;;
     "qemuzynq") ;;
+    "qemuriscv") ;;
     "akita") ;;
     "spitz") ;;
     *)
@@ -546,6 +547,12 @@ if [ "$MACHINE" = "qemuzynq" ]; then
         KERNCMDLINE="earlyprintk root=/dev/ram rw"
         QEMUOPTIONS="$QEMU_SYSTEM_OPTIONS -initrd $ROOTFS"
     fi
+fi
+
+if [ "$MACHINE" = "qemuriscv" ]; then
+    QEMU=qemu-system-riscv
+    QEMU_SYSTEM_OPTIONS="-netdev user,id=net0 -device virtio-net-device,netdev=net0 -device virtio-scsi-device -drive file=$ROOTFS,format=raw,id=hd0 -device scsi-hd,drive=hd0 -chardev pty,id=tty0 -device virtio-serial-device -device virtserialport,chardev=tty0"
+    QEMUOPTIONS="$QEMU_SYSTEM_OPTIONS"
 fi
 
 if [ "x$RAMFS" = "xtrue" ]; then

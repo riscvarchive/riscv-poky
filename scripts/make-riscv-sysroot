@@ -1,0 +1,36 @@
+#/bin/bash
+
+if [ -z "$RISCV" ]; then
+  echo "ERROR: Need to set RISCV"
+  exit
+fi
+
+if [ -z "$SYSROOT" ]; then
+  echo "ERROR: Need to set SYSROOT"
+  exit
+fi
+
+if [ -z "$RISCV_TOOLCHAIN" ]; then
+  RISCV_TOOLCHAIN=riscv-toolchain
+fi
+
+echo "Copying riscv-linux sysroot"
+echo "RISCV=$RISCV"
+echo "SYSROOT=$SYSROOT"
+echo "RISCV_TOOLCHAIN=$RISCV_TOOLCHAIN"
+echo "PWD=$PWD"
+
+rm -rf $RISCV_TOOLCHAIN
+mkdir $RISCV_TOOLCHAIN
+cp -r $SYSROOT $RISCV_TOOLCHAIN/riscv-linux
+
+mkdir -p $RISCV_TOOLCHAIN/riscv-linux/usr/lib
+
+cp $RISCV/riscv-linux/lib/libstdc*.so.* $RISCV_TOOLCHAIN/riscv-linux/lib
+
+cp $RISCV/riscv-linux/lib/libstdc*.{a,la} $RISCV_TOOLCHAIN/riscv-linux/usr/lib
+cp $RISCV/riscv-linux/lib/libsupc*.{a,la} $RISCV_TOOLCHAIN/riscv-linux/usr/lib
+
+( cd $RISCV_TOOLCHAIN/riscv-linux/usr/lib ; ln -s ../../lib/libstdc++.so.6 libstdc++.so )
+
+echo "DONE"
