@@ -1,0 +1,11 @@
+--- gcc-4.6.1/gcc/config.gcc	2014-09-20 22:30:58.183953561 +0100
++++ gcc-4.6.1-old/gcc/config.gcc	2014-09-20 22:24:00.675940099 +0100
+@@ -1861,7 +1861,7 @@ mips*-*-netbsd*)			# NetBSD/mips, either
+ 	tm_file="elfos.h ${tm_file} mips/elf.h netbsd.h netbsd-elf.h mips/netbsd.h"
+ 	extra_options="${extra_options} netbsd.opt netbsd-elf.opt"
+ 	;;
+-riscv*-*-linux*)				# Linux RISC-V
++riscv*-*-linux* | riscv-linux-*)				# Linux RISC-V
+ 	tm_file="dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file} riscv/linux.h riscv/linux64.h"
+ 	tmake_file="${tmake_file} riscv/t-linux64"
+ 	gnu_ld=yes

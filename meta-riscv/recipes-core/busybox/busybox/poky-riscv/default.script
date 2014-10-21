@@ -1,0 +1,30 @@
+#!/bin/sh
+
+conf="/etc/resolv.conf"
+
+case "$1" in
+deconfig)
+	/sbin/ifconfig "${interface}" 0.0.0.0
+	;;
+
+bound|renew)
+	/sbin/ifconfig "${interface}" "${ip}" \
+		${broadcast:+broadcast "${broadcast}"} \
+		${netmask:+netmask "${netmask}"} \
+
+	if [ -n "${router}" ] ; then
+		while /sbin/route del default gw 0.0.0.0 dev "${interface}" ; do : ; done
+		for i in ${router} ; do
+			/sbin/route add default gw "${i}" dev "${interface}"
+		done
+	fi
+
+	: > "${conf}"
+	[ -n "${domain}" ] && echo "search ${domain}" >> "${conf}"
+	for i in ${dns} ; do
+		echo "nameserver ${i}" >> "${conf}"
+	done
+	;;
+esac
+
+exit 0

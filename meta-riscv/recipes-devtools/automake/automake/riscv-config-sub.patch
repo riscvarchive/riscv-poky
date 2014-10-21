@@ -1,0 +1,22 @@
+--- automake-1.14.1/lib/config.sub	2013-12-23 16:59:52.000000000 +0000
++++ automake-1.14.1-riscv/lib/config.sub	2014-09-24 02:07:38.539376430 +0100
+@@ -301,6 +301,7 @@ case $basic_machine in
+ 	| pdp10 | pdp11 | pj | pjl \
+ 	| powerpc | powerpc64 | powerpc64le | powerpcle \
+ 	| pyramid \
++	| riscv \
+ 	| rl78 | rx \
+ 	| score \
+ 	| sh | sh[1234] | sh[24]a | sh[24]aeb | sh[23]e | sh[34]eb | sheb | shbe | shle | sh[1234]le | sh3ele \
+@@ -1031,6 +1032,11 @@ case $basic_machine in
+ 		basic_machine=i386-pc
+ 		os=-rdos
+ 		;;
++	riscv)
++		basic_machine=riscv
++		;;
++	riscv-*)
++		;;
+ 	rom68k)
+ 		basic_machine=m68k-rom68k
+ 		os=-coff

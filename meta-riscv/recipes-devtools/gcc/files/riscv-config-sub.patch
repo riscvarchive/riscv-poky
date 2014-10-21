@@ -1,0 +1,11 @@
+--- gcc-4.6.1/config.sub	2014-09-20 22:30:39.767952968 +0100
++++ gcc-4.6.1-old/config.sub	2014-09-20 22:23:44.315939572 +0100
+@@ -323,7 +323,7 @@ case $basic_machine in
+ 	ms1)
+ 		basic_machine=mt-unknown
+ 		;;
+-	riscv)
++	riscv | riscv-*)
+ 		basic_machine=riscv-ucb
+ 		;;
+ 

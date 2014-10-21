@@ -1,0 +1,8 @@
+--- glibc-2.14.1/Makefile	2011-10-07 10:48:55.000000000 +0100
++++ glibc-2.14.1/Makefile	2014-09-25 08:18:04.453168401 +0100
+@@ -439,3 +439,5 @@ headers2_0 :=	__math.h bytesex.h confnam
+ .PHONY: remove-old-headers
+ remove-old-headers:
+ 	rm -f $(addprefix $(inst_includedir)/, $(headers2_0))
++
++config:

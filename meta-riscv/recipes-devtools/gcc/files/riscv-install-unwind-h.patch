@@ -1,0 +1,10 @@
+--- gcc-4.6.1-old/libgcc/Makefile.in	2014-09-21 03:43:53.664222031 +0100
++++ gcc-4.6.1/libgcc/Makefile.in	2014-09-21 03:44:21.328222923 +0100
+@@ -998,3 +998,5 @@ include $(srcdir)/empty.mk $(wildcard *.
+ #   Remove use of $(gcc_srcdir).  Source files referenced using $(gcc_srcdir)
+ #   should move into the libgcc directory.
+ 
++install-unwind_h:
++	$(mkinstalldirs) $(DESTDIR)$(libsubdir)/include
++	$(INSTALL_DATA) unwind.h $(DESTDIR)$(libsubdir)/include
++
