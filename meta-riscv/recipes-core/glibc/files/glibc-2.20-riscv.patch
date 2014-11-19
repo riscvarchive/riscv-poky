@@ -18,11 +18,26 @@
  
  # Configuration		Library=version		Earliest symbol set (optional)
  # -------------		---------------		------------------------------
+--- original-glibc/sunrpc/rpc_main.c
++++ glibc/sunrpc/rpc_main.c
+@@ -38,7 +38,9 @@
+ #include <stdio.h>
+ #include <string.h>
+ #include <unistd.h>
++#ifndef __APPLE__
+ #include <libintl.h>
++#endif
+ #include <locale.h>
+ #include <ctype.h>
+ #include <sys/types.h>
 --- original-glibc/sysdeps/riscv/bits/atomic.h
 +++ glibc/sysdeps/riscv/bits/atomic.h
-@@ -0,0 +1,151 @@
-+/* Low-level functions for atomic operations. Mips version.
-+   Copyright (C) 2005 Free Software Foundation, Inc.
+@@ -0,0 +1,153 @@
++/* Low-level functions for atomic operations. RISC-V version.
++   Copyright (C) 2011-2014 Free Software Foundation, Inc.
++
++   Contributed by Andrew Waterman (waterman@cs.berkeley.edu) at UC Berkeley.
++
 +   This file is part of the GNU C Library.
 +
 +   The GNU C Library is free software; you can redistribute it and/or
@@ -40,11 +55,10 @@
 +   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
 +   02111-1307 USA.  */
 +
-+#ifndef _MIPS_BITS_ATOMIC_H
-+#define _MIPS_BITS_ATOMIC_H 1
++#ifndef _RISCV_BITS_ATOMIC_H
++#define _RISCV_BITS_ATOMIC_H 1
 +
 +#include <inttypes.h>
-+#include <sgidefs.h>
 +
 +typedef int32_t atomic32_t;
 +typedef uint32_t uatomic32_t;
@@ -346,7 +360,7 @@
 +#endif /* bits/ipctypes.h */
 --- original-glibc/sysdeps/riscv/bits/link.h
 +++ glibc/sysdeps/riscv/bits/link.h
-@@ -0,0 +1,76 @@
+@@ -0,0 +1,56 @@
 +/* Copyright (C) 2005, 2009 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
 +
@@ -369,58 +383,38 @@
 +# error "Never include <bits/link.h> directly; use <link.h> instead."
 +#endif
 +
-+typedef struct La_mips_64_regs
++typedef struct La_riscv_regs
 +{
-+  unsigned long lr_reg[8]; /* $a0 through $a7 */
-+  double lr_fpreg[8]; /* $f4 throgh $f11 */
++  unsigned long lr_reg[8]; /* a0 - a7 */
++  double lr_fpreg[8]; /* fa0 - fa7 */
 +  unsigned long lr_ra;
 +  unsigned long lr_sp;
-+} La_mips_64_regs;
++} La_riscv_regs;
 +
 +/* Return values for calls from PLT on MIPS.  */
-+typedef struct La_mips_64_retval
++typedef struct La_riscv_retval
 +{
-+  unsigned long lrv_v0;
-+  unsigned long lrv_v1;
-+  double lrv_fv0;
-+  double lrv_fv1;
-+} La_mips_64_retval;
++  unsigned long lrv_a0;
++  unsigned long lrv_a1;
++  double lrv_fa0;
++  double lrv_fa1;
++} La_riscv_retval;
 +
 +__BEGIN_DECLS
 +
-+#if _RISCV_SIM == _ABI32
-+
-+extern Elf32_Addr la_mips_n32_gnu_pltenter (Elf32_Sym *__sym, unsigned int __ndx,
-+					    uintptr_t *__refcook,
-+					    uintptr_t *__defcook,
-+					    La_mips_64_regs *__regs,
-+					    unsigned int *__flags,
-+					    const char *__symname,
-+					    long int *__framesizep);
-+extern unsigned int la_mips_n32_gnu_pltexit (Elf32_Sym *__sym, unsigned int __ndx,
-+					     uintptr_t *__refcook,
-+					     uintptr_t *__defcook,
-+					     const La_mips_64_regs *__inregs,
-+					     La_mips_64_retval *__outregs,
-+					     const char *__symname);
-+
-+#else
-+
-+extern Elf64_Addr la_mips_n64_gnu_pltenter (Elf64_Sym *__sym, unsigned int __ndx,
-+					    uintptr_t *__refcook,
-+					    uintptr_t *__defcook,
-+					    La_mips_64_regs *__regs,
-+					    unsigned int *__flags,
-+					    const char *__symname,
-+					    long int *__framesizep);
-+extern unsigned int la_mips_n64_gnu_pltexit (Elf64_Sym *__sym, unsigned int __ndx,
-+					     uintptr_t *__refcook,
-+					     uintptr_t *__defcook,
-+					     const La_mips_64_regs *__inregs,
-+					     La_mips_64_retval *__outregs,
-+					     const char *__symname);
-+
-+#endif
++extern ElfW(Addr) la_riscv_gnu_pltenter (ElfW(Sym) *__sym, unsigned int __ndx,
++					 uintptr_t *__refcook,
++					 uintptr_t *__defcook,
++					 La_riscv_regs *__regs,
++					 unsigned int *__flags,
++					 const char *__symname,
++					 long int *__framesizep);
++extern unsigned int la_riscv_gnu_pltexit (ElfW(Sym) *__sym, unsigned int __ndx,
++					  uintptr_t *__refcook,
++					  uintptr_t *__defcook,
++					  const La_riscv_regs *__inregs,
++					  La_riscv_retval *__outregs,
++					  const char *__symname);
 +
 +__END_DECLS
 --- original-glibc/sysdeps/riscv/bits/linkmap.h
@@ -432,7 +426,7 @@
 +  };
 --- original-glibc/sysdeps/riscv/bits/mathdef.h
 +++ glibc/sysdeps/riscv/bits/mathdef.h
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,43 @@
 +/* Copyright (C) 1997, 1998, 1999, 2000, 2002, 2003, 2004, 2007
 +	Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -455,8 +449,6 @@
 +#if !defined _MATH_H && !defined _COMPLEX_H
 +# error "Never use <bits/mathdef.h> directly; include <math.h> instead"
 +#endif
-+
-+#include <sgidefs.h>
 +
 +#if defined  __USE_ISOC99 && defined _MATH_H && !defined _MATH_H_MATHDEF
 +# define _MATH_H_MATHDEF	1
@@ -579,13 +571,13 @@
 +    /* Callee-saved floating point registers.
 +       Note that there are an even number of preceding words in this struct,
 +       so no padding will be inserted before __fpregs, even for RV32. */
-+    double __fpregs[16];
++    double __fpregs[12];
 +  } __jmp_buf[1];
 +
 +#endif /* _RISCV_BITS_SETJMP_H */
 --- original-glibc/sysdeps/riscv/bits/string.h
 +++ glibc/sysdeps/riscv/bits/string.h
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,25 @@
 +/* This file should provide inline versions of string functions.
 +
 +   Surround GCC-specific parts with #ifdef __GNUC__, and use `__extern_inline'.
@@ -608,66 +600,9 @@
 +  return ~(((w & mask) + mask) | w | mask);
 +}
 +
-+#define _HAVE_STRING_ARCH_memcpy 1
-+#define __use_memcpy_align(k, d, s, n) \
-+  (__builtin_constant_p(n) && (n) % (k) == 0 && (n) <= 64 && \
-+   __alignof__(*(d)) >= (k) && __alignof__(*(s)) >= (k))
-+#define memcpy(d, s, n) \
-+  (__use_memcpy_align(8, d, s, n) ? __memcpy_align8(d, s, n) : \
-+   __use_memcpy_align(4, d, s, n) ? __memcpy_align4(d, s, n) : \
-+   __memcpy_g(d, s, n))
-+
-+#define __declare_memcpy_align(size, type) \
-+  static inline void *__memcpy_align ## size(void *__restrict __dest, \
-+                        __const void *__restrict __src, size_t __n) { \
-+    type *__d = (type*)__dest; \
-+    const type *__s = (const type*)__src, *__e = (const type*)(__src + __n); \
-+    while (__s < __e) { \
-+      type __t = *__s; \
-+      __d++, __s++; \
-+      *(__d-1) = __t; \
-+    } \
-+    return __dest; \
-+  }
-+__declare_memcpy_align(8, long long)
-+__declare_memcpy_align(4, int)
-+
-+#ifdef _LIBC
-+extern void *__memcpy_g (void *__restrict __dest,
-+                         __const void *__restrict __src, size_t __n);
-+libc_hidden_proto (__memcpy_g)
-+#else
-+# define __memcpy_g memcpy
-+#endif
-+
 +#endif /* __GNUC__ && !__cplusplus */
 +
 +#endif /* bits/string.h */
---- original-glibc/sysdeps/riscv/bits/wordsize.h
-+++ glibc/sysdeps/riscv/bits/wordsize.h
-@@ -0,0 +1,22 @@
-+/* Copyright (C) 2002, 2003 Free Software Foundation, Inc.
-+   This file is part of the GNU C Library.
-+
-+   The GNU C Library is free software; you can redistribute it and/or
-+   modify it under the terms of the GNU Lesser General Public
-+   License as published by the Free Software Foundation; either
-+   version 2.1 of the License, or (at your option) any later version.
-+
-+   The GNU C Library is distributed in the hope that it will be useful,
-+   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+   Lesser General Public License for more details.
-+
-+   You should have received a copy of the GNU Lesser General Public
-+   License along with the GNU C Library; if not, write to the Free
-+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-+   02111-1307 USA.  */
-+
-+#define __WORDSIZE	_RISCV_SZPTR
-+#if _RISCV_SIM == _ABI64
-+# define __WORDSIZE_COMPAT32	1
-+#endif
 --- original-glibc/sysdeps/riscv/bsd-_setjmp.c
 +++ glibc/sysdeps/riscv/bsd-_setjmp.c
 @@ -0,0 +1 @@
@@ -775,7 +710,7 @@
 +AC_DEFINE(PI_STATIC_AND_HIDDEN)
 --- original-glibc/sysdeps/riscv/dl-machine.h
 +++ glibc/sysdeps/riscv/dl-machine.h
-@@ -0,0 +1,326 @@
+@@ -0,0 +1,335 @@
 +/* Machine-dependent ELF dynamic relocation inline functions.  MIPS version.
 +   Copyright (C) 1996-2001, 2002, 2003, 2004, 2005, 2006, 2007
 +   Free Software Foundation, Inc.
@@ -898,17 +833,17 @@
 +	move a0, sp\n\
 +	jal _dl_start\n\
 +	# Stash user entry point in s0.\n\
-+	move s0, v0\n\
++	move s0, a0\n\
 +	# See if we were run as a command with the executable file\n\
 +	# name as an extra leading argument.\n\
-+	lw v0, _dl_skip_args\n\
++	lw a0, _dl_skip_args\n\
 +	# Load the original argument count.\n\
 +	" STRINGXP(REG_L) " a1, 0(sp)\n\
 +	# Subtract _dl_skip_args from it.\n\
-+	sub a1, a1, v0\n\
++	sub a1, a1, a0\n\
 +	# Adjust the stack pointer to skip _dl_skip_args words.\n\
-+	sll v0, v0, " STRINGXP (PTRLOG) "\n\
-+	add sp, sp, v0\n\
++	sll a0, a0, " STRINGXP (PTRLOG) "\n\
++	add sp, sp, a0\n\
 +	# Save back the modified argument count.\n\
 +	" STRINGXP(REG_S) " a1, 0(sp)\n\
 +	# Call _dl_init (struct link_map *main_map, int argc, char **argv, char **env) \n\
@@ -919,8 +854,8 @@
 +	add a3, a3, " STRINGXP (SZREG) "\n\
 +	# Call the function to run the initializers.\n\
 +	jal _dl_init_internal\n\
-+	# Pass our finalizer function to the user in v0 as per ELF ABI.\n\
-+	lla v0, _dl_fini\n\
++	# Pass our finalizer function to _start.\n\
++	lla a0, _dl_fini\n\
 +	# Jump to the user entry point.\n\
 +	jr s0\n\
 +	" _RTLD_EPILOGUE(ENTRY_POINT) "\
@@ -964,40 +899,20 @@
 +  if (sym_map != NULL)
 +    value = sym_map->l_addr + sym->st_value + reloc->r_addend;
 +
-+#if !defined RTLD_BOOTSTRAP || !defined HAVE_Z_COMBRELOC
-+  if (__builtin_expect (r_type == R_RISCV_RELATIVE, 0))
-+    {
-+# if !defined RTLD_BOOTSTRAP && !defined HAVE_Z_COMBRELOC
-+      /* This is defined in rtld.c, but nowhere in the static libc.a;
-+         make the reference weak so static programs can still link.
-+         This declaration cannot be done when compiling rtld.c
-+         (i.e. #ifdef RTLD_BOOTSTRAP) because rtld.c contains the
-+         common defn for _dl_rtld_map, which is incompatible with a
-+         weak decl in the same file.  */
-+#  ifndef SHARED
-+      weak_extern (GL(dl_rtld_map));
-+#  endif
-+      if (map != &GL(dl_rtld_map)) /* Already done in rtld itself.  */
-+# endif
-+        *addr_field = map->l_addr + reloc->r_addend;
-+      return;
-+    }
-+#endif
-+
 +  switch (r_type)
 +    {
 +#ifndef RTLD_BOOTSTRAP
-+    case _RISCV_SIM == _ABI64 ? R_RISCV_TLS_DTPMOD64 : R_RISCV_TLS_DTPMOD32:
++    case __WORDSIZE == 64 ? R_RISCV_TLS_DTPMOD64 : R_RISCV_TLS_DTPMOD32:
 +      if (sym_map)
 +	*addr_field = sym_map->l_tls_modid;
 +      break;
 +
-+    case _RISCV_SIM == _ABI64 ? R_RISCV_TLS_DTPREL64 : R_RISCV_TLS_DTPREL32:
++    case __WORDSIZE == 64 ? R_RISCV_TLS_DTPREL64 : R_RISCV_TLS_DTPREL32:
 +      if (sym != NULL)
 +	*addr_field = TLS_DTPREL_VALUE (sym) + reloc->r_addend;
 +      break;
 +
-+    case _RISCV_SIM == _ABI64 ? R_RISCV_TLS_TPREL64 : R_RISCV_TLS_TPREL32:
++    case __WORDSIZE == 64 ? R_RISCV_TLS_TPREL64 : R_RISCV_TLS_TPREL32:
 +      if (sym != NULL)
 +	{
 +	  CHECK_STATIC_TLS (map, sym_map);
@@ -1011,6 +926,15 @@
 +	  /* This can happen in trace mode if an object could not be
 +	     found.  */
 +	  break;
++
++	/* Handle TLS copy relocations.  */
++	if (__glibc_unlikely (ELFW(ST_TYPE) (sym->st_info) == STT_TLS))
++	  {
++	    /* There's nothing to do if the symbol is in .tbss.  */
++	    if (__glibc_likely (sym->st_value >= sym_map->l_tls_initimage_size))
++	      break;
++	    value += sym_map->l_tls_initimage - sym_map->l_addr;
++	  }
 +
 +	size_t size = sym->st_size;
 +	if (__builtin_expect (sym->st_size != refsym->st_size, 0))
@@ -1030,9 +954,29 @@
 +      }
 +#endif
 +
++#if !defined RTLD_BOOTSTRAP || !defined HAVE_Z_COMBRELOC
++    case R_RISCV_RELATIVE:
++      {
++# if !defined RTLD_BOOTSTRAP && !defined HAVE_Z_COMBRELOC
++	/* This is defined in rtld.c, but nowhere in the static libc.a;
++	   make the reference weak so static programs can still link.
++	   This declaration cannot be done when compiling rtld.c
++	   (i.e. #ifdef RTLD_BOOTSTRAP) because rtld.c contains the
++	   common defn for _dl_rtld_map, which is incompatible with a
++	   weak decl in the same file.  */
++#  ifndef SHARED
++	weak_extern (GL(dl_rtld_map));
++#  endif
++	if (map != &GL(dl_rtld_map)) /* Already done in rtld itself.  */
++# endif
++	  *addr_field = map->l_addr + reloc->r_addend;
++      break;
++    }
++#endif
++
 +    case R_RISCV_JUMP_SLOT:
-+    case _RISCV_SIM == _ABI64 ? R_RISCV_64 : R_RISCV_32:
-+      *addr_field = value + reloc->r_addend;
++    case __WORDSIZE == 64 ? R_RISCV_64 : R_RISCV_32:
++      *addr_field = value;
 +      break;
 +
 +    case R_RISCV_NONE:
@@ -1156,7 +1100,7 @@
 +#define TLS_DTV_UNALLOCATED	((void *) -1l)
 --- original-glibc/sysdeps/riscv/dl-trampoline.S
 +++ glibc/sysdeps/riscv/dl-trampoline.S
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,41 @@
 +#include <sysdep.h>
 +#include <sys/asm.h>
 +
@@ -1181,6 +1125,7 @@
 +  mv a0, t0       # link map
 +  add a1, a1, t1  # reloc offset (== thrice the .got.plt offset)
 +  jal _dl_fixup
++  move t0, a0
 +
 +  # Restore arguments from stack.
 +  REG_L ra, 9*SZREG(sp)
@@ -1195,7 +1140,7 @@
 +  addi sp, sp, 10*SZREG
 +
 +  # Invoke the callee.
-+  jr v0
++  jr t0
 +END(_dl_runtime_resolve)
 --- original-glibc/sysdeps/riscv/fpu/bits/mathinline.h
 +++ glibc/sysdeps/riscv/fpu/bits/mathinline.h
@@ -2693,7 +2638,7 @@
 +#endif
 --- original-glibc/sysdeps/riscv/__longjmp.S
 +++ glibc/sysdeps/riscv/__longjmp.S
-@@ -0,0 +1,67 @@
+@@ -0,0 +1,63 @@
 +/* Copyright (C) 1996, 1997, 2000, 2002, 2003, 2004
 +	Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -2748,16 +2693,12 @@
 +	fld  fs9, 16*SZREG+ 9*8(a0)
 +	fld  fs10,16*SZREG+10*8(a0)
 +	fld  fs11,16*SZREG+11*8(a0)
-+	fld  fs12,16*SZREG+12*8(a0)
-+	fld  fs13,16*SZREG+13*8(a0)
-+	fld  fs14,16*SZREG+14*8(a0)
-+	fld  fs15,16*SZREG+15*8(a0)
 +
 +	fssr a3
 +#endif
 +
-+	sltu a3, a1, 1    # a3 = (a1 == 0)
-+	add  v0, a3, a1   # v0 = (a1 == 0 ? 1 : a1)
++	seqz a0, a1
++	add  a0, a0, a1   # a0 = (a1 == 0) ? 1 : a1
 +	ret
 +
 +END(__longjmp)
@@ -2805,7 +2746,7 @@
 +CFLAGS-cxa_atexit.c += -mno-plt
 +
 +ifeq ($(subdir),misc)
-+sysdep_headers += sys/asm.h sgidefs.h
++sysdep_headers += sys/asm.h
 +endif
 +
 +ifeq ($(subdir),rt)
@@ -2815,14 +2756,11 @@
 +ASFLAGS-.os += $(pic-ccflag)
 --- original-glibc/sysdeps/riscv/memcpy.c
 +++ glibc/sysdeps/riscv/memcpy.c
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,70 @@
 +#include <string.h>
 +#include <stdint.h>
 +
-+#undef memcpy
-+#undef __memcpy_g
-+
-+void* __memcpy_g(void* aa, const void* bb, size_t n)
++void* __memcpy(void* aa, const void* bb, size_t n)
 +{
 +  #define BODY(a, b, t) { \
 +    t tt = *b; \
@@ -2836,7 +2774,7 @@
 +  uintptr_t msk = sizeof(long)-1;
 +  if (__builtin_expect(((uintptr_t)a & msk) != ((uintptr_t)b & msk) || n < sizeof(long), 0))
 +  {
-+foo:
++small:
 +    if (__builtin_expect(a < end, 1))
 +      while (a < end)
 +        BODY(a, b, char);
@@ -2847,86 +2785,158 @@
 +    while ((uintptr_t)a & msk)
 +      BODY(a, b, char);
 +
-+  long* __restrict__ la = (long*)a;
-+  const long* __restrict__ lb = (const long*)b;
++  long* la = (long*)a;
++  const long* lb = (const long*)b;
 +  long* lend = (long*)((uintptr_t)end & ~msk);
 +
 +  if (__builtin_expect(la < lend-8, 0))
 +  {
 +    while (la < lend-8)
 +    {
-+      *la++ = *lb++;
-+      *la++ = *lb++;
-+      *la++ = *lb++;
-+      *la++ = *lb++;
-+      *la++ = *lb++;
-+      *la++ = *lb++;
-+      *la++ = *lb++;
-+      *la++ = *lb++;
-+      *la++ = *lb++;
++      long b0 = *lb++;
++      long b1 = *lb++;
++      long b2 = *lb++;
++      long b3 = *lb++;
++      long b4 = *lb++;
++      long b5 = *lb++;
++      long b6 = *lb++;
++      long b7 = *lb++;
++      long b8 = *lb++;
++      *la++ = b0;
++      *la++ = b1;
++      *la++ = b2;
++      *la++ = b3;
++      *la++ = b4;
++      *la++ = b5;
++      *la++ = b6;
++      *la++ = b7;
++      *la++ = b8;
 +    }
 +    if (la == lend)
-+      goto bar;
++      goto maybe_done;
 +  }
 +
 +  do BODY(la, lb, long) while (la < lend);
 +
-+bar:
++maybe_done:
 +  a = (char*)la;
 +  b = (const char*)lb;
 +  if (__builtin_expect(a < end, 0))
-+    goto foo;
++    goto small;
 +  return aa;
 +}
-+libc_hidden_def (__memcpy_g)
-+strong_alias (__memcpy_g, memcpy)
++weak_alias (__memcpy, memcpy)
 +libc_hidden_builtin_def (memcpy)
---- original-glibc/sysdeps/riscv/memset.c
-+++ glibc/sysdeps/riscv/memset.c
-@@ -0,0 +1,43 @@
-+typedef unsigned long size_t;
-+//#include <string.h>
+--- original-glibc/sysdeps/riscv/memset.S
++++ glibc/sysdeps/riscv/memset.S
+@@ -0,0 +1,107 @@
++/* Copyright (C) 2014 Free Software Foundation, Inc.
++   Contributed by Andrew Waterman (waterman@cs.berkeley.edu) at UC Berkeley.
++   This file is part of the GNU C Library.
 +
-+void* memset(void* dst, int val, size_t n)
-+{
-+  void* dst0 = dst;
-+  void* end = dst + n;
-+  unsigned char v = val;
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
 +
-+  /* is dst word-aligned? */
-+  if (((long)dst & (sizeof(long)-1)) == 0)
-+  {
-+    long lval = v;
-+    lval |= lval << 8;
-+    lval |= lval << 16;
-+    #ifdef __riscv64
-+    lval |= lval << 32;
-+    #elif !defined(__riscv32)
-+    # error
-+    #endif
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
 +
-+    /* set 4 words at a time */
-+    for ( ; dst <= end - 4*sizeof(long); dst += 4*sizeof(long))
-+    {
-+      *(long*)(dst+0*sizeof(long)) = lval;
-+      *(long*)(dst+1*sizeof(long)) = lval;
-+      *(long*)(dst+2*sizeof(long)) = lval;
-+      *(long*)(dst+3*sizeof(long)) = lval;
-+    }
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library.  If not, see
++   <http://www.gnu.org/licenses/>.  */
 +
-+    /* set a word at a time */
-+    for ( ; dst <= end - sizeof(long); dst += sizeof(long))
-+      *(long*)dst = lval;
-+  }
++#include <sysdep.h>
++#include <sys/asm.h>
 +
-+  /* set a byte at a time */
-+  for ( ; dst < end; dst++)
-+    *(unsigned char*)dst = v;
++ENTRY(memset)
++  li a6, 15
++  move a4, a0
++  bleu a2, a6, .Ltiny
++  and a5, a4, 15
++  bnez a5, .Lmisaligned
 +
-+  return dst0;
-+}
++.Laligned:
++  bnez a1, .Lwordify
 +
-+weak_alias (memset, __GI_memset)
++.Lwordified:
++  and a3, a2, ~15
++  and a2, a2, 15
++  add a3, a3, a4
++
++#ifdef __riscv64
++1:sd a1, 0(a4)
++  sd a1, 8(a4)
++#else
++1:sw a1, 0(a4)
++  sw a1, 4(a4)
++  sw a1, 8(a4)
++  sw a1, 12(a4)
++#endif
++  add a4, a4, 16
++  bltu a4, a3, 1b
++
++  bnez a2, .Ltiny
++  ret
++
++.Ltiny:
++  sub a3, a6, a2
++  sll a3, a3, 2
++1:auipc t0, %pcrel_hi(.Ltable)
++  add a3, a3, t0
++.option push
++.option norvc
++.Ltable_misaligned:
++  jr a3, %pcrel_lo(1b)
++.Ltable:
++  sb a1,14(a4)
++  sb a1,13(a4)
++  sb a1,12(a4)
++  sb a1,11(a4)
++  sb a1,10(a4)
++  sb a1, 9(a4)
++  sb a1, 8(a4)
++  sb a1, 7(a4)
++  sb a1, 6(a4)
++  sb a1, 5(a4)
++  sb a1, 4(a4)
++  sb a1, 3(a4)
++  sb a1, 2(a4)
++  sb a1, 1(a4)
++  sb a1, 0(a4)
++.option pop
++  ret
++
++.Lwordify:
++  and a1, a1, 0xFF
++  sll a3, a1, 8
++  or  a1, a1, a3
++  sll a3, a1, 16
++  or  a1, a1, a3
++#ifdef __riscv64
++  sll a3, a1, 32
++  or  a1, a1, a3
++#endif
++  j .Lwordified
++
++.Lmisaligned:
++  sll a3, a5, 2
++1:auipc t0, %pcrel_hi(.Ltable_misaligned)
++  add a3, a3, t0
++  mv t0, ra
++  jalr a3, %pcrel_lo(1b)
++  mv ra, t0
++
++  add a5, a5, -16
++  sub a4, a4, a5
++  add a2, a2, a5
++  bleu a2, a6, .Ltiny
++  j .Laligned
++END(memset)
++
++weak_alias(memset, __GI_memset)
 --- original-glibc/sysdeps/riscv/memusage.h
 +++ glibc/sysdeps/riscv/memusage.h
 @@ -0,0 +1,21 @@
@@ -2978,7 +2988,7 @@
 +
 +#include <endian.h>
 +
-+#if _RISCV_SIM == _ABI64
++#ifdef __riscv64
 +# define __SIZEOF_PTHREAD_ATTR_T 56
 +# define __SIZEOF_PTHREAD_MUTEX_T 40
 +# define __SIZEOF_PTHREAD_MUTEXATTR_T 4
@@ -3016,7 +3026,7 @@
 +# define __have_pthread_attr_t  1
 +#endif
 +
-+#if _RISCV_SIM == _ABI64
++#ifdef __riscv64
 +typedef struct __pthread_internal_list
 +{
 +  struct __pthread_internal_list *__prev;
@@ -3039,13 +3049,13 @@
 +    int __lock;
 +    unsigned int __count;
 +    int __owner;
-+#if _RISCV_SIM == _ABI64
++#ifdef __riscv64
 +    unsigned int __nusers;
 +#endif
 +    /* KIND must stay at this position in the structure to maintain
 +       binary compatibility.  */
 +    int __kind;
-+#if _RISCV_SIM == _ABI64
++#ifdef __riscv64
 +    int __spins;
 +    __pthread_list_t __list;
 +# define __PTHREAD_MUTEX_HAVE_PREV	1
@@ -3111,7 +3121,7 @@
 +   structure of the attribute type is deliberately not exposed.  */
 +typedef union
 +{
-+# if _RISCV_SIM == _ABI64
++# ifdef __riscv64
 +  struct
 +  {
 +    int __lock;
@@ -3220,7 +3230,7 @@
 +# error "Never use <bits/semaphore.h> directly; include <semaphore.h> instead."
 +#endif
 +
-+#if _RISCV_SIM == _ABI64
++#ifdef __riscv64
 +# define __SIZEOF_SEM_T	32
 +#else
 +# define __SIZEOF_SEM_T	16
@@ -3791,7 +3801,7 @@
 +
 +/* Restore the old PID value in the parent.  */
 +#define RESTORE_PID \
-+	beqz	v0, 1f;			/* If we are the parent... */	\
++	beqz	a0, 1f;			/* If we are the parent... */	\
 +	lw	t0, PID_OFFSET(tp);	/* Load the saved PID.  */	\
 +	neg	t0, t0;			/* Re-negate it.  */		\
 +	sw	t0, PID_OFFSET(tp);	/* Restore the PID.  */		\
@@ -3800,7 +3810,7 @@
 +#include <sysdeps/unix/sysv/linux/riscv/vfork.S>
 --- original-glibc/sysdeps/riscv/nptl/sysdep-cancel.h
 +++ glibc/sysdeps/riscv/nptl/sysdep-cancel.h
-@@ -0,0 +1,143 @@
+@@ -0,0 +1,142 @@
 +/* Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
 +
@@ -3840,14 +3850,14 @@
 +      cfi_startproc;							\
 +  99: j __syscall_error;						\
 +  ENTRY (name)								\
-+    SINGLE_THREAD_P(v1);						\
-+    bnez v1, L(pseudo_cancel);  					\
++    SINGLE_THREAD_P(t0);						\
++    bnez t0, L(pseudo_cancel);  					\
 +  .type __##syscall_name##_nocancel, @function;				\
 +  .globl __##syscall_name##_nocancel;					\
 +  __##syscall_name##_nocancel:						\
-+    li v0, SYS_ify(syscall_name);					\
++    li a7, SYS_ify(syscall_name);					\
 +    scall;								\
-+    bltz v0, 99b;							\
++    bltz a0, 99b;							\
 +    ret;								\
 +  .size __##syscall_name##_nocancel,.-__##syscall_name##_nocancel;	\
 +  L(pseudo_cancel):							\
@@ -3857,16 +3867,16 @@
 +      PUSHARGS_##args;			/* save syscall args */		\
 +      CENABLE;								\
 +      POPARGS_##args;			/* restore syscall args */	\
-+      REG_S v0, STKOFF_SVMSK(sp);	/* save mask */			\
-+      li v0, SYS_ify (syscall_name);					\
++      REG_S a0, STKOFF_SVMSK(sp);	/* save mask */			\
++      li a7, SYS_ify (syscall_name);					\
 +      scall;								\
-+      REG_S v0, STKOFF_SC_V0(sp);	/* save syscall result */	\
++      REG_S a0, STKOFF_A0(sp);		/* save syscall result */	\
 +      REG_L a0, STKOFF_SVMSK(sp);	/* pass mask as arg1 */		\
 +      CDISABLE;								\
-+      REG_L v0, STKOFF_SC_V0(sp);	/* restore syscall result */	\
++      REG_L a0, STKOFF_A0(sp);		/* restore syscall result */	\
 +      REG_L ra, STKOFF_RA(sp);		/* restore return address */	\
 +      RESTORESTK;							\
-+      bltz v0, 99b;							\
++      bltz a0, 99b;							\
 +    L(pseudo_end):
 +
 +
@@ -3903,7 +3913,6 @@
 +# define STKOFF_A1	(STKOFF_A2 + SZREG)	/* MT and 2 args.  */
 +# define STKOFF_SVMSK	STKOFF_A1		/* Used if MT.  */
 +# define STKOFF_A0	(STKOFF_A1 + SZREG)	/* MT and 1 arg.  */
-+# define STKOFF_SC_V0	STKOFF_A0		/* Used if MT.  */
 +# define STKOFF_RA	(STKOFF_A0 + SZREG)	/* Used if MT.  */
 +
 +# define STKSPACE	(STKOFF_RA + SZREG)
@@ -4154,7 +4163,7 @@
 +
 +/* Restore the old PID value in the parent.  */
 +#define RESTORE_PID \
-+	beqz	v0, 1f;				/* If we are the parent... */	\
++	beqz	a0, 1f;				/* If we are the parent... */	\
 +	lw	t0, PID_OFFSET(tp);		/* Load the saved PID.  */	\
 +	neg	t0, t0;			 	/* Re-negate it.  */		\
 +	li	t1, 0x80000000;			/* Load 0x80000000... */	\
@@ -4166,7 +4175,7 @@
 +#include <sysdeps/unix/sysv/linux/riscv/vfork.S>
 --- original-glibc/sysdeps/riscv/preconfigure
 +++ glibc/sysdeps/riscv/preconfigure
-@@ -0,0 +1,20 @@
+@@ -0,0 +1,21 @@
 +case "$CC $CFLAGS $CPPFLAGS " in
 +*" -m32 "*) riscv_cc_abi=32 ;;
 +*" -m64 "*) riscv_cc_abi=64 ;;
@@ -4178,8 +4187,9 @@
 +*) riscv_config_abi=$riscv_cc_abi ;;
 +esac
 +case $riscv_config_abi in
-+default) machine=riscv/rv64 ;;
-+32) machine=riscv/rv32 ;;
++default) base_machine=riscv machine=riscv/rv64 ;;
++32) base_machine=riscv machine=riscv/rv32 ;;
++64) base_machine=riscv machine=riscv/rv64 ;;
 +esac
 +machine=$machine/$config_machine
 +if test $riscv_config_abi != $riscv_cc_abi; then
@@ -4187,6 +4197,28 @@
 +  # set this in case configure tests depend on it.
 +  CPPFLAGS="$CPPFLAGS -m$riscv_config_abi"
 +fi
+--- original-glibc/sysdeps/riscv/rv32/bits/wordsize.h
++++ glibc/sysdeps/riscv/rv32/bits/wordsize.h
+@@ -0,0 +1,19 @@
++/* Copyright (C) 2002, 2003 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, write to the Free
++   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
++   02111-1307 USA.  */
++
++#define __WORDSIZE 32
 --- original-glibc/sysdeps/riscv/rv32/Implies
 +++ glibc/sysdeps/riscv/rv32/Implies
 @@ -0,0 +1,2 @@
@@ -4198,6 +4230,29 @@
 +ifeq ($(filter -m32,$(CC)),)
 +CC += -m32
 +endif
+--- original-glibc/sysdeps/riscv/rv64/bits/wordsize.h
++++ glibc/sysdeps/riscv/rv64/bits/wordsize.h
+@@ -0,0 +1,20 @@
++/* Copyright (C) 2002, 2003 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, write to the Free
++   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
++   02111-1307 USA.  */
++
++#define __WORDSIZE 64
++#define __WORDSIZE_TIME64_COMPAT32 1
 --- original-glibc/sysdeps/riscv/rv64/gmp-mparam.h
 +++ glibc/sysdeps/riscv/rv64/gmp-mparam.h
 @@ -0,0 +1,31 @@
@@ -4345,7 +4400,7 @@
 +}
 --- original-glibc/sysdeps/riscv/setjmp.S
 +++ glibc/sysdeps/riscv/setjmp.S
-@@ -0,0 +1,83 @@
+@@ -0,0 +1,79 @@
 +/* Copyright (C) 1996, 1997, 2000, 2002, 2003, 2004
 +	Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -4408,17 +4463,13 @@
 +	fsd  fs9, 16*SZREG+ 9*8(a0)
 +	fsd  fs10,16*SZREG+10*8(a0)
 +	fsd  fs11,16*SZREG+11*8(a0)
-+	fsd  fs12,16*SZREG+12*8(a0)
-+	fsd  fs13,16*SZREG+13*8(a0)
-+	fsd  fs14,16*SZREG+14*8(a0)
-+	fsd  fs15,16*SZREG+15*8(a0)
 +
 +	REG_S a3, 15*SZREG(a0)
 +#endif
 +
 +#if defined NOT_IN_libc && defined IS_IN_rtld
 +  /* In ld.so we never save the signal mask.  */
-+  li v0, 0
++  li a0, 0
 +  ret
 +#else
 +  /* Make a tail call to __sigjmp_save; it takes the same args.  */
@@ -4429,50 +4480,6 @@
 +END(__sigsetjmp)
 +
 +weak_alias(_setjmp, __GI__setjmp)
---- original-glibc/sysdeps/riscv/sgidefs.h
-+++ glibc/sysdeps/riscv/sgidefs.h
-@@ -0,0 +1,41 @@
-+/* Copyright (C) 1996, 1997, 1998, 2003, 2004 Free Software Foundation, Inc.
-+   This file is part of the GNU C Library.
-+   Contributed by Ralf Baechle <ralf@gnu.org>.
-+
-+   The GNU C Library is free software; you can redistribute it and/or
-+   modify it under the terms of the GNU Lesser General Public
-+   License as published by the Free Software Foundation; either
-+   version 2.1 of the License, or (at your option) any later version.
-+
-+   The GNU C Library is distributed in the hope that it will be useful,
-+   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+   Lesser General Public License for more details.
-+
-+   You should have received a copy of the GNU Lesser General Public
-+   License along with the GNU C Library; if not, write to the Free
-+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-+   02111-1307 USA.  */
-+
-+#ifndef _SGIDEFS_H
-+#define _SGIDEFS_H	1
-+
-+/*
-+ * Subprogram calling convention
-+ */
-+#ifndef _ABIO32
-+# define _ABIO32		1
-+#endif
-+#define _RISCV_SIM_ABI32		_ABIO32
-+
-+#ifndef _ABIN32
-+# define _ABIN32		2
-+#endif
-+#define _RISCV_SIM_NABI32	_ABIN32
-+
-+#ifndef _ABI64
-+# define _ABI64			3
-+#endif
-+#define _RISCV_SIM_ABI64		_ABI64
-+
-+#endif /* sgidefs.h */
 --- original-glibc/sysdeps/riscv/soft-fp/sfp-machine.h
 +++ glibc/sysdeps/riscv/soft-fp/sfp-machine.h
 @@ -0,0 +1,47 @@
@@ -4562,7 +4569,7 @@
 +#endif	/* stackinfo.h */
 --- original-glibc/sysdeps/riscv/start.S
 +++ glibc/sysdeps/riscv/start.S
-@@ -0,0 +1,98 @@
+@@ -0,0 +1,66 @@
 +/* Startup code compliant to the ELF Mips ABI.
 +   Copyright (C) 1995, 1997, 2000, 2001, 2002, 2003, 2004
 +	Free Software Foundation, Inc.
@@ -4602,68 +4609,36 @@
 +
 +#define __ASSEMBLY__ 1
 +#include <entry.h>
-+#include <sgidefs.h>
++#include <sysdep.h>
 +#include <sys/asm.h>
 +
-+#ifndef ENTRY_POINT
-+#error ENTRY_POINT needs to be defined for start.S on MIPS/ELF.
-+#endif
++/* The entry point's job is to call __libc_start_main.  Per the ABI,
++   a0 contains the address of a function to be passed to atexit.
++   __libc_start_main wants this in a5.  */
 +
-+/* This is the canonical entry point, usually the first thing in the text
-+   segment.  The SVR4/Mips ABI (pages 3-31, 3-32) says that when the entry
-+   point runs, most registers' values are unspecified, except for:
-+
-+   v0 ($2)	Contains a function pointer to be registered with `atexit'.
-+		This is how the dynamic linker arranges to have DT_FINI
-+		functions called for shared libraries that have been loaded
-+		before this code runs.
-+
-+   sp ($29)	The stack contains the arguments and environment:
-+		0(%esp)			argc
-+		4(%esp)			argv[0]
-+		...
-+		(4*argc)(%esp)		NULL
-+		(4*(argc+1))(%esp)	envp[0]
-+		...
-+					NULL
-+   ra ($31)	The return address register is set to zero so that programs
-+		that search backword through stack frames recognize the last
-+		stack frame.
-+*/
-+
-+
-+/* We need to call:
-+   __libc_start_main (int (*main) (int, char **, char **), int argc,
-+		      char **argv, void (*init) (void), void (*fini) (void),
-+		      void (*rtld_fini) (void), void *stack_end)
-+*/
-+	
-+	.text
-+	.globl ENTRY_POINT
-+	.type ENTRY_POINT,@function
-+ENTRY_POINT:
-+	la    gp, _gp
-+	la    a0, main
++ENTRY(ENTRY_POINT)
++	lla   gp, _gp
++	move  a5, a0  /* rtld_fini */
++	lla   a0, main
 +	REG_L a1, 0(sp)      /* argc */
 +	addi  a2, sp, SZREG  /* argv */
 +	andi  sp, sp, ALMASK /* Align stack. */
-+	la    a3, __libc_csu_init
-+	la    a4, __libc_csu_fini
-+	move  a5, v0  /* rtld_fini */
++	lla   a3, __libc_csu_init
++	lla   a4, __libc_csu_fini
 +	move  a6, sp  /* stack_end */
 +	
-+	jump  __libc_start_main
++	jump  __libc_start_main@
++END(ENTRY_POINT)
 +
 +/* Define a symbol for the first piece of initialized data.  */
 +	.data
 +	.globl __data_start
 +__data_start:
-+	.long 0
 +	.weak data_start
 +	data_start = __data_start
 --- original-glibc/sysdeps/riscv/strcmp.S
 +++ glibc/sysdeps/riscv/strcmp.S
-@@ -0,0 +1,129 @@
+@@ -0,0 +1,127 @@
 +# Artisanally coded in California by A. Shell Waterman
 +
 +#include <sysdep.h>
@@ -4674,11 +4649,10 @@
 +#endif
 +
 +ENTRY(strcmp)
-+  or    v1, a0, a1
++  or    a4, a0, a1
 +  li    t2, -1
-+  and   v1, v1, SZREG-1
-+  li    v0, 0
-+  bnez  v1, .Lmisaligned
++  and   a4, a4, SZREG-1
++  bnez  a4, .Lmisaligned
 +
 +#if SZREG == 4
 +  li t3, 0x7f7f7f7f
@@ -4715,16 +4689,16 @@
 +        .Lnull0:
 +      .endif
 +      bne   a2, a3, .Lmisaligned
++      li    a0, 0
 +      ret
 +    .endif
 +  .endm
 +
 +.Lloop:
 +  # examine full words
-+  check_one_word 0 4
-+  check_one_word 1 4
-+  check_one_word 2 4
-+  check_one_word 3 4
++  check_one_word 0 3
++  check_one_word 1 3
++  check_one_word 2 3
 +  # backwards branch to .Lloop contained above
 +
 +.Lmismatch:
@@ -4743,42 +4717,41 @@
 +
 +  srl   a0, a2, 8*SZREG-16
 +  srl   a1, a3, 8*SZREG-16
-+  sub   v0, a0, a1
-+  and   v1, v0, 0xff
-+  bnez  v1, 1f
++  sub   a0, a0, a1
++  and   a4, a0, 0xff
++  bnez  a4, 1f
 +  ret
 +
 +.Lmismatch_upper:
 +  srl   a0, a0, 8*SZREG-16
 +  srl   a1, a1, 8*SZREG-16
-+  sub   v0, a0, a1
-+  and   v1, v0, 0xff
-+  bnez  v1, 1f
++  sub   a2, a0, a1
++  and   a3, a2, 0xff
++  bnez  a3, 1f
 +  ret
 +
 +1:and   a0, a0, 0xff
 +  and   a1, a1, 0xff
-+  sub   v0, a0, a1
++  sub   a0, a0, a1
 +  ret
 +
 +.Lmisaligned:
 +  # misaligned
-+  lbu   v0, 0(a0)
-+  lbu   v1, 0(a1)
++  lbu   a2, 0(a0)
++  lbu   a3, 0(a1)
 +  add   a0, a0, 1
 +  add   a1, a1, 1
-+  bne   v0, v1, 1f
-+  bnez  v0, .Lmisaligned
++  bne   a2, a3, 1f
++  bnez  a2, .Lmisaligned
 +
 +1:
-+  sub   v0, v0, v1
++  sub   a0, a2, a3
 +  ret
 +
 +  # cases in which a null byte was detected
-+  foundnull 0, 4
-+  foundnull 1, 4
-+  foundnull 2, 4
-+  foundnull 3, 4
++  foundnull 0, 3
++  foundnull 1, 3
++  foundnull 2, 3
 +
 +END(strcmp)
 +
@@ -4979,7 +4952,7 @@
 +TID_OFFSET			thread_offsetof (tid)
 --- original-glibc/sysdeps/riscv/tst-audit.h
 +++ glibc/sysdeps/riscv/tst-audit.h
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,26 @@
 +/* Definitions for testing PLT entry/exit auditing.  ARM version.
 +
 +   Copyright (C) 2005 Free Software Foundation, Inc.
@@ -5001,18 +4974,11 @@
 +   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
 +   02111-1307 USA.  */
 +
-+#include <sgidefs.h>
-+
-+#if _RISCV_SIM == _ABI32
-+#define pltenter la_mips_n32_gnu_pltenter
-+#define pltexit la_mips_n32_gnu_pltexit
-+#else
-+#define pltenter la_mips_n64_gnu_pltenter
-+#define pltexit la_mips_n64_gnu_pltexit
-+#endif
-+#define La_regs La_mips_64_regs
-+#define La_retval La_mips_64_retval
-+#define int_retval lrv_v0
++#define pltenter la_riscv_gnu_pltenter
++#define pltexit la_riscv_gnu_pltexit
++#define La_regs La_riscv_regs
++#define La_retval La_riscv_retval
++#define int_retval lrv_a0
 --- original-glibc/sysdeps/riscv/Versions
 +++ glibc/sysdeps/riscv/Versions
 @@ -0,0 +1,5 @@
@@ -5027,7 +4993,7 @@
 +#include <sysdep.c>
 --- original-glibc/sysdeps/unix/riscv/sysdep.c
 +++ glibc/sysdeps/unix/riscv/sysdep.c
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,41 @@
 +/* Copyright (C) 1992, 1993, 1994, 1997, 1998, 1999, 2000, 2002, 2003 
 +   Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -5051,12 +5017,10 @@
 +#include <sysdep.h>
 +#include <errno.h>
 +
-+long __syscall_error()
++long __syscall_error(long a0)
 +{
-+  register long v0 asm("v0");
-+
-+  /* Referencing errno may call a function, clobbering v0. */
-+  long errno_val = -v0;
++  /* Referencing errno may call a function, clobbering a0. */
++  long errno_val = -a0;
 +
 +#if defined (EWOULDBLOCK_sys) && EWOULDBLOCK_sys != EAGAIN
 +	/* We translate the system's EWOULDBLOCK error into EAGAIN.
@@ -5114,7 +5078,7 @@
 +#define PSEUDO_NOERRNO(name, syscall_name, args)	\
 +  .align 2;						\
 +  ENTRY(name)						\
-+  li v0, SYS_ify(syscall_name);				\
++  li a7, SYS_ify(syscall_name);				\
 +  scall
 +
 +#undef PSEUDO_END_NOERRNO
@@ -5130,8 +5094,8 @@
 +
 +#define ret_ERRVAL ret
 +
-+#define r0	v0
-+#define r1	v1
++#define r0	a0
++#define r1	a1
 +#define MOVE(x,y)	move y , x
 +
 +#define L(label) .L ## label
@@ -5140,9 +5104,9 @@
 +  .align 2;							\
 +  99: j __syscall_error;					\
 +  ENTRY(name)							\
-+  li v0, SYS_ify(syscall_name);					\
++  li a7, SYS_ify(syscall_name);					\
 +  scall;							\
-+  bltz v0, 99b;							\
++  bltz a0, 99b;							\
 +L(syse1):
 +
 +#endif
@@ -5206,25 +5170,6 @@
 +#endif /* __riscv_atomic */
 +
 +#endif /* bits/atomic.h */
---- original-glibc/sysdeps/unix/sysv/linux/riscv/bits/endian.h
-+++ glibc/sysdeps/unix/sysv/linux/riscv/bits/endian.h
-@@ -0,0 +1,16 @@
-+/* The MIPS architecture has selectable endianness.
-+   Linux/MIPS exists in two both little and big endian flavours and we
-+   want to be able to share the installed headerfiles between both,
-+   so we define __BYTE_ORDER based on GCC's predefines.  */
-+
-+#ifndef _ENDIAN_H
-+# error "Never use <bits/endian.h> directly; include <endian.h> instead."
-+#endif
-+
-+#ifdef __RISCVEB__
-+# define __BYTE_ORDER __BIG_ENDIAN
-+#else
-+# ifdef __RISCVEL__
-+#  define __BYTE_ORDER __LITTLE_ENDIAN
-+# endif
-+#endif
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/bits/mman.h
 +++ glibc/sysdeps/unix/sysv/linux/riscv/bits/mman.h
 @@ -0,0 +1,38 @@
@@ -5304,7 +5249,7 @@
 +#endif
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/clone.S
 +++ glibc/sysdeps/unix/sysv/linux/riscv/clone.S
-@@ -0,0 +1,119 @@
+@@ -0,0 +1,117 @@
 +/* Copyright (C) 1996, 1997, 2000, 2003, 2005 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
 +   Contributed by Ralf Baechle <ralf@linux-mips.org>, 1996.
@@ -5346,35 +5291,34 @@
 +LEAF(__clone)
 +
 +	/* Sanity check arguments.  */
-+	li		v0,EINVAL
-+	beqz		a0,L(error)	/* No NULL function pointers.  */
-+	beqz		a1,L(error)	/* No NULL stack pointers.  */
++	beqz		a0,L(invalid)	/* No NULL function pointers.  */
++	beqz		a1,L(invalid)	/* No NULL stack pointers.  */
 +
-+	addi		a1,a1,-32		/* Reserve argument save space.  */
++	addi		a1,a1,-32	/* Reserve argument save space.  */
 +	REG_S		a0,0(a1)	/* Save function pointer.  */
 +	REG_S		a3,SZREG(a1)	/* Save argument pointer.  */
 +#ifdef RESET_PID
 +	REG_S		a2,(SZREG*2)(a1)	/* Save clone flags.  */
 +#endif
 +
++	/* The syscall expects the args to be in different slots.  */
 +	move		a0,a2
-+
-+	/* Shuffle in the last three arguments - arguments 5, 6, and 7 to
-+	   this function, but arguments 3, 4, and 5 to the syscall.  */
 +	move		a2,a4
 +	move		a3,a5
 +	move		a4,a6
 +
 +	/* Do the system call */
-+	li		v0,__NR_clone
++	li		a7,__NR_clone
 +	scall
 +
-+	bltz		v0,L(error)
-+	beqz		v0,L(thread_start)
++	bltz		a0,L(error)
++	beqz		a0,L(thread_start)
 +
 +	/* Successful return from the parent */
 +	ret
 +
++L(invalid):
++	li		a0, 0
 +	/* Something bad happened -- no child created */
 +L(error):
 +	j		__syscall_error
@@ -5398,27 +5342,26 @@
 +#endif
 +
 +	/* Restore the arg for user's function.  */
-+	REG_L		v0,0(sp)	/* Function pointer.  */
++	REG_L		a1,0(sp)	/* Function pointer.  */
 +	REG_L		a0,SZREG(sp)	/* Argument pointer.  */
 +
 +	/* Call the user's function.  */
-+	jalr		v0
++	jalr		a1
 +
-+	/* Call _exit rather than doing it inline for breakpoint purposes.  */
-+	move		a0,v0
++	/* Call _exit with the function's return value.  */
 +	j		_exit
 +
 +#ifdef RESET_PID
 +L(restore_pid):
 +	and		a1,a0,CLONE_VM
-+	li		v0,-1
++	li		a2,-1
 +	bnez		a1,L(gotpid)
-+	li		v0,__NR_getpid
++	li		a2,__NR_getpid
 +	scall
 +L(gotpid):
-+	sw		v0,PID_OFFSET(tp)
-+	sw		v0,TID_OFFSET(tp)
-+	b		L(donepid)
++	sw		a2,PID_OFFSET(tp)
++	sw		a2,TID_OFFSET(tp)
++	j		L(donepid)
 +#endif
 +
 +	END(__thread_start)
@@ -5632,7 +5575,7 @@
 +#endif
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/getcontext.S
 +++ glibc/sysdeps/unix/sysv/linux/riscv/getcontext.S
-@@ -0,0 +1,86 @@
+@@ -0,0 +1,82 @@
 +/* Save current context.
 +   Copyright (C) 2009 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -5664,42 +5607,38 @@
 +LEAF (__getcontext)
 +	REG_S	ra, MCONTEXT_PC(a0)
 +	REG_S	ra, ( 1 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s0, ( 2 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s1, ( 3 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s2, ( 4 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s3, ( 5 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s4, ( 6 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s5, ( 7 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s6, ( 8 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s7, ( 9 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s8, (10 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s9, (11 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s10,(12 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s11,(13 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	sp, (14 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	tp, (15 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	sp, ( 2 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	tp, ( 4 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s0, ( 8 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s1, ( 9 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s2, (18 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s3, (19 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s4, (20 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s5, (21 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s6, (22 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s7, (23 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s8, (24 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s9, (25 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s10,(26 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s11,(27 * SZREG + MCONTEXT_GREGS)(a0)
 +
 +#ifdef __riscv_hard_float
-+	frsr v1
++	frsr	a1
 +
-+	fsd	fs0, ( 0 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs1, ( 1 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs2, ( 2 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs3, ( 3 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs4, ( 4 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs5, ( 5 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs6, ( 6 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs7, ( 7 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs8, ( 8 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs9, ( 9 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs10,(10 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs11,(11 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs12,(12 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs13,(13 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs14,(14 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs15,(15 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs0, ( 8 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs1, ( 9 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs2, (18 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs3, (19 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs4, (20 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs5, (21 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs6, (22 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs7, (23 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs8, (24 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs9, (25 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs10,(26 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs11,(27 * 8 + MCONTEXT_FPREGS)(a0)
 +
-+	sw	v1, MCONTEXT_FSR(a0)
++	sw	a1, MCONTEXT_FSR(a0)
 +#endif /* __mips_hard_float */
 +
 +/* rt_sigprocmask (SIG_BLOCK, NULL, &ucp->uc_sigmask, _NSIG8) */
@@ -5708,9 +5647,9 @@
 +	move	a1, zero
 +	li	a0, SIG_BLOCK
 +
-+	li	v0, SYS_ify (rt_sigprocmask)
++	li	a7, SYS_ify (rt_sigprocmask)
 +	scall
-+	bltz	v0, 99f
++	bltz	a0, 99f
 +
 +	ret
 +
@@ -5937,10 +5876,10 @@
 +  char str[82 * ((REGDUMP_NREGS + REGDUMP_PER_LINE - 1) / REGDUMP_PER_LINE)];
 +
 +  static const char names[REGDUMP_NREGS][4] = {
-+    "pc", "ra", "s0", "s1", "s2", "s3", "s4", "s5",
-+    "s6", "s7", "s8", "s9", "sA", "sB", "sp", "tp",
-+    "v0", "v1", "a0", "a1", "a2", "a3", "a4", "a5",
-+    "a6", "a7", "t0", "t1", "t2", "t3", "t4", "gp"
++    "pc", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
++    "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
++    "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
++    "s8", "s9", "sA", "sB", "t3", "t4", "t5", "t6"
 +  };
 +
 +  str[0] = 0;
@@ -6022,7 +5961,7 @@
 +endif
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/setcontext.S
 +++ glibc/sysdeps/unix/sysv/linux/riscv/setcontext.S
-@@ -0,0 +1,100 @@
+@@ -0,0 +1,96 @@
 +/* Set current context.
 +   Copyright (C) 2009 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -6061,62 +6000,58 @@
 +	add     a1, a0, UCONTEXT_SIGMASK
 +	li	a0, SIG_SETMASK
 +
-+	li	v0, SYS_ify (rt_sigprocmask)
++	li	a7, SYS_ify (rt_sigprocmask)
 +	scall
 +
-+	bltz	v0, 99f
++	bltz	a0, 99f
 +
 +#ifdef __riscv_hard_float
-+	lw	v1, MCONTEXT_FSR(t0)
++	lw	t1, MCONTEXT_FSR(t0)
 +
-+	fld	fs0, ( 0 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs1, ( 1 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs2, ( 2 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs3, ( 3 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs4, ( 4 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs5, ( 5 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs6, ( 6 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs7, ( 7 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs8, ( 8 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs9, ( 9 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs10,(10 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs11,(11 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs12,(12 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs13,(13 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs14,(14 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs15,(15 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs0, ( 8 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs1, ( 9 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs2, (18 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs3, (19 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs4, (20 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs5, (21 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs6, (22 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs7, (23 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs8, (24 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs9, (25 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs10,(26 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs11,(27 * 8 + MCONTEXT_FPREGS)(t0)
 +
-+	fssr	v1
-+#endif /* __mips_hard_float */
++	fssr	t1
++#endif /* __riscv_hard_float */
 +
 +	/* Note the contents of argument registers will be random
 +	   unless makecontext() has been called.  */
-+	REG_L	v1, MCONTEXT_PC(t0)
++	REG_L	t1, MCONTEXT_PC(t0)
 +	REG_L	ra, ( 1 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s0, ( 2 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s1, ( 3 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s2, ( 4 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s3, ( 5 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s4, ( 6 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s5, ( 7 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s6, ( 8 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s7, ( 9 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s8, (10 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s9, (11 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s10,(12 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s11,(13 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	sp, (14 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	tp, (15 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a0, (18 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a1, (19 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a2, (20 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a3, (21 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a4, (22 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a5, (23 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a6, (24 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a7, (25 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	sp, ( 2 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	tp, ( 4 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s0, ( 8 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s1, ( 9 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	a0, (10 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	a1, (11 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	a2, (12 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	a3, (13 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	a4, (14 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	a5, (15 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	a6, (16 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	a7, (17 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s2, (18 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s3, (19 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s4, (20 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s5, (21 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s6, (22 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s7, (23 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s8, (24 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s9, (25 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s10,(26 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s11,(27 * SZREG + MCONTEXT_GREGS)(t0)
 +
-+	jr	v1
++	jr	t1
 +
 +99:	j	__syscall_error
 +
@@ -6155,103 +6090,9 @@
 +
 +#define CALL_SIGHANDLER(handler, signo, ctx) \
 +  (handler)((signo), SIGCONTEXT_EXTRA_ARGS (ctx))
---- original-glibc/sysdeps/unix/sysv/linux/riscv/socket.S
-+++ glibc/sysdeps/unix/sysv/linux/riscv/socket.S
-@@ -0,0 +1,91 @@
-+/* Copyright (C) 1997, 1998, 2002, 2003 Free Software Foundation, Inc.
-+   This file is part of the GNU C Library.
-+   Contributed by Miguel de Icaza <miguel@gnu.ai.mit.edu>, 1997.
-+
-+   The GNU C Library is free software; you can redistribute it and/or
-+   modify it under the terms of the GNU Lesser General Public
-+   License as published by the Free Software Foundation; either
-+   version 2.1 of the License, or (at your option) any later version.
-+
-+   The GNU C Library is distributed in the hope that it will be useful,
-+   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+   Lesser General Public License for more details.
-+
-+   You should have received a copy of the GNU Lesser General Public
-+   License along with the GNU C Library; if not, write to the Free
-+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-+   02111-1307 USA.  */
-+
-+#include <sysdep-cancel.h>
-+#include <socketcall.h>
-+
-+#define P(a, b) P2(a, b)
-+#define P2(a, b) a##b
-+
-+#ifndef NARGS
-+#ifdef socket
-+#error NARGS not defined
-+#endif
-+#define NARGS 3
-+#endif
-+
-+	.text
-+/* The socket-oriented system calls are handled unusually in Linux.
-+   They are all gated through the single `socketcall' system call number.
-+   `socketcall' takes two arguments: the first is the subcode, specifying
-+   which socket function is being called; and the second is a pointer to
-+   the arguments to the specific function.
-+
-+   The .S files for the other calls just #define socket and #include this.  */
-+
-+#ifndef __socket
-+# ifndef NO_WEAK_ALIAS
-+#  define __socket P(__,socket)
-+# else
-+#  define __socket socket
-+# endif
-+#endif
-+
-+LEAF (__socket)
-+
-+	addi  sp, sp, -SZREG*NARGS
-+
-+	REG_S a0, 0*SZREG(sp)
-+	REG_S a1, 1*SZREG(sp)
-+#if NARGS > 2
-+	REG_S a2, 2*SZREG(sp)
-+#if NARGS > 3
-+	REG_S a3, 3*SZREG(sp)
-+#if NARGS > 4
-+	REG_S a4, 4*SZREG(sp)
-+#if NARGS > 5
-+	REG_S a5, 5*SZREG(sp)
-+#endif
-+#endif
-+#endif
-+#endif
-+
-+#if defined NEED_CANCELLATION && defined CENABLE
-+	SINGLE_THREAD_P(a0)
-+	bnez  a0, 1f
-+#endif
-+	li    a0, P(SOCKOP_,socket)   /* arg 1: socket subfunction */
-+	move  a1, sp			/* arg 2: parameter block */
-+	li    v0, SYS_ify (rt_sigprocmask)
-+	scall
-+
-+	addi  sp, sp, SZREG*NARGS
-+	bltz	v0, 99f
-+
-+#if defined NEED_CANCELLATION && defined CENABLE
-+1:sbreak
-+#endif
-+
-+99: 	j	__syscall_error
-+
-+END (__socket)
-+
-+#ifndef NO_WEAK_ALIAS
-+weak_alias (__socket, socket)
-+#endif
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/__start_context.S
 +++ glibc/sysdeps/unix/sysv/linux/riscv/__start_context.S
-@@ -0,0 +1,38 @@
+@@ -0,0 +1,36 @@
 +/* Modify saved context.
 +   Copyright (C) 2009 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -6285,14 +6126,12 @@
 +	/* setcontext (ucp) */
 +	move	a0, s0
 +	jal	__setcontext
-+	move	a0, v0
-+
 +1:	jal	HIDDEN_JUMPTARGET (exit)
 +
 +PSEUDO_END (__start_context)
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/swapcontext.S
 +++ glibc/sysdeps/unix/sysv/linux/riscv/swapcontext.S
-@@ -0,0 +1,138 @@
+@@ -0,0 +1,131 @@
 +/* Save and set current context.
 +   Copyright (C) 2009 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -6325,106 +6164,99 @@
 +
 +	REG_S	ra, MCONTEXT_PC(a0)
 +	REG_S	ra, ( 1 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s0, ( 2 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s1, ( 3 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s2, ( 4 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s3, ( 5 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s4, ( 6 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s5, ( 7 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s6, ( 8 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s7, ( 9 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s8, (10 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s9, (11 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s10,(12 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	s11,(13 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	sp, (14 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	tp, (15 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	sp, ( 2 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	tp, ( 4 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s0, ( 8 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s1, ( 9 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s2, (18 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s3, (19 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s4, (20 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s5, (21 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s6, (22 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s7, (23 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s8, (24 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s9, (25 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s10,(26 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	s11,(27 * SZREG + MCONTEXT_GREGS)(a0)
 +
 +#ifdef __riscv_hard_float
-+	frsr v1
++	frsr a1
 +
-+	fsd	fs0, ( 0 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs1, ( 1 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs2, ( 2 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs3, ( 3 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs4, ( 4 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs5, ( 5 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs6, ( 6 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs7, ( 7 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs8, ( 8 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs9, ( 9 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs10,(10 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs11,(11 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs12,(12 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs13,(13 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs14,(14 * 8 + MCONTEXT_FPREGS)(a0)
-+	fsd	fs15,(15 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs0, ( 8 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs1, ( 9 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs2, (18 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs3, (19 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs4, (20 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs5, (21 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs6, (22 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs7, (23 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs8, (24 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs9, (25 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs10,(26 * 8 + MCONTEXT_FPREGS)(a0)
++	fsd	fs11,(27 * 8 + MCONTEXT_FPREGS)(a0)
 +
-+	sw	v1, MCONTEXT_FSR(a0)
-+#endif /* __mips_hard_float */
++	sw	a1, MCONTEXT_FSR(a0)
++#endif /* __riscv_hard_float */
 +
 +/* rt_sigprocmask (SIG_SETMASK, &ucp->uc_sigmask, NULL, _NSIG8) */
 +	li	a3, _NSIG8
-+	add	a2, a0, UCONTEXT_SIGMASK
-+	add     a1, a1, UCONTEXT_SIGMASK
++	move	a2, zero
++	add     a1, a0, UCONTEXT_SIGMASK
 +	li	a0, SIG_SETMASK
 +
-+	li	v0, SYS_ify (rt_sigprocmask)
++	li	a7, SYS_ify (rt_sigprocmask)
 +	scall
 +
-+	bltz	v0, 99f
++	bltz	a0, 99f
 +
 +#ifdef __riscv_hard_float
-+	lw	v1, MCONTEXT_FSR(t0)
++	lw	t1, MCONTEXT_FSR(t0)
 +
-+	fld	fs0, ( 0 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs1, ( 1 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs2, ( 2 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs3, ( 3 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs4, ( 4 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs5, ( 5 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs6, ( 6 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs7, ( 7 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs8, ( 8 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs9, ( 9 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs10,(10 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs11,(11 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs12,(12 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs13,(13 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs14,(14 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs15,(15 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs0, ( 8 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs1, ( 9 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs2, (18 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs3, (19 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs4, (20 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs5, (21 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs6, (22 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs7, (23 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs8, (24 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs9, (25 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs10,(26 * 8 + MCONTEXT_FPREGS)(t0)
++	fld	fs11,(27 * 8 + MCONTEXT_FPREGS)(t0)
 +
-+	fssr	v1
-+#endif /* __mips_hard_float */
++	fssr	t1
++#endif /* __riscv_hard_float */
 +
 +	/* Note the contents of argument registers will be random
 +	   unless makecontext() has been called.  */
-+	REG_L	v1, MCONTEXT_PC(t0)
++	REG_L	t1, MCONTEXT_PC(t0)
 +	REG_L	ra, ( 1 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s0, ( 2 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s1, ( 3 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s2, ( 4 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s3, ( 5 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s4, ( 6 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s5, ( 7 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s6, ( 8 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s7, ( 9 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s8, (10 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s9, (11 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s10,(12 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s11,(13 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	sp, (14 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	tp, (15 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a0, (18 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a1, (19 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a2, (20 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a3, (21 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a4, (22 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a5, (23 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a6, (24 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a7, (25 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	sp, ( 2 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	tp, ( 4 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s0, ( 8 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s1, ( 9 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	a0, (10 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	a1, (11 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	a2, (12 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	a3, (13 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	a4, (14 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	a5, (15 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	a6, (16 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	a7, (17 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s2, (18 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s3, (19 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s4, (20 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s5, (21 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s6, (22 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s7, (23 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s8, (24 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s9, (25 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s10,(26 * SZREG + MCONTEXT_GREGS)(t0)
++	REG_L	s11,(27 * SZREG + MCONTEXT_GREGS)(t0)
 +
-+	jr	v1
++	jr	t1
++
 +
 +99:	j	__syscall_error
 +
@@ -6433,7 +6265,7 @@
 +weak_alias (__swapcontext, swapcontext)
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/sys/procfs.h
 +++ glibc/sysdeps/unix/sysv/linux/riscv/sys/procfs.h
-@@ -0,0 +1,128 @@
+@@ -0,0 +1,113 @@
 +/* Copyright (C) 1996, 1997, 1999, 2000, 2002, 2003, 2004
 +	Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -6461,25 +6293,19 @@
 +   used on Linux.  */
 +
 +#include <features.h>
-+#include <sgidefs.h>
 +#include <sys/time.h>
 +#include <sys/types.h>
 +#include <sys/user.h>
-+#include <sgidefs.h>
++#include <sys/ucontext.h>
 +
 +/* ELF register definitions */
-+#define ELF_NGREG	45
-+#define ELF_NFPREG	33
++#define ELF_NGREG	NGREG
++#define ELF_NFPREG	NFPREG
 +
-+#if _RISCV_SIM == _ABIN32
-+__extension__ typedef unsigned long long elf_greg_t;
-+#else
-+typedef unsigned long elf_greg_t;
-+#endif
-+typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-+
-+typedef double elf_fpreg_t;
-+typedef elf_fpreg_t elf_fpregset_t[ELF_NFPREG];
++typedef greg_t elf_greg_t;
++typedef gregset_t elf_gregset_t;
++typedef fpreg_t elf_fpreg_t;
++typedef fpregset_t elf_fpregset_t;
 +
 +__BEGIN_DECLS
 +
@@ -6502,13 +6328,8 @@
 +  {
 +    struct elf_siginfo pr_info;		/* Info associated with signal.  */
 +    short int pr_cursig;		/* Current signal.  */
-+#if _RISCV_SIM == _ABIN32
-+    __extension__ unsigned long long int pr_sigpend;
-+    __extension__ unsigned long long int pr_sighold;
-+#else
 +    unsigned long int pr_sigpend;	/* Set of pending signals.  */
 +    unsigned long int pr_sighold;	/* Set of held signals.  */
-+#endif
 +    __pid_t pr_pid;
 +    __pid_t pr_ppid;
 +    __pid_t pr_pgrp;
@@ -6530,11 +6351,7 @@
 +    char pr_sname;			/* Char for pr_state.  */
 +    char pr_zomb;			/* Zombie.  */
 +    char pr_nice;			/* Nice val.  */
-+#if _RISCV_SIM == _ABIN32
-+    __extension__ unsigned long long int pr_flag;
-+#else
 +    unsigned long int pr_flag;		/* Flags.  */
-+#endif
 +    long pr_uid;
 +    long pr_gid;
 +    int pr_pid, pr_ppid, pr_pgrp, pr_sid;
@@ -6564,7 +6381,7 @@
 +#endif	/* sys/procfs.h */
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/sys/ucontext.h
 +++ glibc/sysdeps/unix/sysv/linux/riscv/sys/ucontext.h
-@@ -0,0 +1,66 @@
+@@ -0,0 +1,67 @@
 +/* Copyright (C) 1997, 1998, 2000, 2003, 2004, 2006, 2009 Free Software
 +   Foundation, Inc.  This file is part of the GNU C Library.
 +
@@ -6598,6 +6415,7 @@
 +/* Type for general register.  Even in o32 we assume 64-bit registers,
 +   like the kernel.  */
 +__extension__ typedef unsigned long long int greg_t;
++typedef double fpreg_t;
 +
 +/* Number of general registers.  */
 +#define NGREG	32
@@ -6605,17 +6423,17 @@
 +
 +#define REG_PC 0
 +#define REG_RA 1
-+#define REG_S0 2
-+#define REG_A0 18
++#define REG_SP 2
++#define REG_TP 4
++#define REG_S0 8
++#define REG_A0 10
 +#define REG_NARGS 8
-+#define REG_SP 14
-+#define REG_TP 15
 +
 +/* Container for all general registers.  */
 +typedef greg_t gregset_t[NGREG];
 +
 +/* Container for all FPU registers.  */
-+typedef double fpregset_t[NFPREG];
++typedef fpreg_t fpregset_t[NFPREG];
 +
 +/* Context to describe whole processor state.  */
 +typedef struct sigcontext mcontext_t;
@@ -6676,7 +6494,7 @@
 +}
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/sysdep.h
 +++ glibc/sysdeps/unix/sysv/linux/riscv/sysdep.h
-@@ -0,0 +1,234 @@
+@@ -0,0 +1,235 @@
 +/* Copyright (C) 2011-2014
 +   This file is part of the GNU C Library.
 +
@@ -6752,13 +6570,14 @@
 +	long _sys_result;						\
 +									\
 +	{								\
-+	register long __v0 asm("v0") = number;				\
++	register long __a7 asm("a7") = number;				\
++	register long __a0 asm("a0");					\
 +	__asm__ volatile ( 						\
 +	"scall\n\t" 							\
-+	: "+r" (__v0)							\
-+	: "r" (__v0)							\
++	: "=r" (__a0)							\
++	: "r" (__a7)							\
 +	: __SYSCALL_CLOBBERS); 						\
-+	_sys_result = __v0;						\
++	_sys_result = __a0;						\
 +	}								\
 +	_sys_result;							\
 +})
@@ -6768,14 +6587,14 @@
 +	long _sys_result;						\
 +									\
 +	{								\
-+	register long __v0 asm("v0") = number;				\
-+	register long __a0 asm("a0") = (long) (arg0); 			\
++	register long __a7 asm("a7") = number;				\
++	register long __a0 asm("a0") = (long) (arg0);			\
 +	__asm__ volatile ( 						\
 +	"scall\n\t" 							\
-+	: "+r" (__v0)							\
-+	: "r" (__v0), "r"(__a0)						\
++	: "+r" (__a0)							\
++	: "r" (__a7)							\
 +	: __SYSCALL_CLOBBERS); 						\
-+	_sys_result = __v0;						\
++	_sys_result = __a0;						\
 +	}								\
 +	_sys_result;							\
 +})
@@ -6785,15 +6604,15 @@
 +	long _sys_result;						\
 +									\
 +	{								\
-+	register long __v0 asm("v0") = number;				\
-+	register long __a0 asm("a0") = (long) (arg0); 			\
-+	register long __a1 asm("a1") = (long) (arg1); 			\
++	register long __a7 asm("a7") = number;				\
++	register long __a0 asm("a0") = (long) (arg0);			\
++	register long __a1 asm("a1") = (long) (arg1);			\
 +	__asm__ volatile ( 						\
 +	"scall\n\t" 							\
-+	: "+r" (__v0)							\
-+	: "r" (__v0), "r"(__a0), "r"(__a1)				\
++	: "+r" (__a0)							\
++	: "r" (__a7), "r"(__a1)						\
 +	: __SYSCALL_CLOBBERS); 						\
-+	_sys_result = __v0;						\
++	_sys_result = __a0;						\
 +	}								\
 +	_sys_result;							\
 +})
@@ -6803,16 +6622,16 @@
 +	long _sys_result;						\
 +									\
 +	{								\
-+	register long __v0 asm("v0") = number;				\
-+	register long __a0 asm("a0") = (long) (arg0); 			\
-+	register long __a1 asm("a1") = (long) (arg1); 			\
-+	register long __a2 asm("a2") = (long) (arg2); 			\
++	register long __a7 asm("a7") = number;				\
++	register long __a0 asm("a0") = (long) (arg0);			\
++	register long __a1 asm("a1") = (long) (arg1);			\
++	register long __a2 asm("a2") = (long) (arg2);			\
 +	__asm__ volatile ( 						\
 +	"scall\n\t" 							\
-+	: "+r" (__v0)							\
-+	: "r" (__v0), "r"(__a0), "r"(__a1), "r"(__a2)			\
++	: "+r" (__a0)							\
++	: "r" (__a7), "r"(__a1), "r"(__a2)				\
 +	: __SYSCALL_CLOBBERS); 						\
-+	_sys_result = __v0;						\
++	_sys_result = __a0;						\
 +	}								\
 +	_sys_result;							\
 +})
@@ -6822,17 +6641,17 @@
 +	long _sys_result;						\
 +									\
 +	{								\
-+	register long __v0 asm("v0") = number;				\
-+	register long __a0 asm("a0") = (long) (arg0); 			\
-+	register long __a1 asm("a1") = (long) (arg1); 			\
-+	register long __a2 asm("a2") = (long) (arg2); 			\
-+	register long __a3 asm("a3") = (long) (arg3);   		\
++	register long __a7 asm("a7") = number;				\
++	register long __a0 asm("a0") = (long) (arg0);			\
++	register long __a1 asm("a1") = (long) (arg1);			\
++	register long __a2 asm("a2") = (long) (arg2);			\
++	register long __a3 asm("a3") = (long) (arg3);			\
 +	__asm__ volatile ( 						\
 +	"scall\n\t" 							\
-+	: "+r" (__v0)							\
-+	: "r" (__v0), "r"(__a0), "r"(__a1), "r"(__a2), "r"(__a3)	\
++	: "+r" (__a0)							\
++	: "r" (__a7), "r"(__a1), "r"(__a2), "r"(__a3)			\
 +	: __SYSCALL_CLOBBERS); 						\
-+	_sys_result = __v0;						\
++	_sys_result = __a0;						\
 +	}								\
 +	_sys_result;							\
 +})
@@ -6842,18 +6661,18 @@
 +	long _sys_result;						\
 +									\
 +	{								\
-+	register long __v0 asm("v0") = number;				\
-+	register long __a0 asm("a0") = (long) (arg0); 			\
-+	register long __a1 asm("a1") = (long) (arg1); 			\
-+	register long __a2 asm("a2") = (long) (arg2); 			\
-+	register long __a3 asm("a3") = (long) (arg3);   		\
-+	register long __a4 asm("a4") = (long) (arg4);   		\
++	register long __a7 asm("a7") = number;				\
++	register long __a0 asm("a0") = (long) (arg0);			\
++	register long __a1 asm("a1") = (long) (arg1);			\
++	register long __a2 asm("a2") = (long) (arg2);			\
++	register long __a3 asm("a3") = (long) (arg3);			\
++	register long __a4 asm("a4") = (long) (arg4);			\
 +	__asm__ volatile ( 						\
 +	"scall\n\t" 							\
-+	: "+r" (__v0)							\
-+	: "r" (__v0), "r"(__a0), "r"(__a1), "r"(__a2), "r"(__a3), "r"(__a4)     \
++	: "+r" (__a0)							\
++	: "r" (__a7), "r"(__a1), "r"(__a2), "r"(__a3), "r"(__a4)	\
 +	: __SYSCALL_CLOBBERS); 						\
-+	_sys_result = __v0;						\
++	_sys_result = __a0;						\
 +	}								\
 +	_sys_result;							\
 +})
@@ -6863,19 +6682,19 @@
 +	long _sys_result;						\
 +									\
 +	{								\
-+	register long __v0 asm("v0") = number;				\
-+	register long __a0 asm("a0") = (long) (arg0); 			\
-+	register long __a1 asm("a1") = (long) (arg1); 			\
-+	register long __a2 asm("a2") = (long) (arg2); 			\
-+	register long __a3 asm("a3") = (long) (arg3);   		\
-+	register long __a4 asm("a4") = (long) (arg4);   		\
-+	register long __a5 asm("a5") = (long) (arg5);   		\
++	register long __a7 asm("a7") = number;				\
++	register long __a0 asm("a0") = (long) (arg0);			\
++	register long __a1 asm("a1") = (long) (arg1);			\
++	register long __a2 asm("a2") = (long) (arg2);			\
++	register long __a3 asm("a3") = (long) (arg3);			\
++	register long __a4 asm("a4") = (long) (arg4);			\
++	register long __a5 asm("a5") = (long) (arg5);			\
 +	__asm__ volatile ( 						\
 +	"scall\n\t" 							\
-+	: "+r" (__v0)							\
-+	: "r" (__v0), "r"(__a0), "r"(__a1), "r"(__a2), "r"(__a3), "r"(__a4), "r"(__a5)     \
++	: "+r" (__a0)							\
++	: "r" (__a7), "r"(__a1), "r"(__a2), "r"(__a3), "r"(__a4), "r"(__a5)	\
 +	: __SYSCALL_CLOBBERS); 						\
-+	_sys_result = __v0;						\
++	_sys_result = __a0;						\
 +	}								\
 +	_sys_result;							\
 +})
@@ -6885,25 +6704,25 @@
 +	long _sys_result;						\
 +									\
 +	{								\
-+	register long __v0 asm("v0") = number;				\
-+	register long __a0 asm("a0") = (long) (arg0); 			\
-+	register long __a1 asm("a1") = (long) (arg1); 			\
-+	register long __a2 asm("a2") = (long) (arg2); 			\
-+	register long __a3 asm("a3") = (long) (arg3);   		\
-+	register long __a4 asm("a4") = (long) (arg4);   		\
-+	register long __a5 asm("a5") = (long) (arg5);   		\
-+	register long __a6 asm("a6") = (long) (arg6);   		\
++	register long __a7 asm("a7") = number;				\
++	register long __a0 asm("a0") = (long) (arg0);			\
++	register long __a1 asm("a1") = (long) (arg1);			\
++	register long __a2 asm("a2") = (long) (arg2);			\
++	register long __a3 asm("a3") = (long) (arg3);			\
++	register long __a4 asm("a4") = (long) (arg4);			\
++	register long __a5 asm("a5") = (long) (arg5);			\
++	register long __a6 asm("a6") = (long) (arg6);			\
 +	__asm__ volatile ( 						\
 +	"scall\n\t" 							\
-+	: "+r" (__v0)							\
-+	: "r" (__v0), "r"(__a0), "r"(__a1), "r"(__a2), "r"(__a3), "r"(__a4), "r"(__a5), "r"(__a6)     \
++	: "+r" (__a0)							\
++	: "r" (__a7), "r"(__a1), "r"(__a2), "r"(__a3), "r"(__a4), "r"(__a5), "r"(__a6)	\
 +	: __SYSCALL_CLOBBERS); 						\
-+	_sys_result = __v0;						\
++	_sys_result = __a0;						\
 +	}								\
 +	_sys_result;							\
 +})
 +
-+#define __SYSCALL_CLOBBERS "v1", "memory"
++#define __SYSCALL_CLOBBERS "memory"
 +#endif /* ! __ASSEMBLER__ */
 +
 +/* Pointer mangling is not supported.  */
@@ -6992,7 +6811,7 @@
 +}
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/vfork.S
 +++ glibc/sysdeps/unix/sysv/linux/riscv/vfork.S
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,69 @@
 +/* Copyright (C) 2005 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
 +
@@ -7015,8 +6834,9 @@
 +
 +#include <sys/asm.h>
 +#include <sysdep.h>
-+#include <asm/unistd.h>
-+#include <sgidefs.h>
++#define __ASSEMBLY__
++#include <linux/sched.h>
++#include <asm/signal.h>
 +
 +#ifndef SAVE_PID
 +#define SAVE_PID
@@ -7034,17 +6854,20 @@
 +
 +	SAVE_PID
 +
-+	li		a0, 0x4111	/* CLONE_VM | CLONE_VFORK | SIGCHLD */
++#if (CLONE_VFORK | CLONE_VM | SIGCHLD) != 0x4111
++# error
++#endif
++	li		a0, (CLONE_VFORK | CLONE_VM | SIGCHLD)
 +	move		a1, sp
 +	li		a2, 0
 +	li		a3, 0
 +	li		a4, 0
 +
 +	/* Do the system call */
-+	li		v0,__NR_clone
++	li		a7,__NR_clone
 +	scall
 +
-+	bltz		v0,L(error)
++	bltz		a0,L(error)
 +
 +	RESTORE_PID
 +
