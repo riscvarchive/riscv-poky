@@ -551,7 +551,11 @@ fi
 
 if [ "$MACHINE" = "qemuriscv" ]; then
     QEMU=qemu-system-riscv
-    QEMU_SYSTEM_OPTIONS="-netdev user,id=net0 -device virtio-net-device,netdev=net0 -device virtio-scsi-device -drive file=$ROOTFS,format=raw,id=hd0 -device scsi-hd,drive=hd0 -chardev pty,id=tty0 -device virtio-serial-device -device virtserialport,chardev=tty0"
+    QEMU_HOSTFWD=
+    if [ -n "$HOSTFWD_OPT" ]; then
+      QEMU_HOSTFWD=",$HOSTFWD_OPT"
+    fi
+    QEMU_SYSTEM_OPTIONS="-netdev user$QEMU_HOSTFWD,id=net0 -device virtio-net-device,netdev=net0 -device virtio-scsi-device -drive file=$ROOTFS,format=raw,id=hd0 -device scsi-hd,drive=hd0 -chardev pty,id=tty0 -device virtio-serial-device -device virtserialport,chardev=tty0"
     QEMUOPTIONS="$QEMU_SYSTEM_OPTIONS"
 fi
 

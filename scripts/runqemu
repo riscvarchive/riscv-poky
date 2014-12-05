@@ -36,6 +36,7 @@ usage() {
     echo "    publicvnc - enable a VNC server open to all hosts"
     echo "  qemuparams=\"xyz\" - specify custom parameters to QEMU"
     echo "  bootparams=\"xyz\" - specify custom kernel parameters during boot"
+    echo "  hostfwd=\"tcp::<host_port>-:<target_port>\" - specify ports to forward from host to target"
     echo ""
     echo "Examples:"
     echo "  $MYNAME qemuarm"
@@ -167,6 +168,9 @@ while true; do
             ;;
         "bootparams="*)
             SCRIPT_KERNEL_OPT="$SCRIPT_KERNEL_OPT ${arg##bootparams=}"
+            ;;
+        "hostfwd="*)
+            HOSTFWD_OPT="${arg}"
             ;;
         "audio")
             if [ "x$MACHINE" = "xqemux86" -o "x$MACHINE" = "xqemux86-64" ]; then
