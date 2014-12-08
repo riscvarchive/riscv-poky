@@ -6325,7 +6325,7 @@
 +}
 --- original-binutils/gas/config/tc-riscv.h
 +++ binutils/gas/config/tc-riscv.h
-@@ -0,0 +1,100 @@
+@@ -0,0 +1,101 @@
 +/* tc-riscv.h -- header file for tc-riscv.c.
 +   Copyright 2011-2014 Free Software Foundation, Inc.
 +
@@ -6365,6 +6365,7 @@
 +#define OLD_FLOAT_READS
 +#define REPEAT_CONS_EXPRESSIONS
 +#define LOCAL_LABELS_FB 1
++#define FAKE_LABEL_NAME ".L0\001"
 +
 +#define md_relax_frag(segment, fragp, stretch) \
 +  riscv_relax_frag(segment, fragp, stretch)

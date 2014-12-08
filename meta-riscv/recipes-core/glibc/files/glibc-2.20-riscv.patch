@@ -2783,7 +2783,7 @@
 +ASFLAGS-.os += $(pic-ccflag)
 --- original-glibc/sysdeps/riscv/memcpy.c
 +++ glibc/sysdeps/riscv/memcpy.c
-@@ -0,0 +1,70 @@
+@@ -0,0 +1,69 @@
 +#include <string.h>
 +#include <stdint.h>
 +
@@ -2839,11 +2839,10 @@
 +      *la++ = b7;
 +      *la++ = b8;
 +    }
-+    if (la == lend)
-+      goto maybe_done;
 +  }
 +
-+  do BODY(la, lb, long) while (la < lend);
++  while (la < lend)
++    BODY(la, lb, long);
 +
 +maybe_done:
 +  a = (char*)la;
