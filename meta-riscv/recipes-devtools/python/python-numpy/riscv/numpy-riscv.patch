@@ -1,0 +1,13 @@
+diff -rupN numpy-1.7.0/numpy/core/include/numpy/npy_cpu.h numpy-1.7.0-new/numpy/core/include/numpy/npy_cpu.h
+--- numpy-1.7.0/numpy/core/include/numpy/npy_cpu.h	2013-02-09 13:04:55.000000000 -0800
++++ numpy-1.7.0-new/numpy/core/include/numpy/npy_cpu.h	2014-11-19 11:09:55.226016060 -0800
+@@ -68,6 +68,8 @@
+     #define NPY_CPU_MIPSEB
+ #elif defined(__aarch64__)
+     #define NPY_CPU_AARCH64
++#elif defined(__riscv__)
++    #define NPY_CPU_RISCV
+ #else
+     #error Unknown CPU, please report this to numpy maintainers with \
+     information about your platform (OS, CPU and compiler)
+Binary files numpy-1.7.0/numpy/core/include/numpy/.npy_cpu.h.swp and numpy-1.7.0-new/numpy/core/include/numpy/.npy_cpu.h.swp differ
