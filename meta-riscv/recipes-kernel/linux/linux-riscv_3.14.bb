@@ -34,7 +34,7 @@ KERNEL_IMAGETYPE = "vmlinux"
 
 S = "${WORKDIR}/linux-3.14.15"
 
-SRC_URI += "git://github.com/ucb-bar/riscv-linux.git;branch=qemu-coredump;destsuffix=${S} \
+SRC_URI += "git://github.com/martinmaas/riscv-linux.git;branch=qemu-coredump;destsuffix=${S} \
             https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.14.15.tar.xz;name=kernel"
 
 SRC_URI += "file://defconfig"
@@ -45,7 +45,7 @@ SRC_URI[kernel.sha256sum] = "209d4607320f83485a057f6fc366489ada2da7ea7ab409a4bc1
 # uncomment and replace these SRCREVs with the real commit ids once you've had
 # the appropriate changes committed to the upstream linux-yocto repo
 #SRCREV_machine_pn-linux-yocto_riscv ?= "840bb8c059418c4753415df56c9aff1c0d5354c8"
-SRCREV_pn-linux-riscv ?= "4ce9b0d58e585ec537911e1ea7f31b41041d95c8"
+SRCREV_pn-linux-riscv ?= "1b8a11d36516559dc4dfd7b3b2c3ea2aee047ea9"
 LINUX_VERSION = "3.14"
 
 do_patch[depends] = "kern-tools-native:do_populate_sysroot"

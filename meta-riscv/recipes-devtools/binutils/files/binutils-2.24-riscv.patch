@@ -226,7 +226,7 @@
  
 --- original-binutils/bfd/elfnn-riscv.c
 +++ binutils/bfd/elfnn-riscv.c
-@@ -0,0 +1,2955 @@
+@@ -0,0 +1,2954 @@
 +/* RISC-V-specific support for NN-bit ELF.
 +   Copyright 2011-2014 Free Software Foundation, Inc.
 +
@@ -703,7 +703,7 @@
 +  return TRUE;
 +}
 +
-+static void
++static bfd_boolean
 +bad_static_reloc (bfd *abfd, unsigned r_type, struct elf_link_hash_entry *h)
 +{
 +  (*_bfd_error_handler)
@@ -711,6 +711,7 @@
 +      abfd, riscv_elf_rtype_to_howto (r_type)->name,
 +      h != NULL ? h->root.root.string : "a local symbol");
 +  bfd_set_error (bfd_error_bad_value);
++  return FALSE;
 +}
 +/* Look through the relocs for a section during the first phase, and
 +   allocate space in the global offset table or procedure linkage
@@ -802,36 +803,32 @@
 +	    }
 +	  break;
 +
++	case R_RISCV_CALL:
++	case R_RISCV_JAL:
++	case R_RISCV_BRANCH:
++	case R_RISCV_PCREL_HI20:
++	  /* In shared libs, these relocs are known to bind locally.  */
++	  if (info->shared)
++	    break;
++	  goto static_reloc;
++
 +	case R_RISCV_TPREL_HI20:
 +	  if (!info->executable)
-+	    {
-+	      bad_static_reloc (abfd, r_type, h);
-+	      return FALSE;
-+	    }
++	    return bad_static_reloc (abfd, r_type, h);
 +	  if (h != NULL)
 +	    riscv_elf_record_tls_type (abfd, h, r_symndx, GOT_TLS_LE);
 +	  goto static_reloc;
 +
 +	case R_RISCV_HI20:
-+	  if (info->shared
-+	      && (h == NULL || strcmp (h->root.root.string, "_DYNAMIC") != 0))
-+	    {
-+	      /* Absolute relocs don't ordinarily belong in shared libs, but
-+		 we make an exception for _DYNAMIC for ld.so's purpose.  */
-+	      bad_static_reloc (abfd, r_type, h);
-+	      return FALSE;
-+	    }
++	  if (info->shared)
++	    return bad_static_reloc (abfd, r_type, h);
 +	  /* Fall through.  */
 +
-+	case R_RISCV_PCREL_HI20:
 +	case R_RISCV_COPY:
 +	case R_RISCV_JUMP_SLOT:
 +	case R_RISCV_RELATIVE:
 +	case R_RISCV_64:
 +	case R_RISCV_32:
-+	case R_RISCV_BRANCH:
-+	case R_RISCV_CALL:
-+	case R_RISCV_JAL:
 +	  /* Fall through.  */
 +
 +	static_reloc:
@@ -2201,7 +2198,7 @@
 +		      || h->root.type == bfd_link_hash_undefined)))
 +	    {
 +	      Elf_Internal_Rela outrel;
-+	      bfd_boolean skip;
++	      bfd_boolean skip_static_relocation, skip_dynamic_relocation;
 +
 +	      /* When generating a shared object, these relocations
 +		 are copied into the output file to be resolved at run
@@ -2210,10 +2207,11 @@
 +	      outrel.r_offset =
 +		_bfd_elf_section_offset (output_bfd, info, input_section,
 +					 rel->r_offset);
-+	      skip = outrel.r_offset >= (bfd_vma) -2;
++	      skip_static_relocation = outrel.r_offset != (bfd_vma) -2;
++	      skip_dynamic_relocation = outrel.r_offset >= (bfd_vma) -2;
 +	      outrel.r_offset += sec_addr (input_section);
 +
-+	      if (skip)
++	      if (skip_dynamic_relocation)
 +		memset (&outrel, 0, sizeof outrel);
 +	      else if (h != NULL && h->dynindx != -1
 +		       && !(info->shared
@@ -2230,7 +2228,8 @@
 +		}
 +
 +	      riscv_elf_append_rela (output_bfd, sreloc, &outrel);
-+	      continue;
++	      if (skip_static_relocation)
++		continue;
 +	    }
 +	  break;
 +
@@ -2842,7 +2841,7 @@
 +	{
 +	  /* If the symbol is in the range of memory we just moved, we
 +	     have to adjust its value.  */
-+	  if (sym->st_value > addr && sym->st_value < toaddr)
++	  if (sym->st_value > addr && sym->st_value <= toaddr)
 +	    sym->st_value -= count;
 +
 +	  /* If the symbol *spans* the bytes we just deleted (i.e. its
@@ -2869,7 +2868,7 @@
 +	{
 +	  /* As above, adjust the value if needed.  */
 +	  if (sym_hash->root.u.def.value > addr
-+	      && sym_hash->root.u.def.value < toaddr)
++	      && sym_hash->root.u.def.value <= toaddr)
 +	    sym_hash->root.u.def.value -= count;
 +
 +	  /* As above, adjust the size if needed.  */
@@ -4104,7 +4103,7 @@
  		basic_machine=arm-unknown
 --- original-binutils/gas/config/tc-riscv.c
 +++ binutils/gas/config/tc-riscv.c
-@@ -0,0 +1,2218 @@
+@@ -0,0 +1,2215 @@
 +/* tc-riscv.c -- RISC-V assembler
 +   Copyright 2011-2014 Free Software Foundation, Inc.
 +
@@ -4163,7 +4162,7 @@
 +  fixS *fixp;
 +};
 +
-+static bfd_boolean rv64 = TRUE; /* RV64 (true) or RV32 (false) */
++bfd_boolean rv64 = TRUE; /* RV64 (true) or RV32 (false) */
 +#define LOAD_ADDRESS_INSN (rv64 ? "ld" : "lw")
 +#define ADD32_INSN (rv64 ? "addiw" : "addi")
 +
@@ -4358,8 +4357,8 @@
 +/* Replace bits MASK << SHIFT of STRUCT with the equivalent bits in
 +   VALUE << SHIFT.  VALUE is evaluated exactly once.  */
 +#define INSERT_BITS(STRUCT, VALUE, MASK, SHIFT) \
-+  (STRUCT) = (((STRUCT) & ~((MASK) << (SHIFT))) \
-+	      | (((VALUE) & (MASK)) << (SHIFT)))
++  (STRUCT) = (((STRUCT) & ~((insn_t)(MASK) << (SHIFT))) \
++	      | ((insn_t)((VALUE) & (MASK)) << (SHIFT)))
 +
 +/* Extract bits MASK << SHIFT from STRUCT and shift them right
 +   SHIFT places.  */
@@ -4542,10 +4541,18 @@
 +    hash_reg_name (class, names[i], i);
 +}
 +
++static unsigned int
++reg_lookup_internal (const char *s, enum reg_class class)
++{
++  struct regname *r = (struct regname *) hash_find (reg_names_hash, s);
++  if (r == NULL || DECODE_REG_CLASS (r) != class)
++    return -1;
++  return DECODE_REG_NUM (r);
++}
++
 +static int
 +reg_lookup (char **s, enum reg_class class, unsigned int *regnop)
 +{
-+  void *r;
 +  char *e;
 +  char save_c;
 +  int reg = -1;
@@ -4561,28 +4568,14 @@
 +  save_c = *e;
 +  *e = '\0';
 +
-+  /* Look for the register.  */
-+  r = hash_find (reg_names_hash, *s);
-+  if (r != NULL && DECODE_REG_CLASS (r) == class)
-+    reg = DECODE_REG_NUM (r);
-+
-+  /* Advance to next token if a register was recognised.  */
-+  if (reg >= 0)
++  /* Look for the register.  Advance to next token if one was recognized.  */
++  if ((reg = reg_lookup_internal (*s, class)) >= 0)
 +    *s = e;
 +
 +  *e = save_c;
 +  if (regnop)
 +    *regnop = reg;
 +  return reg >= 0;
-+}
-+
-+static unsigned int
-+reg_lookup_assert (const char *s, enum reg_class class)
-+{
-+  struct regname *r = (struct regname *) hash_find (reg_names_hash, s);
-+  if (r == NULL || DECODE_REG_CLASS (r) != class)
-+    as_bad (_("unknown register `%s'"), s);
-+  return DECODE_REG_NUM (r);
 +}
 +
 +static int
@@ -4619,6 +4612,9 @@
 +      return 0;
 +    }
 +  required_bits = ((insn_t)1 << (8 * riscv_insn_length (opc->match))) - 1;
++  /* Work around for undefined behavior of uint64_t << 64 */
++  if(riscv_insn_length (opc->match) == 8)
++    required_bits = 0xffffffffffffffff;
 +
 +#define USE_BITS(mask,shift)	(used_bits |= ((insn_t)(mask) << (shift)))
 +  while (*p)
@@ -5039,13 +5035,10 @@
 +static void
 +macro (struct riscv_cl_insn *ip)
 +{
-+  unsigned int rd, rs1, rs2;
-+  int mask;
-+
-+  rd = (ip->insn_opcode >> OP_SH_RD) & OP_MASK_RD;
-+  rs1 = (ip->insn_opcode >> OP_SH_RS1) & OP_MASK_RS1;
-+  rs2 = (ip->insn_opcode >> OP_SH_RS2) & OP_MASK_RS2;
-+  mask = ip->insn_mo->mask;
++  int rd = (ip->insn_opcode >> OP_SH_RD) & OP_MASK_RD;
++  int rs1 = (ip->insn_opcode >> OP_SH_RS1) & OP_MASK_RS1;
++  int rs2 = (ip->insn_opcode >> OP_SH_RS2) & OP_MASK_RS2;
++  int mask = ip->insn_mo->mask;
 +
 +  switch (mask)
 +    {
@@ -5159,13 +5152,7 @@
 +		    BFD_RELOC_RISCV_PCREL_HI20, BFD_RELOC_RISCV_PCREL_LO12_S);
 +      break;
 +
-+    case M_JUMP:
-+      rd = 0;
-+      goto do_call;
 +    case M_CALL:
-+      rd = X_RA;
-+do_call:
-+      rs1 = reg_lookup_assert ("t0", RCLASS_GPR);
 +      riscv_call (rd, rs1, &offset_expr, offset_reloc);
 +      break;
 +
@@ -6272,7 +6259,16 @@
 +int
 +tc_riscv_regname_to_dw2regnum (char *regname)
 +{
-+  return reg_lookup_assert (regname, RCLASS_GPR);
++  int reg;
++
++  if ((reg = reg_lookup_internal (regname, RCLASS_GPR)) >= 0)
++    return reg;
++
++  if ((reg = reg_lookup_internal (regname, RCLASS_FPR)) >= 0)
++    return reg + 32;
++
++  as_bad (_("unknown register `%s'"), regname);
++  return -1;
 +}
 +
 +void
@@ -6325,7 +6321,7 @@
 +}
 --- original-binutils/gas/config/tc-riscv.h
 +++ binutils/gas/config/tc-riscv.h
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,102 @@
 +/* tc-riscv.h -- header file for tc-riscv.c.
 +   Copyright 2011-2014 Free Software Foundation, Inc.
 +
@@ -6405,7 +6401,7 @@
 +
 +#define TC_FORCE_RELOCATION_SUB_SAME(FIX, SEG) ((SEG)->flags & SEC_CODE)
 +#define TC_FORCE_RELOCATION_SUB_LOCAL(FIX, SEG) 1
-+#define TC_VALIDATE_FIX_SUB(FIX, SEG) TC_FORCE_RELOCATION_SUB_SAME(FIX, SEG)
++#define TC_VALIDATE_FIX_SUB(FIX, SEG) 1
 +#define TC_FORCE_RELOCATION_LOCAL(FIX) 1
 +#define DIFF_EXPR_OK 1
 +
@@ -6420,8 +6416,9 @@
 +#define tc_regname_to_dw2regnum tc_riscv_regname_to_dw2regnum
 +extern int tc_riscv_regname_to_dw2regnum (char *regname);
 +
++extern bfd_boolean rv64;
 +#define DWARF2_DEFAULT_RETURN_COLUMN X_RA
-+#define DWARF2_CIE_DATA_ALIGNMENT (-4)
++#define DWARF2_CIE_DATA_ALIGNMENT (rv64 ? 8 : 4)
 +
 +#define elf_tc_final_processing riscv_elf_final_processing
 +extern void riscv_elf_final_processing (void);
@@ -6682,7 +6679,7 @@
 +#endif /* _ELF_RISCV_H */
 --- original-binutils/include/opcode/riscv.h
 +++ binutils/include/opcode/riscv.h
-@@ -0,0 +1,321 @@
+@@ -0,0 +1,320 @@
 +/* riscv.h.  RISC-V opcode list for GDB, the GNU debugger.
 +   Copyright 2011
 +   Free Software Foundation, Inc.
@@ -6982,7 +6979,6 @@
 +  M_FSW,
 +  M_FSD,
 +  M_CALL,
-+  M_JUMP,
 +  M_J,
 +  M_LI,
 +  M_VF,
@@ -8225,10 +8221,13 @@
 +#endif
 --- original-binutils/ld/configure.tgt
 +++ binutils/ld/configure.tgt
-@@ -592,6 +592,9 @@ powerpc-*-aix*)		targ_emul=aixppc ;;
+@@ -592,6 +592,12 @@ powerpc-*-aix*)		targ_emul=aixppc ;;
  powerpc-*-beos*)	targ_emul=aixppc ;;
  powerpc-*-windiss*)	targ_emul=elf32ppcwindiss ;;
  powerpc-*-lynxos*)	targ_emul=ppclynx ;;
++riscv32*-*-*)		targ_emul=elf32lriscv
++			targ_extra_emuls="elf64lriscv"
++			targ_extra_libpath=$targ_extra_emuls ;;
 +riscv*-*-*)		targ_emul=elf64lriscv
 +			targ_extra_emuls="elf32lriscv"
 +			targ_extra_libpath=$targ_extra_emuls ;;
@@ -8237,11 +8236,12 @@
  			;;
 --- original-binutils/ld/emulparams/elf32lriscv-defs.sh
 +++ binutils/ld/emulparams/elf32lriscv-defs.sh
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,39 @@
 +# This is an ELF platform.
 +SCRIPT_NAME=elf
 +ARCH=riscv
 +OUTPUT_FORMAT="elf32-littleriscv"
++NO_REL_RELOCS=yes
 +
 +TEMPLATE_NAME=elf32
 +EXTRA_EM_FILE=riscvelf
@@ -8263,10 +8263,9 @@
 +GENERATE_SHLIB_SCRIPT=yes
 +GENERATE_PIE_SCRIPT=yes
 +
-+TEXT_START_ADDR=0x10000000
-+SHLIB_TEXT_START_ADDR=0x1000000
++TEXT_START_ADDR=0x800000
 +MAXPAGESIZE="CONSTANT (MAXPAGESIZE)"
-+ENTRY=_start
++COMMONPAGESIZE="CONSTANT (COMMONPAGESIZE)"
 +
 +INITIAL_READONLY_SECTIONS=".interp       ${RELOCATING-0} : { *(.interp) }"
 +SDATA_START_SYMBOLS="_gp = . + 0x800;
@@ -8277,25 +8276,15 @@
 +  OTHER_READONLY_SECTIONS=".srodata      ${RELOCATING-0} : { *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata*) }"
 +  unset GOT
 +fi
-+
-+TEXT_DYNAMIC=
 --- original-binutils/ld/emulparams/elf32lriscv.sh
 +++ binutils/ld/emulparams/elf32lriscv.sh
-@@ -0,0 +1,9 @@
-+. ${srcdir}/emulparams/elf32lriscv-defs.sh
-+OUTPUT_FORMAT="elf32-littleriscv"
-+COMMONPAGESIZE="CONSTANT (COMMONPAGESIZE)"
-+
-+# Magic sections.
-+OTHER_SECTIONS='
-+  .gptab.sdata : { *(.gptab.data) *(.gptab.sdata) }
-+  .gptab.sbss : { *(.gptab.bss) *(.gptab.sbss) }
-+'
---- original-binutils/ld/emulparams/elf64lriscv-defs.sh
-+++ binutils/ld/emulparams/elf64lriscv-defs.sh
 @@ -0,0 +1,2 @@
 +. ${srcdir}/emulparams/elf32lriscv-defs.sh
-+COMMONPAGESIZE="CONSTANT (COMMONPAGESIZE)"
++OUTPUT_FORMAT="elf32-littleriscv"
+--- original-binutils/ld/emulparams/elf64lriscv-defs.sh
++++ binutils/ld/emulparams/elf64lriscv-defs.sh
+@@ -0,0 +1 @@
++. ${srcdir}/emulparams/elf32lriscv-defs.sh
 --- original-binutils/ld/emulparams/elf64lriscv.sh
 +++ binutils/ld/emulparams/elf64lriscv.sh
 @@ -0,0 +1,2 @@
@@ -8303,7 +8292,7 @@
 +OUTPUT_FORMAT="elf64-littleriscv"
 --- original-binutils/ld/emultempl/riscvelf.em
 +++ binutils/ld/emultempl/riscvelf.em
-@@ -0,0 +1,47 @@
+@@ -0,0 +1,68 @@
 +# This shell script emits a C file. -*- C -*-
 +#   Copyright 2004, 2006, 2007, 2008 Free Software Foundation, Inc.
 +#
@@ -8332,7 +8321,7 @@
 +#include "elfxx-riscv.h"
 +
 +static void
-+riscv_before_allocation (void)
++riscv_elf_before_allocation (void)
 +{
 +  gld${EMULATION_NAME}_before_allocation ();
 +
@@ -8348,9 +8337,296 @@
 +  link_info.relax_pass = 2;
 +}
 +
++static void
++gld${EMULATION_NAME}_after_allocation (void)
++{
++  int need_layout = 0;
++
++  /* Don't attempt to discard unused .eh_frame sections until the final link,
++     as we can't reliably tell if they're used until after relaxation.  */
++  if (!link_info.relocatable)
++    {
++      need_layout = bfd_elf_discard_info (link_info.output_bfd, &link_info);
++      if (need_layout < 0)
++	{
++	  einfo ("%X%P: .eh_frame/.stab edit: %E\n");
++	  return;
++	}
++    }
++
++  gld${EMULATION_NAME}_map_segments (need_layout);
++}
++
 +EOF
 +
-+LDEMUL_BEFORE_ALLOCATION=riscv_before_allocation
++LDEMUL_BEFORE_ALLOCATION=riscv_elf_before_allocation
++LDEMUL_AFTER_ALLOCATION=gld${EMULATION_NAME}_after_allocation
+--- original-binutils/ld/ldlex.c
++++ binutils/ld/ldlex.c
+@@ -1,5 +1,5 @@
+ 
+-#line 3 "ldlex.c"
++#line 3 "/scratch/maas/staging/riscv-gnu-toolchain/src/binutils/ld/ldlex.c"
+ 
+ #define  YY_INT_ALIGNED short int
+ 
+@@ -46,7 +46,6 @@ typedef int16_t flex_int16_t;
+ typedef uint16_t flex_uint16_t;
+ typedef int32_t flex_int32_t;
+ typedef uint32_t flex_uint32_t;
+-typedef uint64_t flex_uint64_t;
+ #else
+ typedef signed char flex_int8_t;
+ typedef short int flex_int16_t;
+@@ -54,7 +53,6 @@ typedef int flex_int32_t;
+ typedef unsigned char flex_uint8_t; 
+ typedef unsigned short int flex_uint16_t;
+ typedef unsigned int flex_uint32_t;
+-#endif /* ! C99 */
+ 
+ /* Limits of integral types. */
+ #ifndef INT8_MIN
+@@ -85,6 +83,8 @@ typedef unsigned int flex_uint32_t;
+ #define UINT32_MAX             (4294967295U)
+ #endif
+ 
++#endif /* ! C99 */
++
+ #endif /* ! FLEXINT_H */
+ 
+ #ifdef __cplusplus
+@@ -141,7 +141,15 @@ typedef unsigned int flex_uint32_t;
+ 
+ /* Size of default input buffer. */
+ #ifndef YY_BUF_SIZE
++#ifdef __ia64__
++/* On IA-64, the buffer size is 16k, not 8k.
++ * Moreover, YY_BUF_SIZE is 2*YY_READ_BUF_SIZE in the general case.
++ * Ditto for the __ia64__ case accordingly.
++ */
++#define YY_BUF_SIZE 32768
++#else
+ #define YY_BUF_SIZE 16384
++#endif /* __ia64__ */
+ #endif
+ 
+ /* The state buf must be large enough to hold one state per character in the main buffer.
+@@ -153,12 +161,7 @@ typedef unsigned int flex_uint32_t;
+ typedef struct yy_buffer_state *YY_BUFFER_STATE;
+ #endif
+ 
+-#ifndef YY_TYPEDEF_YY_SIZE_T
+-#define YY_TYPEDEF_YY_SIZE_T
+-typedef size_t yy_size_t;
+-#endif
+-
+-extern yy_size_t yyleng;
++extern int yyleng;
+ 
+ extern FILE *yyin, *yyout;
+ 
+@@ -184,6 +187,11 @@ extern FILE *yyin, *yyout;
+ 
+ #define unput(c) yyunput( c, (yytext_ptr)  )
+ 
++#ifndef YY_TYPEDEF_YY_SIZE_T
++#define YY_TYPEDEF_YY_SIZE_T
++typedef size_t yy_size_t;
++#endif
++
+ #ifndef YY_STRUCT_YY_BUFFER_STATE
+ #define YY_STRUCT_YY_BUFFER_STATE
+ struct yy_buffer_state
+@@ -201,7 +209,7 @@ struct yy_buffer_state
+ 	/* Number of characters read into yy_ch_buf, not including EOB
+ 	 * characters.
+ 	 */
+-	yy_size_t yy_n_chars;
++	int yy_n_chars;
+ 
+ 	/* Whether we "own" the buffer - i.e., we know we created it,
+ 	 * and can realloc() it to grow it, and should free() it to
+@@ -271,8 +279,8 @@ static YY_BUFFER_STATE * yy_buffer_stack
+ 
+ /* yy_hold_char holds the character lost when yytext is formed. */
+ static char yy_hold_char;
+-static yy_size_t yy_n_chars;		/* number of characters read into yy_ch_buf */
+-yy_size_t yyleng;
++static int yy_n_chars;		/* number of characters read into yy_ch_buf */
++int yyleng;
+ 
+ /* Points to current character in buffer. */
+ static char *yy_c_buf_p = (char *) 0;
+@@ -300,7 +308,7 @@ static void yy_init_buffer (YY_BUFFER_ST
+ 
+ YY_BUFFER_STATE yy_scan_buffer (char *base,yy_size_t size  );
+ YY_BUFFER_STATE yy_scan_string (yyconst char *yy_str  );
+-YY_BUFFER_STATE yy_scan_bytes (yyconst char *bytes,yy_size_t len  );
++YY_BUFFER_STATE yy_scan_bytes (yyconst char *bytes,int len  );
+ 
+ void *yyalloc (yy_size_t  );
+ void *yyrealloc (void *,yy_size_t  );
+@@ -355,7 +363,7 @@ static void yy_fatal_error (yyconst char
+  */
+ #define YY_DO_BEFORE_ACTION \
+ 	(yytext_ptr) = yy_bp; \
+-	yyleng = (yy_size_t) (yy_cp - yy_bp); \
++	yyleng = (size_t) (yy_cp - yy_bp); \
+ 	(yy_hold_char) = *yy_cp; \
+ 	*yy_cp = '\0'; \
+ 	(yy_c_buf_p) = yy_cp;
+@@ -1741,7 +1749,7 @@ int yywrap (void) { return 1; }
+ 
+ 
+ 
+-#line 1745 "ldlex.c"
++#line 1753 "/scratch/maas/staging/riscv-gnu-toolchain/src/binutils/ld/ldlex.c"
+ 
+ #define INITIAL 0
+ #define SCRIPT 1
+@@ -1788,7 +1796,7 @@ FILE *yyget_out (void );
+ 
+ void yyset_out  (FILE * out_str  );
+ 
+-yy_size_t yyget_leng (void );
++int yyget_leng (void );
+ 
+ char *yyget_text (void );
+ 
+@@ -1828,7 +1836,12 @@ static int input (void );
+ 
+ /* Amount of stuff to slurp up with each read. */
+ #ifndef YY_READ_BUF_SIZE
++#ifdef __ia64__
++/* On IA-64, the buffer size is 16k, not 8k */
++#define YY_READ_BUF_SIZE 16384
++#else
+ #define YY_READ_BUF_SIZE 8192
++#endif /* __ia64__ */
+ #endif
+ 
+ /* Copy whatever the last rule matched to the standard output. */
+@@ -1836,7 +1849,7 @@ static int input (void );
+ /* This used to be an fputs(), but since the string might contain NUL's,
+  * we now use fwrite().
+  */
+-#define ECHO fwrite( yytext, yyleng, 1, yyout )
++#define ECHO do { if (fwrite( yytext, yyleng, 1, yyout )) {} } while (0)
+ #endif
+ 
+ /* Gets input and stuffs it into "buf".  number of characters read, or YY_NULL,
+@@ -1847,7 +1860,7 @@ static int input (void );
+ 	if ( YY_CURRENT_BUFFER_LVALUE->yy_is_interactive ) \
+ 		{ \
+ 		int c = '*'; \
+-		yy_size_t n; \
++		size_t n; \
+ 		for ( n = 0; n < max_size && \
+ 			     (c = getc( yyin )) != EOF && c != '\n'; ++n ) \
+ 			buf[n] = (char) c; \
+@@ -1948,7 +1961,7 @@ YY_DECL
+ 	}
+     }
+ 
+-#line 1952 "ldlex.c"
++#line 1965 "/scratch/maas/staging/riscv-gnu-toolchain/src/binutils/ld/ldlex.c"
+ 
+ 	if ( !(yy_init) )
+ 		{
+@@ -3145,7 +3158,7 @@ YY_RULE_SETUP
+ #line 468 "ldlex.l"
+ ECHO;
+ 	YY_BREAK
+-#line 3149 "ldlex.c"
++#line 3162 "/scratch/maas/staging/riscv-gnu-toolchain/src/binutils/ld/ldlex.c"
+ 
+ 	case YY_END_OF_BUFFER:
+ 		{
+@@ -3329,7 +3342,7 @@ static int yy_get_next_buffer (void)
+ 
+ 	else
+ 		{
+-			yy_size_t num_to_read =
++			int num_to_read =
+ 			YY_CURRENT_BUFFER_LVALUE->yy_buf_size - number_to_move - 1;
+ 
+ 		while ( num_to_read <= 0 )
+@@ -3343,7 +3356,7 @@ static int yy_get_next_buffer (void)
+ 
+ 			if ( b->yy_is_our_buffer )
+ 				{
+-				yy_size_t new_size = b->yy_buf_size * 2;
++				int new_size = b->yy_buf_size * 2;
+ 
+ 				if ( new_size <= 0 )
+ 					b->yy_buf_size += b->yy_buf_size / 8;
+@@ -3374,7 +3387,7 @@ static int yy_get_next_buffer (void)
+ 
+ 		/* Read in more data. */
+ 		YY_INPUT( (&YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[number_to_move]),
+-			(yy_n_chars), num_to_read );
++			(yy_n_chars), (size_t) num_to_read );
+ 
+ 		YY_CURRENT_BUFFER_LVALUE->yy_n_chars = (yy_n_chars);
+ 		}
+@@ -3496,7 +3509,7 @@ static int yy_get_next_buffer (void)
+ 
+ 		else
+ 			{ /* need more input */
+-			yy_size_t offset = (yy_c_buf_p) - (yytext_ptr);
++			int offset = (yy_c_buf_p) - (yytext_ptr);
+ 			++(yy_c_buf_p);
+ 
+ 			switch ( yy_get_next_buffer(  ) )
+@@ -3520,7 +3533,7 @@ static int yy_get_next_buffer (void)
+ 				case EOB_ACT_END_OF_FILE:
+ 					{
+ 					if ( yywrap( ) )
+-						return 0;
++						return EOF;
+ 
+ 					if ( ! (yy_did_buffer_switch_on_eof) )
+ 						YY_NEW_FILE;
+@@ -3772,7 +3785,7 @@ void yypop_buffer_state (void)
+  */
+ static void yyensure_buffer_stack (void)
+ {
+-	yy_size_t num_to_alloc;
++	int num_to_alloc;
+     
+ 	if (!(yy_buffer_stack)) {
+ 
+@@ -3864,16 +3877,17 @@ YY_BUFFER_STATE yy_scan_string (yyconst
+ 
+ /** Setup the input buffer state to scan the given bytes. The next call to yylex() will
+  * scan from a @e copy of @a bytes.
+- * @param bytes the byte buffer to scan
+- * @param len the number of bytes in the buffer pointed to by @a bytes.
++ * @param yybytes the byte buffer to scan
++ * @param _yybytes_len the number of bytes in the buffer pointed to by @a bytes.
+  * 
+  * @return the newly allocated buffer state object.
+  */
+-YY_BUFFER_STATE yy_scan_bytes  (yyconst char * yybytes, yy_size_t  _yybytes_len )
++YY_BUFFER_STATE yy_scan_bytes  (yyconst char * yybytes, int  _yybytes_len )
+ {
+ 	YY_BUFFER_STATE b;
+ 	char *buf;
+-	yy_size_t n, i;
++	yy_size_t n;
++	int i;
+     
+ 	/* Get memory for full buffer, including space for trailing EOB's. */
+ 	n = _yybytes_len + 2;
+@@ -3955,7 +3969,7 @@ FILE *yyget_out  (void)
+ /** Get the length of the current token.
+  * 
+  */
+-yy_size_t yyget_leng  (void)
++int yyget_leng  (void)
+ {
+         return yyleng;
+ }
 --- original-binutils/ld/Makefile.am
 +++ binutils/ld/Makefile.am
 @@ -251,6 +251,7 @@ ALL_EMULATION_SOURCES = \
@@ -9125,7 +9401,6 @@
 +{"li",        "I",   "d,I",  0,    (int) M_LI,  match_never, INSN_MACRO },
 +{"mv",        "I",   "d,s",  MATCH_ADDI, MASK_ADDI | MASK_IMM, match_opcode,   INSN_ALIAS|WR_xd|RD_xs1 },
 +{"move",      "I",   "d,s",  MATCH_ADDI, MASK_ADDI | MASK_IMM, match_opcode,   INSN_ALIAS|WR_xd|RD_xs1 },
-+{"b",         "I",   "p",  MATCH_BEQ, MASK_BEQ | MASK_RS1 | MASK_RS2, match_opcode,   0 },/* beq 0,0 */
 +{"andi",      "I",   "d,s,j",  MATCH_ANDI, MASK_ANDI, match_opcode,   WR_xd|RD_xs1 },
 +{"and",       "I",   "d,s,t",  MATCH_AND, MASK_AND, match_opcode,   WR_xd|RD_xs1|RD_xs2 },
 +{"and",       "I",   "d,s,j",  MATCH_ANDI, MASK_ANDI, match_opcode,   INSN_ALIAS|WR_xd|RD_xs1 },
@@ -9168,8 +9443,9 @@
 +{"j",         "I",   "a",  MATCH_JAL, MASK_JAL | MASK_RD, match_opcode,   INSN_ALIAS },
 +{"jal",       "I",   "a",  MATCH_JAL | (X_RA << OP_SH_RD), MASK_JAL | MASK_RD, match_opcode,   INSN_ALIAS|WR_xd },
 +{"jal",       "I",   "d,a",  MATCH_JAL, MASK_JAL, match_opcode,   WR_xd },
-+{"call",      "I",   "c",  0,    (int) M_CALL,  match_never, INSN_MACRO },
-+{"jump",      "I",   "c",  0,    (int) M_JUMP,  match_never, INSN_MACRO },
++{"call",      "I",   "c", (X_T0 << OP_SH_RS1) | (X_RA << OP_SH_RD), (int) M_CALL,  match_never, INSN_MACRO },
++{"tail",      "I",   "c", (X_T0 << OP_SH_RS1), (int) M_CALL,  match_never, INSN_MACRO },
++{"jump",      "I",   "c,s", 0, (int) M_CALL,  match_never, INSN_MACRO },
 +{"jr",        "I",   "s",  MATCH_JALR, MASK_JALR | MASK_RD | MASK_IMM, match_opcode,   INSN_ALIAS|WR_xd|RD_xs1 },
 +{"jr",        "I",   "s,j",  MATCH_JALR, MASK_JALR | MASK_RD, match_opcode,   INSN_ALIAS|WR_xd|RD_xs1 },
 +{"jalr",      "I",   "s",  MATCH_JALR | (X_RA << OP_SH_RD), MASK_JALR | MASK_RD | MASK_IMM, match_opcode,   INSN_ALIAS|WR_xd|RD_xs1 },

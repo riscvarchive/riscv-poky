@@ -32,7 +32,7 @@
  #include <sys/types.h>
 --- original-glibc/sysdeps/riscv/bits/atomic.h
 +++ glibc/sysdeps/riscv/bits/atomic.h
-@@ -0,0 +1,153 @@
+@@ -0,0 +1,115 @@
 +/* Low-level functions for atomic operations. RISC-V version.
 +   Copyright (C) 2011-2014 Free Software Foundation, Inc.
 +
@@ -80,85 +80,47 @@
 +#define asm_amo(which, ordering, mem, value) ({ 		\
 +  typeof(*mem) __tmp; 						\
 +  if (sizeof(__tmp) == 4)					\
-+    asm volatile (which ".w" ordering "\t%0, %z1, (%2)" : "=r"(__tmp) : "rJ"(value), "r"(mem)); \
++    asm volatile (which ".w" ordering "\t%0, %z2, %1"		\
++		  : "=r"(__tmp), "+A"(*(mem))			\
++		  : "rJ"(value));				\
 +  else if (sizeof(__tmp) == 8)					\
-+    asm volatile (which ".d" ordering "\t%0, %z1, (%2)" : "=r"(__tmp) : "rJ"(value), "r"(mem)); \
++    asm volatile (which ".d" ordering "\t%0, %z2, %1"		\
++		  : "=r"(__tmp), "+A"(*(mem))			\
++		  : "rJ"(value));				\
 +  else								\
 +    abort();							\
 +  __tmp; })
-+
-+#define asm_load_reserved(ordering, mem) ({ 			\
-+  typeof(*mem) __tmp; 						\
-+  if (sizeof(__tmp) == 4)					\
-+    asm volatile ("lr.w" ordering "\t%0, (%1)" : "=r"(__tmp) : "r"(mem)); \
-+  else if (sizeof(__tmp) == 8)					\
-+    asm volatile ("lr.d" ordering "\t%0, (%1)" : "=r"(__tmp) : "r"(mem)); \
-+  else								\
-+    abort();							\
-+  __tmp; })
-+
-+#define asm_store_conditional(ordering, mem, value) \
-+  asm_amo("sc", ordering, mem, value)
 +
 +/* Atomic compare and exchange. */
 +
-+#define atomic_cas(ordering, mem, newval, oldval) ({ 	\
++#define atomic_cas(ordering, mem, newval, oldval) ({ 		\
 +  typeof(*mem) __tmp; 						\
 +  int __tmp2; 							\
 +  if (sizeof(__tmp) == 4)					\
-+    asm volatile ("1: lr.w" ordering "\t%0, (%2)\n"		\
-+                  "bne\t%0, %z4, 1f\n"				\
-+		  "sc.w" ordering "\t%1, %z3, (%2)\n"		\
++    asm volatile ("1: lr.w" ordering "\t%0, %2\n"		\
++		  "bne\t%0, %z4, 1f\n"				\
++		  "sc.w" ordering "\t%1, %z3, %2\n"		\
 +		  "bnez\t%1, 1b\n"				\
 +		  "1:"						\
-+		  : "=&r"(__tmp), "=&r"(__tmp2) : "r"(mem), "rJ"(newval), "rJ"(oldval)); \
++		  : "=&r"(__tmp), "=&r"(__tmp2), "+A"(*(mem))	\
++		  : "rJ"(newval), "rJ"(oldval));		\
 +  else if (sizeof(__tmp) == 8)					\
-+    asm volatile ("1: lr.d" ordering "\t%0, (%2)\n"		\
-+                  "bne\t%0, %z4, 1f\n"				\
-+		  "sc.d" ordering "\t%1, %z3, (%2)\n"		\
++    asm volatile ("1: lr.d" ordering "\t%0, %2\n"		\
++		  "bne\t%0, %z4, 1f\n"				\
++		  "sc.d" ordering "\t%1, %z3, %2\n"		\
 +		  "bnez\t%1, 1b\n"				\
 +		  "1:"						\
-+		  : "=&r"(__tmp), "=&r"(__tmp2) : "r"(mem), "rJ"(newval), "rJ"(oldval)); \
++		  : "=&r"(__tmp), "=&r"(__tmp2), "+A"(*(mem))	\
++		  : "rJ"(newval), "rJ"(oldval));		\
 +  else								\
 +    abort();							\
 +  __tmp; })
-+
-+#define atomic_cas_bool(ordering, mem, newval, oldval) ({ 	\
-+  __label__ failure, success;					\
-+  typeof(*mem) __tmp; 						\
-+  int __res;							\
-+  if (sizeof(__tmp) == 4)					\
-+    asm goto ("1: lr.w" ordering "\tt3, (%0)\n"			\
-+                  "bne\tt3, %z2, %l[failure]\n"			\
-+		  "sc.w" ordering "\tt3, %z1, (%0)\n"		\
-+		  "bnez\tt3, 1b"				\
-+		  : : "r"(mem), "rJ"(newval), "rJ"(oldval) : "t3" : failure); \
-+  else if (sizeof(__tmp) == 8)					\
-+    asm goto ("1: lr.d" ordering "\tt3, (%0)\n"			\
-+                  "bne\tt3, %z2, %l[failure]\n"			\
-+		  "sc.d" ordering "\tt3, %z1, (%0)\n"		\
-+		  "bnez\tt3, 1b"				\
-+		  : : "r"(mem), "rJ"(newval), "rJ"(oldval) : "t3" : failure); \
-+  else								\
-+    abort();							\
-+  __res = 0;							\
-+  goto success;							\
-+failure:							\
-+  __res = 1;							\
-+success:							\
-+  __res; })
 +
 +#define atomic_compare_and_exchange_val_acq(mem, newval, oldval) \
 +  atomic_cas(".aq", mem, newval, oldval)
 +
 +#define atomic_compare_and_exchange_val_rel(mem, newval, oldval) \
 +  atomic_cas(".rl", mem, newval, oldval)
-+
-+#define atomic_compare_and_exchange_bool_acq(mem, newval, oldval) \
-+  atomic_cas_bool(".aq", mem, newval, oldval)
-+
-+#define atomic_compare_and_exchange_bool_rel(mem, newval, oldval) \
-+  atomic_cas_bool(".rl", mem, newval, oldval)
 +
 +/* Atomic exchange (without compare).  */
 +
@@ -729,7 +691,7 @@
 +#endif
 --- original-glibc/sysdeps/riscv/dl-machine.h
 +++ glibc/sysdeps/riscv/dl-machine.h
-@@ -0,0 +1,335 @@
+@@ -0,0 +1,333 @@
 +/* Machine-dependent ELF dynamic relocation inline functions.  MIPS version.
 +   Copyright (C) 1996-2001, 2002, 2003, 2004, 2005, 2006, 2007
 +   Free Software Foundation, Inc.
@@ -823,10 +785,8 @@
 +static inline ElfW(Addr)
 +elf_machine_dynamic (void)
 +{
-+  ElfW(Addr) link_addr;
-+  asm ("lui %0, %%hi(_DYNAMIC)" : "=r"(link_addr));
-+  asm ("addi %0, %0, %%lo(_DYNAMIC)" : "+r"(link_addr));
-+  return link_addr;
++  extern ElfW(Addr) _GLOBAL_OFFSET_TABLE_ __attribute__((visibility("hidden")));
++  return _GLOBAL_OFFSET_TABLE_;
 +}
 +
 +#define STRINGXP(X) __STRING(X)
@@ -2493,14 +2453,11 @@
 +#endif /* ieee754.h */
 --- original-glibc/sysdeps/riscv/Implies
 +++ glibc/sysdeps/riscv/Implies
-@@ -0,0 +1,7 @@
+@@ -0,0 +1,4 @@
 +init_array
 +
 +ieee754/flt-32
 +ieee754/dbl-64
-+
-+# This needs to change to support rv32
-+riscv/rv64
 --- original-glibc/sysdeps/riscv/jmpbuf-unwind.h
 +++ glibc/sysdeps/riscv/jmpbuf-unwind.h
 @@ -0,0 +1,46 @@
@@ -2665,7 +2622,7 @@
 +#endif
 --- original-glibc/sysdeps/riscv/__longjmp.S
 +++ glibc/sysdeps/riscv/__longjmp.S
-@@ -0,0 +1,63 @@
+@@ -0,0 +1,62 @@
 +/* Copyright (C) 1996, 1997, 2000, 2002, 2003, 2004
 +	Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -2703,7 +2660,6 @@
 +	REG_L s10,11*SZREG(a0)
 +	REG_L s11,12*SZREG(a0)
 +	REG_L sp, 13*SZREG(a0)
-+	REG_L tp, 14*SZREG(a0)
 +
 +#ifdef __riscv_hard_float
 +	REG_L a3, 15*SZREG(a0)
@@ -2731,7 +2687,7 @@
 +END(__longjmp)
 --- original-glibc/sysdeps/riscv/Makefile
 +++ glibc/sysdeps/riscv/Makefile
-@@ -0,0 +1,49 @@
+@@ -0,0 +1,45 @@
 +ifneq ($(all-rtld-routines),)
 +CFLAGS-rtld.c += -mno-plt
 +CFLAGS-dl-load.c += -mno-plt
@@ -2774,10 +2730,6 @@
 +
 +ifeq ($(subdir),misc)
 +sysdep_headers += sys/asm.h
-+endif
-+
-+ifeq ($(subdir),rt)
-+librt-sysdep_routines += rt-sysdep
 +endif
 +
 +ASFLAGS-.os += $(pic-ccflag)
@@ -3836,7 +3788,7 @@
 +#include <sysdeps/unix/sysv/linux/riscv/vfork.S>
 --- original-glibc/sysdeps/riscv/nptl/sysdep-cancel.h
 +++ glibc/sysdeps/riscv/nptl/sysdep-cancel.h
-@@ -0,0 +1,142 @@
+@@ -0,0 +1,129 @@
 +/* Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
 +
@@ -3873,7 +3825,6 @@
 +# define PSEUDO(name, syscall_name, args)				\
 +      .align 2;								\
 +  L(pseudo_start):							\
-+      cfi_startproc;							\
 +  99: j __syscall_error;						\
 +  ENTRY (name)								\
 +    SINGLE_THREAD_P(t0);						\
@@ -3887,35 +3838,32 @@
 +    ret;								\
 +  .size __##syscall_name##_nocancel,.-__##syscall_name##_nocancel;	\
 +  L(pseudo_cancel):							\
-+    SAVESTK;								\
++    addi sp, sp, -STKSPACE;						\
 +    REG_S ra, STKOFF_RA(sp);						\
 +    cfi_rel_offset (ra, STKOFF_RA);					\
-+      PUSHARGS_##args;			/* save syscall args */		\
-+      CENABLE;								\
-+      POPARGS_##args;			/* restore syscall args */	\
-+      REG_S a0, STKOFF_SVMSK(sp);	/* save mask */			\
-+      li a7, SYS_ify (syscall_name);					\
-+      scall;								\
-+      REG_S a0, STKOFF_A0(sp);		/* save syscall result */	\
-+      REG_L a0, STKOFF_SVMSK(sp);	/* pass mask as arg1 */		\
-+      CDISABLE;								\
-+      REG_L a0, STKOFF_A0(sp);		/* restore syscall result */	\
-+      REG_L ra, STKOFF_RA(sp);		/* restore return address */	\
-+      RESTORESTK;							\
-+      bltz a0, 99b;							\
-+    L(pseudo_end):
++    PUSHARGS_##args;			/* save syscall args */		\
++    CENABLE;								\
++    REG_S a0, STKOFF_SVMSK(sp);		/* save mask */			\
++    POPARGS_##args;			/* restore syscall args */	\
++    li a7, SYS_ify (syscall_name);					\
++    scall;								\
++    REG_S a0, STKOFF_A0(sp);		/* save syscall result */	\
++    REG_L a0, STKOFF_SVMSK(sp);		/* pass mask as arg1 */		\
++    CDISABLE;								\
++    REG_L ra, STKOFF_RA(sp);		/* restore return address */	\
++    REG_L a0, STKOFF_A0(sp);		/* restore syscall result */	\
++    addi sp, sp, STKSPACE;						\
++    bltz a0, 99b;							\
++  L(pseudo_end):
 +
-+
-+# undef PSEUDO_END
-+# define PSEUDO_END(sym) cfi_endproc; .size sym,.-sym
 +
 +# define PUSHARGS_0	/* nothing to do */
 +# define PUSHARGS_1	PUSHARGS_0 REG_S a0, STKOFF_A0(sp); cfi_rel_offset (a0, STKOFF_A0);
 +# define PUSHARGS_2	PUSHARGS_1 REG_S a1, STKOFF_A1(sp); cfi_rel_offset (a1, STKOFF_A1);
 +# define PUSHARGS_3	PUSHARGS_2 REG_S a2, STKOFF_A2(sp); cfi_rel_offset (a2, STKOFF_A2);
 +# define PUSHARGS_4	PUSHARGS_3 REG_S a3, STKOFF_A3(sp); cfi_rel_offset (a3, STKOFF_A3);
-+# define PUSHARGS_5	PUSHARGS_4 REG_S a4, STKOFF_A4(sp); cfi_rel_offset (a3, STKOFF_A4);
-+# define PUSHARGS_6	PUSHARGS_5 REG_S a5, STKOFF_A5(sp); cfi_rel_offset (a3, STKOFF_A5);
++# define PUSHARGS_5	PUSHARGS_4 REG_S a4, STKOFF_A4(sp); cfi_rel_offset (a4, STKOFF_A4);
++# define PUSHARGS_6	PUSHARGS_5 REG_S a5, STKOFF_A5(sp); cfi_rel_offset (a5, STKOFF_A5);
 +
 +# define POPARGS_0	/* nothing to do */
 +# define POPARGS_1	POPARGS_0 REG_L a0, STKOFF_A0(sp);
@@ -3925,35 +3873,26 @@
 +# define POPARGS_5	POPARGS_4 REG_L a4, STKOFF_A4(sp);
 +# define POPARGS_6	POPARGS_5 REG_L a5, STKOFF_A5(sp);
 +
-+/* Save an even number of slots.  Should be 0 if an even number of slots
-+   are used below, or SZREG if an odd number are used.  */
-+# define STK_PAD	0
-+
-+/* Place values that we are more likely to use later in this sequence, i.e.
-+   closer to the SP at function entry.  If you do that, the are more
-+   likely to already be in your d-cache.  */
-+# define STKOFF_A5	(STK_PAD)
++/* Avoid D$ misses by keeping less-used arguments further down stack.  */
++# define STKOFF_A5	0
 +# define STKOFF_A4	(STKOFF_A5 + SZREG)
 +# define STKOFF_A3	(STKOFF_A4 + SZREG)
-+# define STKOFF_A2	(STKOFF_A3 + SZREG)	/* MT and more args.  */
-+# define STKOFF_A1	(STKOFF_A2 + SZREG)	/* MT and 2 args.  */
-+# define STKOFF_SVMSK	STKOFF_A1		/* Used if MT.  */
-+# define STKOFF_A0	(STKOFF_A1 + SZREG)	/* MT and 1 arg.  */
-+# define STKOFF_RA	(STKOFF_A0 + SZREG)	/* Used if MT.  */
-+
++# define STKOFF_A2	(STKOFF_A3 + SZREG)
++# define STKOFF_A1	(STKOFF_A2 + SZREG)
++# define STKOFF_A0	(STKOFF_A1 + SZREG)
++# define STKOFF_SVMSK	(STKOFF_A0 + SZREG)
++# define STKOFF_RA	(STKOFF_SVMSK + SZREG)
 +# define STKSPACE	(STKOFF_RA + SZREG)
-+# define SAVESTK 	addi sp, sp, -STKSPACE; cfi_adjust_cfa_offset(STKSPACE)
-+# define RESTORESTK 	addi sp, sp, STKSPACE; cfi_adjust_cfa_offset(-STKSPACE)
 +
 +# ifdef IS_IN_libpthread
-+#  define CENABLE  jal __pthread_enable_asynccancel
-+#  define CDISABLE jal __pthread_disable_asynccancel
++#  define CENABLE  call __pthread_enable_asynccancel
++#  define CDISABLE call __pthread_disable_asynccancel
 +# elif defined IS_IN_librt
-+#  define CENABLE  jal __librt_enable_asynccancel
-+#  define CDISABLE jal __librt_disable_asynccancel
++#  define CENABLE  call __librt_enable_asynccancel
++#  define CDISABLE call __librt_disable_asynccancel
 +# else
-+#  define CENABLE  jal __libc_enable_asynccancel
-+#  define CDISABLE jal __libc_disable_asynccancel
++#  define CENABLE  call __libc_enable_asynccancel
++#  define CDISABLE call __libc_disable_asynccancel
 +# endif
 +
 +# ifndef __ASSEMBLER__
@@ -4201,28 +4140,35 @@
 +#include <sysdeps/unix/sysv/linux/riscv/vfork.S>
 --- original-glibc/sysdeps/riscv/preconfigure
 +++ glibc/sysdeps/riscv/preconfigure
-@@ -0,0 +1,21 @@
-+case "$CC $CFLAGS $CPPFLAGS " in
-+*" -m32 "*) riscv_cc_abi=32 ;;
-+*" -m64 "*) riscv_cc_abi=64 ;;
-+*) riscv_cc_abi=default ;;
+@@ -0,0 +1,28 @@
++case "$machine" in
++riscv64*)
++		case "$CC $CFLAGS $CPPFLAGS " in
++		*" -m32 "*) riscv_cc_abi=32 ;;
++		*" -m64 "*) riscv_cc_abi=64 ;;
++		*) riscv_cc_abi=default ;;
++		esac
++		case $config_os in
++		*64*) riscv_config_abi=64 ;;
++		*32*) riscv_config_abi=32 ;;
++		*) riscv_config_abi=$riscv_cc_abi ;;
++		esac
++		case $riscv_config_abi in
++		default) base_machine=riscv machine=riscv/rv64 ;;
++		32) base_machine=riscv machine=riscv/rv32 ;;
++		64) base_machine=riscv machine=riscv/rv64 ;;
++		esac
++		machine=$machine/$config_machine
++		if test $riscv_config_abi != $riscv_cc_abi; then
++		  # This won't make it to config.make, but we want to
++		  # set this in case configure tests depend on it.
++		  CPPFLAGS="$CPPFLAGS -m$riscv_config_abi"
++		fi
++		;;
++riscv*)		base_machine=riscv machine=riscv/rv64
++		machine=$machine/$config_machine
++		;;
 +esac
-+case $config_os in
-+*64*) riscv_config_abi=64 ;;
-+*32*) riscv_config_abi=32 ;;
-+*) riscv_config_abi=$riscv_cc_abi ;;
-+esac
-+case $riscv_config_abi in
-+default) base_machine=riscv machine=riscv/rv64 ;;
-+32) base_machine=riscv machine=riscv/rv32 ;;
-+64) base_machine=riscv machine=riscv/rv64 ;;
-+esac
-+machine=$machine/$config_machine
-+if test $riscv_config_abi != $riscv_cc_abi; then
-+  # This won't make it to config.make, but we want to
-+  # set this in case configure tests depend on it.
-+  CPPFLAGS="$CPPFLAGS -m$riscv_config_abi"
-+fi
 --- original-glibc/sysdeps/riscv/rv32/bits/wordsize.h
 +++ glibc/sysdeps/riscv/rv32/bits/wordsize.h
 @@ -0,0 +1,19 @@
@@ -4324,10 +4270,7 @@
 +wordsize-64
 --- original-glibc/sysdeps/riscv/rv64/Makefile
 +++ glibc/sysdeps/riscv/rv64/Makefile
-@@ -0,0 +1,6 @@
-+# Link libc.so at its likely load address for faster dynamic linking
-+LDLIBS-c.so += -Wl,--section-start=.dynamic=0x40100270
-+
+@@ -0,0 +1,3 @@
 +ifeq ($(filter -m64,$(CC)),)
 +CC += -m64
 +endif
@@ -4426,7 +4369,7 @@
 +}
 --- original-glibc/sysdeps/riscv/setjmp.S
 +++ glibc/sysdeps/riscv/setjmp.S
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,78 @@
 +/* Copyright (C) 1996, 1997, 2000, 2002, 2003, 2004
 +	Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -4472,7 +4415,6 @@
 +	REG_S s10,11*SZREG(a0)
 +	REG_S s11,12*SZREG(a0)
 +	REG_S sp, 13*SZREG(a0)
-+	REG_S tp, 14*SZREG(a0)
 +
 +#ifdef __riscv_hard_float
 +	frsr a3
@@ -4653,7 +4595,7 @@
 +	lla   a4, __libc_csu_fini
 +	move  a6, sp  /* stack_end */
 +	
-+	jump  __libc_start_main@
++	tail  __libc_start_main@
 +END(ENTRY_POINT)
 +
 +/* Define a symbol for the first piece of initialized data.  */
@@ -4730,35 +4672,35 @@
 +.Lmismatch:
 +  # words don't match, but a2 has no null byte.
 +#ifdef __riscv64
-+  sll   a0, a2, 48
-+  sll   a1, a3, 48
-+  bne   a0, a1, .Lmismatch_upper
-+  sll   a0, a2, 32
-+  sll   a1, a3, 32
-+  bne   a0, a1, .Lmismatch_upper
++  sll   a4, a2, 48
++  sll   a5, a3, 48
++  bne   a4, a5, .Lmismatch_upper
++  sll   a4, a2, 32
++  sll   a5, a3, 32
++  bne   a4, a5, .Lmismatch_upper
 +#endif
-+  sll   a0, a2, 16
-+  sll   a1, a3, 16
-+  bne   a0, a1, .Lmismatch_upper
++  sll   a4, a2, 16
++  sll   a5, a3, 16
++  bne   a4, a5, .Lmismatch_upper
 +
-+  srl   a0, a2, 8*SZREG-16
-+  srl   a1, a3, 8*SZREG-16
-+  sub   a0, a0, a1
-+  and   a4, a0, 0xff
-+  bnez  a4, 1f
++  srl   a4, a2, 8*SZREG-16
++  srl   a5, a3, 8*SZREG-16
++  sub   a0, a4, a5
++  and   a1, a0, 0xff
++  bnez  a1, 1f
 +  ret
 +
 +.Lmismatch_upper:
-+  srl   a0, a0, 8*SZREG-16
-+  srl   a1, a1, 8*SZREG-16
-+  sub   a2, a0, a1
-+  and   a3, a2, 0xff
-+  bnez  a3, 1f
++  srl   a4, a4, 8*SZREG-16
++  srl   a5, a5, 8*SZREG-16
++  sub   a0, a4, a5
++  and   a1, a0, 0xff
++  bnez  a1, 1f
 +  ret
 +
-+1:and   a0, a0, 0xff
-+  and   a1, a1, 0xff
-+  sub   a0, a0, a1
++1:and   a4, a4, 0xff
++  and   a5, a5, 0xff
++  sub   a0, a4, a5
 +  ret
 +
 +.Lmisaligned:
@@ -4892,7 +4834,7 @@
 +libc_hidden_def(strlen)
 --- original-glibc/sysdeps/riscv/sys/asm.h
 +++ glibc/sysdeps/riscv/sys/asm.h
-@@ -0,0 +1,69 @@
+@@ -0,0 +1,68 @@
 +/* copyright (c) 1997, 1998, 2002, 2003, 2004, 2005
 +   Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -4936,11 +4878,12 @@
 +/*
 + * LEAF - declare leaf routine
 + */
-+#define	LEAF(symbol)	\
-+		.globl	symbol;                         \
-+		.align	2;                              \
-+		.type	symbol,@function;               \
-+symbol:
++#define	LEAF(symbol)				\
++		.globl	symbol;			\
++		.align	2;			\
++		.type	symbol,@function;	\
++symbol:						\
++		cfi_startproc;
 +
 +/*
 + * NESTED - declare nested routine entry point
@@ -4950,15 +4893,13 @@
 +/*
 + * END - mark end of function
 + */
-+#ifndef END
-+# define END(function)                                   \
++#define END(function)				\
++		cfi_endproc;			\
 +		.size	function,.-function
-+#endif
 +
 +/*
 + * Stack alignment
 + */
-+#define ALSZ	15
 +#define ALMASK	~15
 +
 +#endif /* sys/asm.h */
@@ -5013,129 +4954,6 @@
 +    __memcpy_g;
 +  }
 +}
---- original-glibc/sysdeps/unix/riscv/rt-sysdep.c
-+++ glibc/sysdeps/unix/riscv/rt-sysdep.c
-@@ -0,0 +1 @@
-+#include <sysdep.c>
---- original-glibc/sysdeps/unix/riscv/sysdep.c
-+++ glibc/sysdeps/unix/riscv/sysdep.c
-@@ -0,0 +1,41 @@
-+/* Copyright (C) 1992, 1993, 1994, 1997, 1998, 1999, 2000, 2002, 2003 
-+   Free Software Foundation, Inc.
-+   This file is part of the GNU C Library.
-+   Contributed by Brendan Kehoe (brendan@zen.org).
-+
-+   The GNU C Library is free software; you can redistribute it and/or
-+   modify it under the terms of the GNU Lesser General Public
-+   License as published by the Free Software Foundation; either
-+   version 2.1 of the License, or (at your option) any later version.
-+
-+   The GNU C Library is distributed in the hope that it will be useful,
-+   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+   Lesser General Public License for more details.
-+
-+   You should have received a copy of the GNU Lesser General Public
-+   License along with the GNU C Library; if not, write to the Free
-+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-+   02111-1307 USA.  */
-+
-+#include <sysdep.h>
-+#include <errno.h>
-+
-+long __syscall_error(long a0)
-+{
-+  /* Referencing errno may call a function, clobbering a0. */
-+  long errno_val = -a0;
-+
-+#if defined (EWOULDBLOCK_sys) && EWOULDBLOCK_sys != EAGAIN
-+	/* We translate the system's EWOULDBLOCK error into EAGAIN.
-+	   The GNU C library always defines EWOULDBLOCK==EAGAIN.
-+	   EWOULDBLOCK_sys is the original number.  */
-+
-+  if (errno_val == EWOULDBLOCK_sys)
-+    errno_val = EAGAIN;
-+#endif
-+
-+  errno = errno_val;
-+
-+  return -1;
-+}
---- original-glibc/sysdeps/unix/riscv/sysdep.h
-+++ glibc/sysdeps/unix/riscv/sysdep.h
-@@ -0,0 +1,72 @@
-+/* Copyright (C) 1992, 1995, 1997, 1999, 2000, 2002, 2003, 2004
-+   Free Software Foundation, Inc.
-+   This file is part of the GNU C Library.
-+   Contributed by Brendan Kehoe (brendan@zen.org).
-+
-+   The GNU C Library is free software; you can redistribute it and/or
-+   modify it under the terms of the GNU Lesser General Public
-+   License as published by the Free Software Foundation; either
-+   version 2.1 of the License, or (at your option) any later version.
-+
-+   The GNU C Library is distributed in the hope that it will be useful,
-+   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+   Lesser General Public License for more details.
-+
-+   You should have received a copy of the GNU Lesser General Public
-+   License along with the GNU C Library; if not, write to the Free
-+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-+   02111-1307 USA.  */
-+
-+#include <sysdeps/unix/sysdep.h>
-+
-+#ifdef __ASSEMBLER__
-+
-+#include <sys/asm.h>
-+
-+#define ENTRY(name) LEAF(name)
-+
-+#undef END
-+#define	END(function)                                   \
-+		.size	function,.-function
-+
-+#define ret	ret
-+
-+#undef PSEUDO_END
-+#define PSEUDO_END(sym) .size sym,.-sym
-+
-+#define PSEUDO_NOERRNO(name, syscall_name, args)	\
-+  .align 2;						\
-+  ENTRY(name)						\
-+  li a7, SYS_ify(syscall_name);				\
-+  scall
-+
-+#undef PSEUDO_END_NOERRNO
-+#define PSEUDO_END_NOERRNO(sym) .size sym,.-sym
-+
-+#define ret_NOERRNO ret
-+
-+#define PSEUDO_ERRVAL(name, syscall_name, args) \
-+  PSEUDO_NOERRNO(name, syscall_name, args)
-+
-+#undef PSEUDO_END_ERRVAL
-+#define PSEUDO_END_ERRVAL(sym) PSEUDO_END_NOERRNO(sym)
-+
-+#define ret_ERRVAL ret
-+
-+#define r0	a0
-+#define r1	a1
-+#define MOVE(x,y)	move y , x
-+
-+#define L(label) .L ## label
-+
-+#define PSEUDO(name, syscall_name, args) \
-+  .align 2;							\
-+  99: j __syscall_error;					\
-+  ENTRY(name)							\
-+  li a7, SYS_ify(syscall_name);					\
-+  scall;							\
-+  bltz a0, 99b;							\
-+L(syse1):
-+
-+#endif
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/arch-fork.h
 +++ glibc/sysdeps/unix/sysv/linux/riscv/arch-fork.h
 @@ -0,0 +1 @@
@@ -5634,9 +5452,9 @@
 +	REG_S	ra, MCONTEXT_PC(a0)
 +	REG_S	ra, ( 1 * SZREG + MCONTEXT_GREGS)(a0)
 +	REG_S	sp, ( 2 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	tp, ( 4 * SZREG + MCONTEXT_GREGS)(a0)
 +	REG_S	s0, ( 8 * SZREG + MCONTEXT_GREGS)(a0)
 +	REG_S	s1, ( 9 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	x0, (10 * SZREG + MCONTEXT_GREGS)(a0)	/* return 0 */
 +	REG_S	s2, (18 * SZREG + MCONTEXT_GREGS)(a0)
 +	REG_S	s3, (19 * SZREG + MCONTEXT_GREGS)(a0)
 +	REG_S	s4, (20 * SZREG + MCONTEXT_GREGS)(a0)
@@ -5690,12 +5508,9 @@
 +#include <sysdeps/unix/sysv/linux/i386/getmsg.c>
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/Implies
 +++ glibc/sysdeps/unix/sysv/linux/riscv/Implies
-@@ -0,0 +1,5 @@
+@@ -0,0 +1,2 @@
 +unix/sysv/linux/generic
 +riscv/nptl
-+
-+# This needs to change to support rv32
-+unix/sysv/linux/riscv/rv64
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/kernel-features.h
 +++ glibc/sysdeps/unix/sysv/linux/riscv/kernel-features.h
 @@ -0,0 +1,29 @@
@@ -5787,7 +5602,7 @@
 +#include <__longjmp.S>
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/makecontext.c
 +++ glibc/sysdeps/unix/sysv/linux/riscv/makecontext.c
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,52 @@
 +#include <sysdep.h>
 +#include <sys/asm.h>
 +#include <sys/ucontext.h>
@@ -5795,18 +5610,26 @@
 +#include <assert.h>
 +
 +void __makecontext (ucontext_t *ucp, void (*func) (void), int argc,
-+		    long a0, long a1, long a2, long a3,
-+		    long a4, ...)
++		    long a0, long a1, long a2, long a3, long a4, ...)
 +{
-+  extern void __start_context(void);
++  extern void __start_context(void) attribute_hidden;
 +  long i, sp;
-+  va_list vl;
 +
-+  va_start(vl, a4);
 +  assert(REG_NARGS == 8);
 +
 +  /* Set up the stack. */
 +  sp = ((long)ucp->uc_stack.ss_sp + ucp->uc_stack.ss_size) & ALMASK;
++
++  /* Set up the register context.
++     ra = s0 = 0, terminating the stack for backtracing purposes.
++     s1 = the function we must call.
++     s2 = the subsequent context to run.  */
++  ucp->uc_mcontext.gregs[REG_RA] = 0;
++  ucp->uc_mcontext.gregs[REG_S0 + 0] = 0;
++  ucp->uc_mcontext.gregs[REG_S0 + 1] = (long)func;
++  ucp->uc_mcontext.gregs[REG_S0 + 2] = (long)ucp->uc_link;
++  ucp->uc_mcontext.gregs[REG_SP] = sp;
++  ucp->uc_mcontext.gregs[REG_PC] = (long)&__start_context;
 +
 +  /* Put args in a0-a7, then put any remaining args on the stack. */
 +  ucp->uc_mcontext.gregs[REG_A0 + 0] = a0;
@@ -5814,26 +5637,27 @@
 +  ucp->uc_mcontext.gregs[REG_A0 + 2] = a2;
 +  ucp->uc_mcontext.gregs[REG_A0 + 3] = a3;
 +  ucp->uc_mcontext.gregs[REG_A0 + 4] = a4;
-+  if (__builtin_expect(argc > 5, 0))
++
++  if (__builtin_expect (argc > 5, 0))
 +    {
++      va_list vl;
++      va_start(vl, a4);
++
 +      long reg_args = argc < REG_NARGS ? argc : REG_NARGS;
 +      sp = (sp - (argc - reg_args) * sizeof(long)) & ALMASK;
 +      for (i = 5; i < reg_args; i++)
 +        ucp->uc_mcontext.gregs[REG_A0 + i] = va_arg(vl, long);
 +      for (i = 0; i < argc - reg_args; i++)
 +        ((long*)sp)[i] = va_arg(vl, long);
-+    }
 +
-+  ucp->uc_mcontext.gregs[REG_S0] = (long)ucp->uc_link;
-+  ucp->uc_mcontext.gregs[REG_SP] = sp;
-+  ucp->uc_mcontext.gregs[REG_PC] = (long)func;
-+  ucp->uc_mcontext.gregs[REG_RA] = (long)&__start_context;
++      va_end(vl);
++    }
 +}
 +
 +weak_alias (__makecontext, makecontext)
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/Makefile
 +++ glibc/sysdeps/unix/sysv/linux/riscv/Makefile
-@@ -0,0 +1,13 @@
+@@ -0,0 +1,16 @@
 +ifeq ($(subdir),elf)
 +ifeq ($(build-shared),yes)
 +# This is needed for DSO loading from static binaries.
@@ -5844,8 +5668,11 @@
 +endif
 +
 +ifeq ($(subdir),stdlib)
-+sysdep_routines += __start_context
 +gen-as-const-headers += ucontext_i.sym
++endif
++
++ifeq ($(subdir),rt)
++librt-sysdep_routines += sysdep
 +endif
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/profil-counter.h
 +++ glibc/sysdeps/unix/sysv/linux/riscv/profil-counter.h
@@ -5924,6 +5751,10 @@
 +}
 +
 +#define REGISTER_DUMP register_dump (fd, ctx)
+--- original-glibc/sysdeps/unix/sysv/linux/riscv/rv32/Implies
++++ glibc/sysdeps/unix/sysv/linux/riscv/rv32/Implies
+@@ -0,0 +1 @@
++unix/sysv/linux/generic/wordsize-32
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/rv32/lockf64.c
 +++ glibc/sysdeps/unix/sysv/linux/riscv/rv32/lockf64.c
 @@ -0,0 +1 @@
@@ -5987,7 +5818,7 @@
 +endif
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/setcontext.S
 +++ glibc/sysdeps/unix/sysv/linux/riscv/setcontext.S
-@@ -0,0 +1,96 @@
+@@ -0,0 +1,126 @@
 +/* Set current context.
 +   Copyright (C) 2009 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -6013,6 +5844,20 @@
 +
 +#include "ucontext_i.h"
 +
++#define RESTORE_FP_REG(name, num, base)			\
++  fld  name, ((num) * 8 + MCONTEXT_FPREGS)(base)
++
++#define RESTORE_FP_REG_CFI(name, num, base)		\
++  RESTORE_FP_REG (name, num, base);			\
++  cfi_offset (name, (num) * SZREG + MCONTEXT_GREGS)
++
++#define RESTORE_INT_REG(name, num, base)		\
++  REG_L name, ((num) * SZREG + MCONTEXT_GREGS)(base)
++
++#define RESTORE_INT_REG_CFI(name, num, base)		\
++  RESTORE_INT_REG (name, num, base);			\
++  cfi_offset (name, (num) * SZREG + MCONTEXT_GREGS)
++
 +/* int setcontext (const ucontext_t *ucp) */
 +
 +	.text
@@ -6031,21 +5876,23 @@
 +
 +	bltz	a0, 99f
 +
++	cfi_def_cfa (t0, 0)
++
 +#ifdef __riscv_hard_float
 +	lw	t1, MCONTEXT_FSR(t0)
 +
-+	fld	fs0, ( 8 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs1, ( 9 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs2, (18 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs3, (19 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs4, (20 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs5, (21 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs6, (22 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs7, (23 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs8, (24 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs9, (25 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs10,(26 * 8 + MCONTEXT_FPREGS)(t0)
-+	fld	fs11,(27 * 8 + MCONTEXT_FPREGS)(t0)
++	RESTORE_FP_REG_CFI (fs0,   8, t0)
++	RESTORE_FP_REG_CFI (fs1,   9, t0)
++	RESTORE_FP_REG_CFI (fs2,  18, t0)
++	RESTORE_FP_REG_CFI (fs3,  19, t0)
++	RESTORE_FP_REG_CFI (fs4,  20, t0)
++	RESTORE_FP_REG_CFI (fs5,  21, t0)
++	RESTORE_FP_REG_CFI (fs6,  22, t0)
++	RESTORE_FP_REG_CFI (fs7,  23, t0)
++	RESTORE_FP_REG_CFI (fs8,  24, t0)
++	RESTORE_FP_REG_CFI (fs9,  25, t0)
++	RESTORE_FP_REG_CFI (fs10, 26, t0)
++	RESTORE_FP_REG_CFI (fs11, 27, t0)
 +
 +	fssr	t1
 +#endif /* __riscv_hard_float */
@@ -6053,37 +5900,51 @@
 +	/* Note the contents of argument registers will be random
 +	   unless makecontext() has been called.  */
 +	REG_L	t1, MCONTEXT_PC(t0)
-+	REG_L	ra, ( 1 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	sp, ( 2 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	tp, ( 4 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s0, ( 8 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s1, ( 9 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a0, (10 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a1, (11 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a2, (12 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a3, (13 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a4, (14 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a5, (15 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a6, (16 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	a7, (17 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s2, (18 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s3, (19 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s4, (20 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s5, (21 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s6, (22 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s7, (23 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s8, (24 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s9, (25 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s10,(26 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	s11,(27 * SZREG + MCONTEXT_GREGS)(t0)
++	RESTORE_INT_REG_CFI (ra,   1, t0)
++	RESTORE_INT_REG     (sp,   2, t0)
++	RESTORE_INT_REG_CFI (s0,   8, t0)
++	RESTORE_INT_REG_CFI (s1,   9, t0)
++	RESTORE_INT_REG     (a0,  10, t0)
++	RESTORE_INT_REG     (a1,  11, t0)
++	RESTORE_INT_REG     (a2,  12, t0)
++	RESTORE_INT_REG     (a3,  13, t0)
++	RESTORE_INT_REG     (a4,  14, t0)
++	RESTORE_INT_REG     (a5,  15, t0)
++	RESTORE_INT_REG     (a6,  16, t0)
++	RESTORE_INT_REG     (a7,  17, t0)
++	RESTORE_INT_REG_CFI (s2,  18, t0)
++	RESTORE_INT_REG_CFI (s3,  19, t0)
++	RESTORE_INT_REG_CFI (s4,  20, t0)
++	RESTORE_INT_REG_CFI (s5,  21, t0)
++	RESTORE_INT_REG_CFI (s6,  22, t0)
++	RESTORE_INT_REG_CFI (s7,  23, t0)
++	RESTORE_INT_REG_CFI (s8,  24, t0)
++	RESTORE_INT_REG_CFI (s9,  25, t0)
++	RESTORE_INT_REG_CFI (s10, 26, t0)
++	RESTORE_INT_REG_CFI (s11, 27, t0)
 +
 +	jr	t1
 +
 +99:	j	__syscall_error
 +
 +PSEUDO_END (__setcontext)
-+
 +weak_alias (__setcontext, setcontext)
++
++LEAF (__start_context)
++
++	/* Terminate call stack by noting ra == 0.  Happily, s0 == 0 here.  */
++	cfi_register (ra, s0)
++
++	/* Call the function passed to makecontext.  */
++	jalr	s1
++
++	/* Invoke subsequent context if present, else exit(0).  */
++	mv	a0, s2
++	beqz	s2, 1f
++	jal	__setcontext
++1:	j	exit
++
++PSEUDO_END (__start_context)
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/sigcontextinfo.h
 +++ glibc/sysdeps/unix/sysv/linux/riscv/sigcontextinfo.h
 @@ -0,0 +1,29 @@
@@ -6116,48 +5977,9 @@
 +
 +#define CALL_SIGHANDLER(handler, signo, ctx) \
 +  (handler)((signo), SIGCONTEXT_EXTRA_ARGS (ctx))
---- original-glibc/sysdeps/unix/sysv/linux/riscv/__start_context.S
-+++ glibc/sysdeps/unix/sysv/linux/riscv/__start_context.S
-@@ -0,0 +1,36 @@
-+/* Modify saved context.
-+   Copyright (C) 2009 Free Software Foundation, Inc.
-+   This file is part of the GNU C Library.
-+   Contributed by Maciej W. Rozycki <macro@codesourcery.com>.
-+
-+   The GNU C Library is free software; you can redistribute it and/or
-+   modify it under the terms of the GNU Lesser General Public
-+   License as published by the Free Software Foundation; either
-+   version 2.1 of the License, or (at your option) any later version.
-+
-+   The GNU C Library is distributed in the hope that it will be useful,
-+   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+   Lesser General Public License for more details.
-+
-+   You should have received a copy of the GNU Lesser General Public
-+   License along with the GNU C Library; if not, write to the Free
-+   Software Foundation, 51 Franklin Street - Fifth Floor, Boston, MA
-+   02110-1301, USA.  */
-+
-+#include <sysdep.h>
-+#include <sys/asm.h>
-+
-+#include "ucontext_i.h"
-+
-+	.text
-+LEAF (__start_context)
-+	move	a0, zero
-+	beqz	s0, 1f
-+
-+	/* setcontext (ucp) */
-+	move	a0, s0
-+	jal	__setcontext
-+1:	jal	HIDDEN_JUMPTARGET (exit)
-+
-+PSEUDO_END (__start_context)
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/swapcontext.S
 +++ glibc/sysdeps/unix/sysv/linux/riscv/swapcontext.S
-@@ -0,0 +1,131 @@
+@@ -0,0 +1,130 @@
 +/* Save and set current context.
 +   Copyright (C) 2009 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -6191,9 +6013,9 @@
 +	REG_S	ra, MCONTEXT_PC(a0)
 +	REG_S	ra, ( 1 * SZREG + MCONTEXT_GREGS)(a0)
 +	REG_S	sp, ( 2 * SZREG + MCONTEXT_GREGS)(a0)
-+	REG_S	tp, ( 4 * SZREG + MCONTEXT_GREGS)(a0)
 +	REG_S	s0, ( 8 * SZREG + MCONTEXT_GREGS)(a0)
 +	REG_S	s1, ( 9 * SZREG + MCONTEXT_GREGS)(a0)
++	REG_S	x0, (10 * SZREG + MCONTEXT_GREGS)(a0)	/* return 0 */
 +	REG_S	s2, (18 * SZREG + MCONTEXT_GREGS)(a0)
 +	REG_S	s3, (19 * SZREG + MCONTEXT_GREGS)(a0)
 +	REG_S	s4, (20 * SZREG + MCONTEXT_GREGS)(a0)
@@ -6259,7 +6081,6 @@
 +	REG_L	t1, MCONTEXT_PC(t0)
 +	REG_L	ra, ( 1 * SZREG + MCONTEXT_GREGS)(t0)
 +	REG_L	sp, ( 2 * SZREG + MCONTEXT_GREGS)(t0)
-+	REG_L	tp, ( 4 * SZREG + MCONTEXT_GREGS)(t0)
 +	REG_L	s0, ( 8 * SZREG + MCONTEXT_GREGS)(t0)
 +	REG_L	s1, ( 9 * SZREG + MCONTEXT_GREGS)(t0)
 +	REG_L	a0, (10 * SZREG + MCONTEXT_GREGS)(t0)
@@ -6510,7 +6331,7 @@
 +  ret = INTERNAL_SYSCALL_NCS(syscall_number, err, 7, arg1, arg2, arg3, arg4,
 +			     arg5, arg6, arg7);
 +
-+  if (INTERNAL_SYSCALL_ERROR_P(ret, err))
++  if (INTERNAL_SYSCALL_ERROR_P (ret, err))
 +    {
 +      extern long __syscall_error() attribute_hidden;
 +      return __syscall_error();
@@ -6518,9 +6339,44 @@
 +
 +  return ret;
 +}
+--- original-glibc/sysdeps/unix/sysv/linux/riscv/sysdep.c
++++ glibc/sysdeps/unix/sysv/linux/riscv/sysdep.c
+@@ -0,0 +1,32 @@
++/* Copyright (C) 2015 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++   Contributed by Andrew Waterman (waterman@cs.berkeley.edu).
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, write to the Free
++   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
++   02111-1307 USA.  */
++
++#include <sysdep.h>
++#include <errno.h>
++
++long __syscall_error(long a0)
++{
++  /* We got here because a0 < 0, but only codes in the range [-4095, -1]
++     represent errors.  Otherwise, just return the result normally.  */
++  if (a0 <= -4096)
++    return a0;
++
++  errno = -a0;
++  return -1;
++}
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/sysdep.h
 +++ glibc/sysdeps/unix/sysv/linux/riscv/sysdep.h
-@@ -0,0 +1,235 @@
+@@ -0,0 +1,259 @@
 +/* Copyright (C) 2011-2014
 +   This file is part of the GNU C Library.
 +
@@ -6541,25 +6397,53 @@
 +#ifndef _LINUX_RISCV_SYSDEP_H
 +#define _LINUX_RISCV_SYSDEP_H 1
 +
-+#include <sysdeps/unix/riscv/sysdep.h>
 +#include <sysdeps/unix/sysv/linux/generic/sysdep.h>
 +#include <tls.h>
 +
-+/* For Linux we can use the system call table in the header file
-+	/usr/include/asm/unistd.h
-+   of the kernel.  But these symbols do not follow the SYS_* syntax
-+   so we have to redefine the `SYS_ify' macro here.  */
++#ifdef __ASSEMBLER__
++
++#include <sys/asm.h>
++
++#define ENTRY(name) LEAF(name)
++
++#define PSEUDO_END(sym) END(sym)
++
++#define PSEUDO_NOERRNO(name, syscall_name, args)	\
++  .align 2;						\
++  ENTRY(name)						\
++  li a7, SYS_ify(syscall_name);				\
++  scall
++
++#define ret_NOERRNO ret
++
++#define PSEUDO_ERRVAL(name, syscall_name, args) \
++  PSEUDO_NOERRNO(name, syscall_name, args)
++
++#define ret_ERRVAL ret
++
++#define r0	a0
++#define r1	a1
++#define MOVE(x,y)	move y , x
++
++#define L(label) .L ## label
++
++#define PSEUDO(name, syscall_name, args) \
++  .align 2;							\
++  99: j __syscall_error;					\
++  ENTRY(name)							\
++  li a7, SYS_ify(syscall_name);					\
++  scall;							\
++  bltz a0, 99b;							\
++L(syse1):
++
++#endif /* __ASSEMBLER__ */
++
++#include <sysdeps/unix/sysdep.h>
++
 +#undef SYS_ify
-+#ifdef __STDC__
-+# define SYS_ify(syscall_name)	__NR_##syscall_name
-+#else
-+# define SYS_ify(syscall_name)	__NR_/**/syscall_name
-+#endif
++#define SYS_ify(syscall_name)	__NR_##syscall_name
 +
 +#ifndef __ASSEMBLER__
-+
-+/* In order to get __set_errno() definition in INLINE_SYSCALL.  */
-+#include <errno.h>
 +
 +/* Define a macro which expands into the inline wrapper code for a system
 +   call.  */
@@ -6567,27 +6451,23 @@
 +#define INLINE_SYSCALL(name, nr, args...)				\
 +  ({ INTERNAL_SYSCALL_DECL(err);					\
 +     long result_var = INTERNAL_SYSCALL (name, err, nr, args);		\
-+     if ( INTERNAL_SYSCALL_ERROR_P (result_var, err) )			\
++     if (result_var < 0)						\
 +       {								\
-+	 __set_errno (INTERNAL_SYSCALL_ERRNO (result_var, err));	\
-+	 result_var = -1L;						\
++	 /* __syscall_error handles result_var <= -4096 corner case */	\
++	 extern long __syscall_error (long) attribute_hidden;		\
++	 result_var = __syscall_error (result_var);			\
 +       }								\
 +     result_var; })
 +
-+#undef INTERNAL_SYSCALL_DECL
 +#define INTERNAL_SYSCALL_DECL(err) do { } while (0)
 +
-+#undef INTERNAL_SYSCALL_ERROR_P
-+#define INTERNAL_SYSCALL_ERROR_P(val, err)   ((long) (val) < 0)
++#define INTERNAL_SYSCALL_ERROR_P(val, err)   ((unsigned long) (val) > -4096UL)
 +
-+#undef INTERNAL_SYSCALL_ERRNO
 +#define INTERNAL_SYSCALL_ERRNO(val, err)     (-val)
 +
-+#undef INTERNAL_SYSCALL
 +#define INTERNAL_SYSCALL(name, err, nr, args...) \
 +	internal_syscall##nr (SYS_ify (name), err, args)
 +
-+#undef INTERNAL_SYSCALL_NCS
 +#define INTERNAL_SYSCALL_NCS(number, err, nr, args...) \
 +	internal_syscall##nr (number, err, args)
 +
