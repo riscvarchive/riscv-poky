@@ -37,7 +37,7 @@ Getting Started
 To get started, clone the `usb-bar/riscv-poky` repository (poky is the name of the distribution that Yocto generates):
 
 >```
-git clone git@github.com:ucb-bar/riscv-poky.git
+git clone git@github.com:riscv/riscv-poky.git
 cd riscv-poky
 ```
 
@@ -88,7 +88,7 @@ The RISC-V port already builds many relevant packages and tools (e.g., Python an
 
 The `poky-riscv` repository is a fork of the master branch from Yocto's main repository, `poky.git`. This is a development branch, and we are trying to track changes closely.  Currently, changes to poky.git fall into two categories:
 
-* The `meta-riscv` layer contains recipes for RISC-V-specific packages that often override the ones that come with Yocto. The reason for this is to work around features not yet supported in riscv-tools (e.g. kernel command line options in qemu) or that the source has to be cloned from ucb-bar repositories rather than downloaded from GNU mirrors. As a result, many recipes in this directory are not as clean as they could be and the goal is eventually to merge RISC-V-specific changes back into the mainline Yocto recipes (the way that other architectures such as ARM are supported) rather than needing a separate layer for RISC-V.
+* The `meta-riscv` layer contains recipes for RISC-V-specific packages that often override the ones that come with Yocto. The reason for this is to work around features not yet supported in riscv-tools (e.g. kernel command line options in qemu) or that the source has to be cloned from riscv repositories rather than downloaded from GNU mirrors. As a result, many recipes in this directory are not as clean as they could be and the goal is eventually to merge RISC-V-specific changes back into the mainline Yocto recipes (the way that other architectures such as ARM are supported) rather than needing a separate layer for RISC-V.
 * Changes to the remainder of the Yocto reporisoty are changes in recipes and scripts required to support RISC-V as a new ISA. Any change outside the `meta-riscv` directory should be considered something that we may eventually upstream to the Yocto Project.
 
 A good policy would be to work completely in the meta-riscv layer and move recipes outside the meta-riscv layer as RISC-V changes are upstreamed into other projects (such as the Linux kernel or GCC).
