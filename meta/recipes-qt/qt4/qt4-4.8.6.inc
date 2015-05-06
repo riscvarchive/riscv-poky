@@ -22,6 +22,13 @@ SRC_URI = "http://download.qt-project.org/official_releases/qt/4.8/${PV}/qt-ever
            file://0019-Fixes-for-gcc-4.7.0-particularly-on-qemux86.patch \
            file://0027-tools.pro-disable-qmeegographicssystemhelper.patch \
            file://0028-Don-t-crash-on-broken-GIF-images.patch \
+           file://0029-aarch64_arm64_fix_arch_detection.patch \
+           file://0030-aarch64_arm64_qatomic_support.patch \
+           file://0031-aarch64_arm64_mkspecs.patch \
+           file://0032-aarch64_add_header.patch \
+           file://0034-Fix-a-division-by-zero-when-processing-malformed-BMP.patch \
+           file://Fix-QWSLock-invalid-argument-logs.patch \
+           file://add_check_for_aarch64_32.patch \
            file://g++.conf \
            file://linux.conf \
            "
@@ -30,6 +37,14 @@ SRC_URI[md5sum] = "2edbe4d6c2eff33ef91732602f3518eb"
 SRC_URI[sha256sum] = "8b14dd91b52862e09b8e6a963507b74bc2580787d171feda197badfa7034032c"
 
 S = "${WORKDIR}/qt-everywhere-opensource-src-${PV}"
+
+# disable webkit for mips64 n32 temporarily that fails to compile,
+# qt upstream defect:
+# https://bugreports.qt-project.org/browse/QTBUG-39224
+QT_CONFIG_FLAGS_append_mips64n32 = " -no-webkit"
+
+# disable webkit for aarch64 temporarily that fails to compile
+QT_CONFIG_FLAGS_append_aarch64 = " -no-webkit"
 
 FILES_${QT_BASE_NAME}-tools_append     = " ${bindir}/qml ${bindir}/qmlplugindump"
 FILES_${QT_BASE_NAME}-tools-dbg_append = " ${bindir}/.debug/qml ${bindir}/.debug/qmlplugindump"

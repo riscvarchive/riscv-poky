@@ -26,13 +26,14 @@ SRC_URI = "\
   file://obsolete_automake_macros.patch \
   file://0001-Enable-mips64-build.patch \
   file://aarch64.patch \
+  file://webkit-gtk-ANGLE-doesn-t-build-with-bison-3.patch \
  "
 
 SRC_URI[md5sum] = "dcbf9d5e2e6391f857c29a57528b32a6"
 SRC_URI[sha256sum] = "ada02d636af61aed38f142d3cded662d141ce71264f624c4eb873621a74cc9e7"
 
 # webkit-gtk can NOT be built on MIPS64 with n32 ABI
-COMPATIBLE_HOST_mips64 = "mips64.*-linux$"
+COMPATIBLE_HOST_mips64n32 = "null"
 
 inherit autotools lib_package gtk-doc pkgconfig
 
@@ -50,6 +51,8 @@ EXTRA_OECONF = "\
                 ${@bb.utils.contains('DISTRO_FEATURES', 'opengl', '--enable-webgl', '--disable-webgl', d)} \
                 UNICODE_CFLAGS=-D_REENTRANT \
                "
+EXTRA_OECONF_append_armv5 = " --disable-jit"
+EXTRA_OECONF_append_armv6 = " --disable-jit"
 
 #default unicode backend icu breaks in cross-compile when target and host are different endian type
 EXTRA_OECONF_append_powerpc = " --with-unicode-backend=glib"

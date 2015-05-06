@@ -84,11 +84,11 @@
                 You also name it accordingly based on the linux-yocto recipe
                 you are using.
                 For example, if you are modifying the
-                <filename>meta/recipes-kernel/linux/linux-yocto_3.4.bb</filename>
+                <filename>meta/recipes-kernel/linux/linux-yocto_3.19.bb</filename>
                 recipe, the append file will typically be located as follows
                 within your custom layer:
                 <literallayout class='monospaced'>
-     <replaceable>your-layer</replaceable>/recipes-kernel/linux/linux-yocto_3.4.bbappend
+     <replaceable>your-layer</replaceable>/recipes-kernel/linux/linux-yocto_3.19.bbappend
                 </literallayout>
                 The append file should initially extend the
                 <ulink url='&YOCTO_DOCS_REF_URL;#var-FILESPATH'><filename>FILESPATH</filename></ulink>
@@ -133,16 +133,16 @@
 
             <para>
                 For example, you can apply a three-patch series by adding the
-                following lines to your linux-yocto <filename>.bbappend</filename>
-                file in your layer:
+                following lines to your linux-yocto
+                <filename>.bbappend</filename> file in your layer:
                 <literallayout class='monospaced'>
      SRC_URI += "file://0001-first-change.patch"
-     SRC_URI += "file://0002-first-change.patch"
-     SRC_URI += "file://0003-first-change.patch"
+     SRC_URI += "file://0002-second-change.patch"
+     SRC_URI += "file://0003-third-change.patch"
                 </literallayout>
-                The next time you run BitBake to build the Linux kernel, BitBake
-                detects the change in the recipe and fetches and applies the patches
-                before building the kernel.
+                The next time you run BitBake to build the Linux kernel,
+                BitBake detects the change in the recipe and fetches and
+                applies the patches before building the kernel.
             </para>
 
             <para>
@@ -156,23 +156,27 @@
             <title>Changing the Configuration</title>
 
             <para>
-                You can make wholesale or incremental changes to the Linux
-                kernel <filename>.config</filename> file by including a
-                <filename>defconfig</filename> and by specifying
+                You can make wholesale or incremental changes to the final
+                <filename>.config</filename> file used for the eventual
+                Linux kernel configuration by including a
+                <filename>defconfig</filename> file and by specifying
                 configuration fragments in the
-                <ulink url='&YOCTO_DOCS_REF_URL;#var-SRC_URI'><filename>SRC_URI</filename></ulink>.
+                <ulink url='&YOCTO_DOCS_REF_URL;#var-SRC_URI'><filename>SRC_URI</filename></ulink>
+                to be applied to that file.
             </para>
 
             <para>
-                If you have a final Linux kernel <filename>.config</filename>
-                file you want to use, copy it to a directory named
-                <filename>files</filename>, which must be in
-                your layer's <filename>recipes-kernel/linux</filename>
-                directory, and name the file "defconfig".
-                Then, add the following lines to your linux-yocto
+                If you have a complete, working Linux kernel
+                <filename>.config</filename>
+                file you want to use for the configuration, as before, copy
+                that file to the appropriate <filename>${PN}</filename>
+                directory in your layer's
+                <filename>recipes-kernel/linux</filename> directory,
+                and rename the copied file to "defconfig".
+                Then, add the following lines to the linux-yocto
                 <filename>.bbappend</filename> file in your layer:
                 <literallayout class='monospaced'>
-     FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+     FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
      SRC_URI += "file://defconfig"
                 </literallayout>
                 The <filename>SRC_URI</filename> tells the build system how to
@@ -181,20 +185,20 @@
                 extends the
                 <ulink url='&YOCTO_DOCS_REF_URL;#var-FILESPATH'><filename>FILESPATH</filename></ulink>
                 variable (search directories) to include the
-                <filename>files</filename> directory you created for the
+                <filename>${PN}</filename> directory you created to hold the
                 configuration changes.
             </para>
 
             <note>
                 The build system applies the configurations from the
-                <filename>.config</filename> file before applying any
+                <filename>defconfig</filename> file before applying any
                 subsequent configuration fragments.
                 The final kernel configuration is a combination of the
-                configurations in the <filename>.config</filename> file and
+                configurations in the <filename>defconfig</filename> file and
                 any configuration fragments you provide.
                 You need to realize that if you have any configuration
                 fragments, the build system applies these on top of and
-                after applying the existing <filename>.config</filename>
+                after applying the existing <filename>defconfig</filename>
                 file configurations.
             </note>
 
@@ -204,7 +208,7 @@
                 configuration fragment.
                 For example, if you want to add support for a basic serial
                 console, create a file named <filename>8250.cfg</filename> in
-                the <filename>files</filename> directory with the following
+                the <filename>${PN}</filename> directory with the following
                 content (without indentation):
                 <literallayout class='monospaced'>
      CONFIG_SERIAL_8250=y
@@ -219,7 +223,7 @@
                 <filename>FILESPATH</filename> variable in your
                 <filename>.bbappend</filename> file:
                 <literallayout class='monospaced'>
-     FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+     FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
      SRC_URI += "file://8250.cfg"
                 </literallayout>
                 The next time you run BitBake to build the Linux kernel, BitBake
@@ -322,7 +326,7 @@
                 The resulting <filename>.config</filename> file is
                 located in
                 <filename>${</filename><ulink url='&YOCTO_DOCS_REF_URL;#var-WORKDIR'><filename>WORKDIR</filename></ulink><filename>}</filename> under the
-                <filename>linux-${</filename><ulink url='&YOCTO_DOCS_REF_URL;#var-MACHINE'><filename>MACHINE</filename></ulink><filename>}-${<ulink url='&YOCTO_DOCS_REF_URL;#var-KTYPE'><filename>KTYPE</filename></ulink>}-build</filename> directory.
+                <filename>linux-${</filename><ulink url='&YOCTO_DOCS_REF_URL;#var-PACKAGE_ARCH'><filename>PACKAGE_ARCH</filename></ulink><filename>}-${<ulink url='&YOCTO_DOCS_REF_URL;#var-LINUX_KERNEL_TYPE'><filename>LINUX_KERNEL_TYPE</filename></ulink>}-build</filename> directory.
                 You can use the entire <filename>.config</filename> file as the
                 <filename>defconfig</filename> file as described in the
                 "<link linkend='changing-the-configuration'>Changing the Configuration</link>" section.
@@ -399,7 +403,7 @@
 
      WARNING: There were 2 hardware options requested that do not
               have a corresponding value present in the final ".config" file.
-              This probably means you are not't getting the config you wanted.
+              This probably means you are not getting the config you wanted.
               The full list can be found in your kernel src dir at:
               meta/cfg/standard/mybsp/mismatch.cfg
                 </literallayout>
@@ -473,9 +477,9 @@
                 the <filename>compile</filename>.
                 Once compilation is successful, you can inspect and test
                 the resulting build (i.e. kernel, modules, and so forth) from
-                the <ulink url='&YOCTO_DOCS_DEV_URL;#build-directory'>Build Directory</ulink>:
+                the following build directory:
                 <literallayout class='monospaced'>
-     ${WORKDIR}/linux-${MACHINE}-${KTYPE}-build
+     ${WORKDIR}/linux-${PACKAGE_ARCH}-${LINUX_KERNEL_TYPE}-build
                 </literallayout>
                 Alternatively, you can run the <filename>deploy</filename>
                 command to place the kernel image in the
@@ -552,8 +556,9 @@
                 <listitem><para>Copy the <filename>linux-yocto-custom.bb</filename>
                     recipe to your layer and give it a meaningful name.
                     The name should include the version of the Linux kernel you
-                    are using (e.g. <filename>linux-yocto-myproject_3.5.bb</filename>,
-                    where "3.5" is the base version of the Linux kernel
+                    are using (e.g.
+                    <filename>linux-yocto-myproject_3.19.bb</filename>,
+                    where "3.19" is the base version of the Linux kernel
                     with which you would be working).</para></listitem>
                 <listitem><para>In the same directory inside your layer,
                     create a matching directory
@@ -574,7 +579,7 @@
                             </para></listitem>
                         <listitem><para><ulink url='&YOCTO_DOCS_REF_URL;#var-LINUX_VERSION'><filename>LINUX_VERSION</filename></ulink>:
                             The Linux kernel version you are using (e.g.
-                            "3.4").</para></listitem>
+                            "3.19").</para></listitem>
                         <listitem><para><ulink url='&YOCTO_DOCS_REF_URL;#var-LINUX_VERSION_EXTENSION'><filename>LINUX_VERSION_EXTENSION</filename></ulink>:
                             The Linux kernel <filename>CONFIG_LOCALVERSION</filename>
                             that is compiled into the resulting kernel and visible
@@ -600,7 +605,7 @@
                             The combined results are a string with
                             the following form:
                             <literallayout class='monospaced'>
-     3.4.11+git1+68a635bf8dfb64b02263c1ac80c948647cc76d5f_1+218bd8d2022b9852c60d32f0d770931e3cf343e2
+     3.19.11+git1+68a635bf8dfb64b02263c1ac80c948647cc76d5f_1+218bd8d2022b9852c60d32f0d770931e3cf343e2
                             </literallayout>
                             While lengthy, the extra verbosity in <filename>PV</filename>
                             helps ensure you are using the exact
@@ -834,13 +839,13 @@
                 To see a full range of the changes, use the
                 <filename>git whatchanged</filename> command and specify a
                 commit range for the branch
-                (<filename>&lt;commit&gt;..&lt;commit&gt;</filename>).
+                (<replaceable>commit</replaceable><filename>..</filename><replaceable>commit</replaceable>).
             </para>
 
             <para>
                 Here is an example that looks at what has changed in the
                 <filename>emenlow</filename> branch of the
-                <filename>linux-yocto-3.4</filename> kernel.
+                <filename>linux-yocto-3.19</filename> kernel.
                 The lower commit range is the commit associated with the
                 <filename>standard/base</filename> branch, while
                 the upper commit range is the commit associated with the
@@ -891,16 +896,16 @@
             <para>
                 Tags in the Yocto Project kernel tree divide changes for
                 significant features or branches.
-                The <filename>git show &lt;tag&gt;</filename> command shows
-                changes based on a tag.
+                The <filename>git show</filename>&nbsp;<replaceable>tag</replaceable>
+                command shows changes based on a tag.
                 Here is an example that shows <filename>systemtap</filename>
                 changes:
                 <literallayout class='monospaced'>
      $ git show systemtap
                 </literallayout>
                 You can use the
-                <filename>git branch --contains &lt;tag&gt;</filename> command
-                to show the branches that contain a particular feature.
+                <filename>git branch --contains</filename>&nbsp;<replaceable>tag</replaceable>
+                command to show the branches that contain a particular feature.
                 This command shows the branches that contain the
                 <filename>systemtap</filename> feature:
                 <literallayout class='monospaced'>

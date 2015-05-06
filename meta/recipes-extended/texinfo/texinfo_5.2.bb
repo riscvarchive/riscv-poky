@@ -34,16 +34,22 @@ SRC_URI = "${GNU_MIRROR}/texinfo/${BP}.tar.gz \
            file://disable-native-tools.patch \
            file://link-zip.patch \
            file://dont-depend-on-help2man.patch \
+           file://0001-Unset-need_charset_alias-when-building-for-musl.patch \
            ${TARGET_PATCH} \
           "
 
 SRC_URI[md5sum] = "1b8f98b80a8e6c50422125e07522e8db"
 SRC_URI[sha256sum] = "6b8ca30e9b6f093b54fe04439e5545e564c63698a806a48065c0bba16994cf74"
 
-S = "${WORKDIR}/${BP}"
 tex_texinfo = "texmf/tex/texinfo"
 
 inherit gettext autotools
+
+do_configure_prepend () {
+	# autotools_do_configure updates po/Makefile.in.in, we also need
+	# update po_document.
+	cp -f ${STAGING_DATADIR_NATIVE}/gettext/po/Makefile.in.in ${S}/po_document/
+}
 
 do_compile_prepend() {
 	if [ -d tools ];then
@@ -53,7 +59,7 @@ do_compile_prepend() {
 
 do_install_append() {
 	mkdir -p ${D}${datadir}/${tex_texinfo}
-	install -p -m644 ${S}/doc/texinfo.tex ${S}/doc/txi-??.tex ${D}${datadir}/${tex_texinfo} 	
+	install -p -m644 ${S}/doc/texinfo.tex ${S}/doc/txi-??.tex ${D}${datadir}/${tex_texinfo}
 	sed -i -e '1s,#!.*perl,#! ${USRBINPATH}/env perl,' ${D}${bindir}/texi2any ${D}${bindir}/pod2texi
 }
 

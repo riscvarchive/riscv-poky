@@ -1,7 +1,5 @@
-S = "${WORKDIR}/linux"
-
 # remove tasks that modify the source tree in case externalsrc is inherited
-SRCTREECOVEREDTASKS += "do_kernel_link_vmlinux do_kernel_configme do_validate_branches do_kernel_configcheck do_kernel_checkout do_patch"
+SRCTREECOVEREDTASKS += "do_kernel_link_vmlinux do_kernel_configme do_validate_branches do_kernel_configcheck do_kernel_checkout do_shared_workdir do_fetch do_unpack do_patch"
 
 # returns local (absolute) path names for all valid patches in the
 # src_uri
@@ -57,7 +55,8 @@ def get_machine_branch(d, default):
 	    
     return default
 
-do_patch() {
+do_kernel_metadata() {
+	set +e
 	cd ${S}
 	export KMETA=${KMETA}
 
@@ -77,22 +76,56 @@ do_patch() {
 		machine_srcrev="${SRCREV}"
 	fi
 
+	# In a similar manner to the kernel itself:
+	#
+	#   defconfig: $(obj)/conf
+	#   ifeq ($(KBUILD_DEFCONFIG),)
+	#	$< --defconfig $(Kconfig)
+	#   else
+	#	@echo "*** Default configuration is based on '$(KBUILD_DEFCONFIG)'"
+	#	$(Q)$< --defconfig=arch/$(SRCARCH)/configs/$(KBUILD_DEFCONFIG) $(Kconfig)
+	#   endif
+	#
+	# If a defconfig is specified via the KBUILD_DEFCONFIG variable, we copy it
+	# from the source tree, into a common location and normalized "defconfig" name,
+	# where the rest of the process will include and incoroporate it into the build
+	#
+	# If the fetcher has already placed a defconfig in WORKDIR (from the SRC_URI),
+	# we don't overwrite it, but instead warn the user that SRC_URI defconfigs take
+	# precendence.
+	#
+	if [ -n "${KBUILD_DEFCONFIG}" ]; then
+		if [ -f "${S}/arch/${ARCH}/configs/${KBUILD_DEFCONFIG}" ]; then
+			if [ -f "${WORKDIR}/defconfig" ]; then
+				# If the two defconfigs are the same, leave the existing one in place
+				cmp "${WORKDIR}/defconfig" "${S}/arch/${ARCH}/configs/${KBUILD_DEFCONFIG}"
+				if [ $? -ne 0 ]; then
+					bbnote "defconfig detected in WORKDIR. ${KBUILD_DEFCONFIG} skipped"
+				else
+					cp -f ${S}/arch/${ARCH}/configs/${KBUILD_DEFCONFIG} ${WORKDIR}/defconfig
+					sccs="${WORKDIR}/defconfig"
+				fi
+			fi
+		else
+			bbfatal "A KBUILD_DECONFIG '${KBUILD_DEFCONFIG}' was specified, but not present in the source tree"
+		fi
+	fi
+
 	# if we have a defined/set meta branch we should not be generating
 	# any meta data. The passed branch has what we need.
 	if [ -n "${KMETA}" ]; then
 		createme_flags="--disable-meta-gen --meta ${KMETA}"
 	fi
 
-	createme ${createme_flags} ${ARCH} ${machine_branch}
+	createme -v -v ${createme_flags} ${ARCH} ${machine_branch}
 	if [ $? -ne 0 ]; then
 		bbfatal "Could not create ${machine_branch}"
 	fi
 
-	sccs="${@" ".join(find_sccs(d))}"
+	sccs="$sccs ${@" ".join(find_sccs(d))}"
 	patches="${@" ".join(find_patches(d))}"
 	feat_dirs="${@" ".join(find_kernel_feature_dirs(d))}"
 
-	set +e
 	# add any explicitly referenced features onto the end of the feature
 	# list that is passed to the kernel build scripts.
 	if [ -n "${KERNEL_FEATURES}" ]; then
@@ -120,6 +153,10 @@ do_patch() {
 	if [ $? -ne 0 ]; then
 		bbfatal "Could not update ${machine_branch}"
 	fi
+}
+
+do_patch() {
+	cd ${S}
 
 	# executes and modifies the source tree as required
 	patchme ${KMACHINE}
@@ -131,7 +168,7 @@ do_patch() {
 	# check to see if the specified SRCREV is reachable from the final branch.
 	# if it wasn't something wrong has happened, and we should error.
 	if [ "${machine_srcrev}" != "AUTOINC" ]; then
-		if ! [ "$(git rev-parse --verify ${machine_srcrev})" = "$(git merge-base ${machine_srcrev} HEAD)" ]; then
+		if ! [ "$(git rev-parse --verify ${machine_srcrev}~0)" = "$(git merge-base ${machine_srcrev} HEAD)" ]; then
 			bberror "SRCREV ${machine_srcrev} was specified, but is not reachable"
 			bbfatal "Check the BSP description for incorrect branch selection, or other errors."
 		fi
@@ -181,9 +218,11 @@ do_kernel_checkout() {
 			bberror "S is not set to the linux source directory. Check "
 			bbfatal "the recipe and set S to the proper extracted subdirectory"
 		fi
+		rm -f .gitignore
 		git init
 		git add .
 		git commit -q -m "baseline commit: creating repo for ${PN}-${PV}"
+		git clean -d -f
 	fi
 	# end debare
 
@@ -211,8 +250,8 @@ do_kernel_checkout() {
 	# Create a working tree copy of the kernel by checking out a branch
 	machine_branch="${@ get_machine_branch(d, "${KBRANCH}" )}"
 	git show-ref --quiet --verify -- "refs/heads/${machine_branch}"
-	if [ $? -eq 0 ]; then
-		machine_branch = "master"
+	if [ $? -ne 0 ]; then
+		machine_branch="master"
 	fi
 
 	# checkout and clobber any unimportant files
@@ -221,6 +260,8 @@ do_kernel_checkout() {
 do_kernel_checkout[dirs] = "${S}"
 
 addtask kernel_checkout before do_patch after do_unpack
+addtask kernel_metadata after do_validate_branches before do_patch
+do_kernel_metadata[depends] = "kern-tools-native:do_populate_sysroot"
 
 do_kernel_configme[dirs] += "${S} ${B}"
 do_kernel_configme() {
@@ -248,12 +289,10 @@ do_kernel_configme() {
 	echo "CONFIG_LOCALVERSION="\"${LINUX_VERSION_EXTENSION}\" >> ${B}/.config
 }
 
-addtask kernel_configme after do_patch
+addtask kernel_configme before do_configure after do_patch
 
 python do_kernel_configcheck() {
     import re, string, sys
-
-    bb.plain("NOTE: validating kernel config, see log.do_kernel_configcheck for details")
 
     # if KMETA isn't set globally by a recipe using this routine, we need to
     # set the default to 'meta'. Otherwise, kconf_check is not passed a valid
@@ -266,11 +305,33 @@ python do_kernel_configcheck() {
     cmd = d.expand("cd ${S}; kconf_check -config- %s/meta-series ${S} ${B}" % kmeta)
     ret, result = oe.utils.getstatusoutput("%s%s" % (pathprefix, cmd))
 
-    config_check_visibility = d.getVar( "KCONF_AUDIT_LEVEL", True ) or 1
-    if config_check_visibility == 1:
-        bb.debug( 1, "%s" % result )
-    else:
-        bb.note( "%s" % result )
+    config_check_visibility = int(d.getVar( "KCONF_AUDIT_LEVEL", True ) or 0)
+    bsp_check_visibility = int(d.getVar( "KCONF_BSP_AUDIT_LEVEL", True ) or 0)
+
+    # if config check visibility is non-zero, report dropped configuration values
+    mismatch_file = "${S}/" + kmeta + "/" + "mismatch.cfg"
+    if os.path.exists(mismatch_file):
+        if config_check_visibility:
+            with open (mismatch_file, "r") as myfile:
+                results = myfile.read()
+                bb.warn( "[kernel config]: specified values did not make it into the kernel's final configuration:\n\n%s" % results)
+
+    # if config check visibility is level 2 or higher, report non-hardware options
+    nonhw_file = "${S}/" + kmeta + "/" + "nonhw_report.cfg"
+    if os.path.exists(nonhw_file):
+        if config_check_visibility > 1:
+            with open (nonhw_file, "r") as myfile:
+                results = myfile.read()
+                bb.warn( "[kernel config]: BSP specified non-hw configuration:\n\n%s" % results)
+
+    bsp_desc = "${S}/" + kmeta + "/" + "top_tgt"
+    if os.path.exists(bsp_desc) and bsp_check_visibility > 1:
+        with open (bsp_desc, "r") as myfile:
+            bsp_tgt = myfile.read()
+            m = re.match("^(.*)scratch.obj(.*)$", bsp_tgt)
+            if not m is None:
+                bb.warn( "[kernel]: An auto generated BSP description was used, this normally indicates a misconfiguration.\n" +
+                         "Check that your machine (%s) has an associated kernel description." % "${MACHINE}" )
 }
 
 # Ensure that the branches (BSP and meta) are on the locations specified by
@@ -288,12 +349,14 @@ do_validate_branches() {
 	# check and we can exit early
 	if [ "${machine_srcrev}" = "AUTOINC" ]; then
 		bbnote "SRCREV validation is not required for AUTOREV"
-	elif [ "${machine_srcrev}" = "" ] && [ "${SRCREV}" != "AUTOINC" ]; then
-		# SRCREV_machine_<MACHINE> was not set. This means that a custom recipe
-		# that doesn't use the SRCREV_FORMAT "machine_meta" is being built. In
-		# this case, we need to reset to the give SRCREV before heading to patching
-		bbnote "custom recipe is being built, forcing SRCREV to ${SRCREV}"
-		force_srcrev="${SRCREV}"
+	elif [ "${machine_srcrev}" = "" ]; then
+		if [ "${SRCREV}" != "AUTOINC" ] && [ "${SRCREV}" != "INVALID" ]; then
+		       # SRCREV_machine_<MACHINE> was not set. This means that a custom recipe
+		       # that doesn't use the SRCREV_FORMAT "machine_meta" is being built. In
+		       # this case, we need to reset to the give SRCREV before heading to patching
+		       bbnote "custom recipe is being built, forcing SRCREV to ${SRCREV}"
+		       force_srcrev="${SRCREV}"
+		fi
 	else
 		git cat-file -t ${machine_srcrev} > /dev/null
 		if [ $? -ne 0 ]; then
@@ -350,8 +413,7 @@ do_kernel_link_vmlinux() {
 	ln -sf ../../../vmlinux
 }
 
-OE_TERMINAL_EXPORTS += "GUILT_BASE KBUILD_OUTPUT"
-GUILT_BASE = "meta"
+OE_TERMINAL_EXPORTS += "KBUILD_OUTPUT"
 KBUILD_OUTPUT = "${B}"
 
 python () {

@@ -55,6 +55,7 @@ def get_class_handlers():
     return _handlers
 
 def set_class_handlers(h):
+    global _handlers
     _handlers = h
 
 def clean_class_handlers():
@@ -67,6 +68,7 @@ _ui_logfilters = {}
 _ui_handler_seq = 0
 _event_handler_map = {}
 _catchall_handlers = {}
+_eventfilter = None
 
 def execute_handler(name, handler, event, d):
     event.data = d
@@ -94,6 +96,9 @@ def fire_class_handlers(event, d):
     evt_hmap = _event_handler_map.get(eid, {})
     for name, handler in _handlers.iteritems():
         if name in _catchall_handlers or name in evt_hmap:
+            if _eventfilter:
+                if not _eventfilter(name, handler, event, d):
+                    continue
             execute_handler(name, handler, event, d)
 
 ui_queue = []
@@ -203,6 +208,10 @@ def register(name, handler, mask=[]):
 def remove(name, handler):
     """Remove an Event handler"""
     _handlers.pop(name)
+
+def set_eventfilter(func):
+    global _eventfilter
+    _eventfilter = func
 
 def register_UIHhandler(handler):
     bb.event._ui_handler_seq = bb.event._ui_handler_seq + 1

@@ -59,12 +59,38 @@ conffiles = "${sysconfdir}/debian_version ${sysconfdir}/host.conf \
              ${sysconfdir}/nsswitch.conf ${sysconfdir}/profile \
              ${sysconfdir}/default"
 
+# By default the hostname is the machine name. If the hostname is unset then a
+# /etc/hostname file isn't written, suitable for environments with dynamic
+# hostnames.
 #
-# set standard hostname, might be a candidate for a DISTRO variable? :M:
-#
-hostname = "openembedded"
+# The hostname can be changed outside of this recipe by using
+# hostname_pn-base-files = "my-host-name".
+hostname = "${MACHINE}"
 
 BASEFILESISSUEINSTALL ?= "do_install_basefilesissue"
+
+# In previous versions of base-files, /run was a softlink to /var/run and the
+# directory was located in /var/volatlie/run.  Also, /var/lock was a softlink
+# to /var/volatile/lock which is where the real directory was located.  Now,
+# /run and /run/lock are the real directories.  If we are upgrading, we may
+# need to remove the symbolic links first before we create the directories.
+# Otherwise the directory creation will fail and we will have circular symbolic
+# links.
+# 
+pkg_preinst_${PN} () {
+    #!/bin/sh -e
+    if [ x"$D" = "x" ]; then
+        if [ -h "/var/lock" ]; then
+            # Remove the symbolic link
+            rm -f /var/lock
+        fi
+
+        if [ -h "/run" ]; then
+            # Remove the symbolic link
+            rm -f /run
+        fi
+    fi     
+}
 
 do_install () {
 	for d in ${dirs755}; do
@@ -79,6 +105,7 @@ do_install () {
 	for d in ${volatiles}; do
 		ln -sf volatile/$d ${D}${localstatedir}/$d
 	done
+
 	ln -snf ../run ${D}${localstatedir}/run
 	ln -snf ../run/lock ${D}${localstatedir}/lock
 
@@ -111,15 +138,11 @@ do_install () {
 
 DISTRO_VERSION[vardepsexclude] += "DATE"
 do_install_basefilesissue () {
-	if [ "${hostname}" != "" ]; then
-		if [ -n "${MACHINE}" -a "${hostname}" = "openembedded" ]; then
-			echo ${MACHINE} > ${D}${sysconfdir}/hostname
-		else
-			echo ${hostname} > ${D}${sysconfdir}/hostname
-		fi
+	if [ "${hostname}" ]; then
+		echo ${hostname} > ${D}${sysconfdir}/hostname
 	fi
 
-	install -m 644 ${WORKDIR}/issue*  ${D}${sysconfdir}  
+	install -m 644 ${WORKDIR}/issue*  ${D}${sysconfdir}
         if [ -n "${DISTRO_NAME}" ]; then
 		printf "${DISTRO_NAME} " >> ${D}${sysconfdir}/issue
 		printf "${DISTRO_NAME} " >> ${D}${sysconfdir}/issue.net
@@ -151,4 +174,5 @@ FILES_${PN}-doc = "${docdir} ${datadir}/common-licenses"
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 
 CONFFILES_${PN} = "${sysconfdir}/fstab ${@['', '${sysconfdir}/hostname'][(d.getVar('hostname', True) != '')]} ${sysconfdir}/shells"
+CONFFILES_${PN} += "${sysconfdir}/motd ${sysconfdir}/nsswitch.conf ${sysconfdir}/profile"
 

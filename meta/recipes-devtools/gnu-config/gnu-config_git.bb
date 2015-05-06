@@ -17,6 +17,8 @@ SRC_URI = "git://git.sv.gnu.org/config.git \
 
 S = "${WORKDIR}/git"
 
+CLEANBROKEN = "1"
+
 do_compile() {
 	:
 }

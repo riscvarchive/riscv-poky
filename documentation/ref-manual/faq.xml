@@ -173,23 +173,6 @@
     <qandaentry>
         <question>
             <para>
-                What is GNOME Mobile and what is the difference between GNOME Mobile and GNOME?
-            </para>
-        </question>
-        <answer>
-            <para>
-                GNOME Mobile is a subset of the <ulink url='http://www.gnome.org'>GNOME</ulink>
-                platform targeted at mobile and embedded devices.
-                The main difference between GNOME Mobile and standard GNOME is that
-                desktop-orientated libraries have been removed, along with deprecated libraries,
-                creating a much smaller footprint.
-            </para>
-        </answer>
-    </qandaentry>
-
-    <qandaentry>
-        <question>
-            <para>
                 I see the error '<filename>chmod: XXXXX new permissions are r-xrwxrwx, not r-xr-xr-x</filename>'.
                 What is wrong?
             </para>
@@ -357,6 +340,41 @@
                 is sensitive to even single-bit failures in any of these areas.
                 True random failures have always been traced back to hardware
                 or virtualization issues.
+            </para>
+        </answer>
+    </qandaentry>
+
+    <qandaentry>
+        <question>
+            <para>
+                When I try to build a native recipe, the build fails with <filename>iconv.h</filename> problems.
+            </para>
+        </question>
+        <answer>
+            <para>
+                If you get an error message that indicates GNU
+                <filename>libiconv</filename> is not in use but
+                <filename>iconv.h</filename> has been included from
+                <filename>libiconv</filename>, you need to check to see if
+                you have a previously installed version of the header file
+                in <filename>/usr/local/include</filename>.
+                <literallayout class='monospaced'>
+     #error GNU libiconv not in use but included iconv.h is from libiconv
+                </literallayout>
+                If you find a previously installed file, you should either
+                uninstall it or temporarily rename it and try the build again.
+            </para>
+
+            <para>
+                This issue is just a single manifestation of "system
+                leakage" issues caused when the OpenEbedded build system
+                finds and uses previously installed files during a native
+                build.
+                This type of issue might not be limited to
+                <filename>iconv.h</filename>.
+                Be sure that leakage cannot occur from
+                <filename>/usr/local/include</filename> and
+                <filename>/opt</filename> locations.
             </para>
         </answer>
     </qandaentry>

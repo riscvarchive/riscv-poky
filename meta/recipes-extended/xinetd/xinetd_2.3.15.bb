@@ -1,5 +1,5 @@
 SUMMARY = "Socket-based service activation daemon"
-HOMEPAGE = "http://www.xinetd.org"
+HOMEPAGE = "https://github.com/xinetd-org/xinetd"
 
 # xinetd is a BSD-like license
 # Apple and Gentoo say BSD here.
@@ -9,7 +9,7 @@ LIC_FILES_CHKSUM = "file://COPYRIGHT;md5=8ad8615198542444f84d28a6cf226dd8"
 DEPENDS = ""
 PR = "r2"
 
-SRC_URI = "http://www.xinetd.org/xinetd-${PV}.tar.gz \
+SRC_URI = "git://github.com/xinetd-org/xinetd.git;protocol=https \
       file://xinetd.init \
       file://xinetd.conf \
       file://xinetd.default \
@@ -17,12 +17,16 @@ SRC_URI = "http://www.xinetd.org/xinetd-${PV}.tar.gz \
       file://Disable-services-from-inetd.conf-if-a-service-with-t.patch \
       file://xinetd-should-be-able-to-listen-on-IPv6-even-in-ine.patch \
       file://xinetd-CVE-2013-4342.patch \
+      file://xinetd.service \
       "
 
-SRC_URI[md5sum] = "77358478fd58efa6366accae99b8b04c"
-SRC_URI[sha256sum] = "bf4e060411c75605e4dcbdf2ac57c6bd9e1904470a2f91e01ba31b50a80a5be3"
+SRCREV = "68bb9ab9e9f214ad8a2322f28ac1d6733e70bc24"
 
-inherit autotools update-rc.d
+S = "${WORKDIR}/git"
+
+inherit autotools update-rc.d systemd
+
+SYSTEMD_SERVICE_${PN} = "xinetd.service"
 
 INITSCRIPT_NAME = "xinetd"
 INITSCRIPT_PARAMS = "defaults"
@@ -52,6 +56,13 @@ do_install() {
 	install -m 644 "${WORKDIR}/xinetd.default" "${D}${sysconfdir}/default/xinetd"
 	install -m 755 "${B}/xinetd/xinetd" "${D}${sbindir}"
 	install -m 755 "${B}/xinetd/itox" "${D}${sbindir}"
+
+	# Install systemd unit files
+	install -d ${D}${systemd_unitdir}/system
+	install -m 0644 ${WORKDIR}/xinetd.service ${D}${systemd_unitdir}/system
+	sed -i -e 's,@BASE_BINDIR@,${base_bindir},g' \
+	       -e 's,@SBINDIR@,${sbindir},g' \
+	       ${D}${systemd_unitdir}/system/xinetd.service
 }
 
 CONFFILES_${PN} = "${sysconfdir}/xinetd.conf"

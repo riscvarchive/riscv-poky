@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 {% load static %}
-<html>
+<html lang="en">
     <head>
         <title>{% if objectname %} {{objectname|title}} - {% endif %}Toaster</title>
-<link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}" type="text/css">
-<link rel="stylesheet" href="{% static 'css/bootstrap-responsive.min.css' %}" type='text/css'>
-<link rel="stylesheet" href="{% static 'css/font-awesome.min.css' %}" type='text/css'>
-<link rel="stylesheet" href="{% static 'css/prettify.css' %}" type='text/css'>
-<link rel="stylesheet" href="{% static 'css/default.css' %}" type='text/css'>
+<link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}" type="text/css"/>
+<link rel="stylesheet" href="{% static 'css/bootstrap-responsive.min.css' %}" type='text/css'/>
+<link rel="stylesheet" href="{% static 'css/font-awesome.min.css' %}" type='text/css'/>
+<link rel="stylesheet" href="{% static 'css/prettify.css' %}" type='text/css'/>
+<link rel="stylesheet" href="{% static 'css/default.css' %}" type='text/css'/>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
 <script src="{% static 'js/jquery-2.0.3.min.js' %}">
 </script>
 <script src="{% static 'js/jquery.cookie.js' %}">
@@ -17,36 +19,35 @@
 </script>
 <script src="{% static 'js/prettify.js' %}">
 </script>
-<script src="{% static 'js/main.js' %}">
+<script src="{% static 'js/libtoaster.js' %}">
 </script>
+{% if DEBUG %}
 <script>
-function reload_params(params) {
-    uri = window.location.href;
-    splitlist = uri.split("?");
-    url = splitlist[0], parameters=splitlist[1];
-    // deserialize the call parameters
-    if(parameters){
-        cparams = parameters.split("&");
-    }else{
-        cparams = []
-    }
-    nparams = {}
-    for (i = 0; i < cparams.length; i++) {
-        temp = cparams[i].split("=");
-        nparams[temp[0]] = temp[1];
-    }
-    // update parameter values
-    for (i in params) {
-        nparams[encodeURIComponent(i)] = encodeURIComponent(params[i]);
-    }
-    // serialize the structure
-    callparams = []
-    for (i in nparams) {
-        callparams.push(i+"="+nparams[i]);
-    }
-    window.location.href = url+"?"+callparams.join('&');
+  libtoaster.debug = true;
+ </script>
+{% endif %}
+<script src="{% static 'js/base.js' %}"></script>
+{%if MANAGED %}
+<script>
+  $(document).ready(function () {
+    /* Vars needed for base.js */
+    var ctx = {};
+    ctx.xhrDataTypeaheadUrl = "{% url 'xhr_datatypeahead' %}";
+    ctx.projectBuildUrl = "{% url 'xhr_build' %}";
+    ctx.projectPageUrl = "{% url 'base_project' %}";
+    ctx.projectInfoUrl = "{% url 'xhr_projectinfo' %}";
+    ctx.numProjects = {{projects|length}};
+    {% if project %}
+      ctx.projectId = {{project.id}};
+    {% endif %}
+    ctx.currentUrl = "{{request.path|escapejs}}";
 
-}
+    basePageInit(ctx);
+  });
+</script>
+{% endif %}
+<script>
+
 </script>
 
 {% block extraheadcontent %}
@@ -57,28 +58,61 @@ function reload_params(params) {
 <div class="navbar navbar-static-top">
     <div class="navbar-inner">
             <a class="brand logo" href="#"><img src="{% static 'img/logo.png' %}" class="" alt="Yocto logo project"/></a>
-            <a class="brand" href="/">Toaster</a>
-				{%if MANAGED %}
-					  <div class="btn-group pull-right">
-						  <a class="btn" href="{% url 'newproject' %}">New project</a>
-						  <button class="btn dropdown-toggle" data-toggle="dropdown">
-							  <i class="icon-caret-down"></i>
-						  </button>
-						  <ul class="dropdown-menu">
-{% for prj in projects %}
-								<li><a href="{% url 'project' prj.id %}">{{prj.name}}</a></li>
-{% endfor %}
-							  <li><hr/></li>
-							  <li><a href="#">Clone project</a></li>
-							  <li><a href="#">Export project</a></li>
-							  <li><a href="#">Import project</a></li>
-						  </ul>
-					  </div>
-				{%endif%}
-            <a class="pull-right manual" target="_blank" href="http://www.yoctoproject.org/documentation/toaster-manual">
+            <span class="brand">
+                <a href="/">Toaster</a>
+                {% if DEBUG %}
+                    <i class="icon-info-sign" title="<strong>Toaster version information</strong>" data-content="<dl><dt>Branch</dt><dd>{{TOASTER_BRANCH}}</dd><dt>Revision</dt><dd>{{TOASTER_REVISION}}</dd><dt>Mode</dt><dd>{%if MANAGED%}Build{%else%}Analysis{%endif%}</dd></dl>"></i>
+                {% endif %}
+            </span>
+            <a class="pull-right manual" target="_blank" href="http://www.yoctoproject.org/docs/latest/toaster-manual/toaster-manual.html">
                 <i class="icon-book"></i>
                 Toaster manual
             </a>
+            {%if MANAGED %}
+            <div class="btn-group pull-right">
+                  <a class="btn" id="new-project-button" href="{% url 'newproject' %}">New project</a>
+            </div>
+            <!-- New build popover -->
+            <div class="btn-group pull-right" id="new-build-button">
+              <button class="btn dropdown-toggle" data-toggle="dropdown">
+                New build
+                <i class="icon-caret-down"></i>
+              </button>
+              <ul class="dropdown-menu new-build multi-select">
+                <li>
+                  <h3>New build</h3>
+                  <h6>Project:</h6>
+                  <span id="project">
+                    <a class="lead" href="{% if project.id %}{% url 'project' project.id %}{% endif %}">{{project.name}}</a>
+                    <i class="icon-pencil"></i>
+                  </span>
+                  <form id="change-project-form" style="display:none;">
+                    <div class="input-append">
+                      <input type="text" class="input-medium" id="project-name-input" placeholder="Type a project name" autocomplete="off" data-minLength="1" data-autocomplete="off" data-provide="typeahead"/>
+                        <button id="save-project-button" class="btn" type="button">Save</button>
+                        <a href="#" id="cancel-change-project" class="btn btn-link">Cancel</a>
+                      </div>
+                      <p><a id="view-all-projects" href="{% url 'all-projects' %}">View all projects</a></p>
+                    </form>
+                  </li>
+                  <div class="alert" style="display:none">
+                    This project's configuration is incomplete,<br/>so you cannot run builds.<br/>
+                    <p><a href="{% if project.id %}{% url 'project' project.id %}{% endif %}">View project configuration</a></p>
+                  </div>
+                  <li id="targets-form">
+                    <h6>Recipe(s):</h6>
+                    <form>
+                      <input type="text" class="input-xlarge" id="build-target-input" placeholder="Type a recipe name" autocomplete="off" data-minLength="1" data-autocomplete="off" data-provide="typeahead" />
+                      <div>
+                        <a class="btn btn-primary" id="build-button" disabled="disabled" data-project-id="{{project.id}}">Build</a>
+                      </div>
+                    </form>
+                  </li>
+              </ul>
+            </div>
+
+            {%endif%}
+
     </div>
 </div>
 

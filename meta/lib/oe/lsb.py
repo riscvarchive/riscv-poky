@@ -9,6 +9,7 @@ def release_dict():
 
     data = {}
     for line in output.splitlines():
+        if line.startswith("-e"): line = line[3:]
         try:
             key, value = line.split(":\t", 1)
         except ValueError:
@@ -36,14 +37,6 @@ def release_dict_file():
             if match:
                 data['DISTRIB_ID'] = match.group(1)
                 data['DISTRIB_RELEASE'] = match.group(2)
-        elif os.path.exists('/etc/SuSE-release'):
-            data = {}
-            data['DISTRIB_ID'] = 'SUSE LINUX'
-            with open('/etc/SuSE-release') as f:
-                for line in f:
-                    if line.startswith('VERSION = '):
-                        data['DISTRIB_RELEASE'] = line[10:].rstrip()
-                        break
         elif os.path.exists('/etc/os-release'):
             data = {}
             with open('/etc/os-release') as f:
@@ -52,6 +45,15 @@ def release_dict_file():
                         data['DISTRIB_ID'] = line[5:].rstrip().strip('"')
                     if line.startswith('VERSION_ID='):
                         data['DISTRIB_RELEASE'] = line[11:].rstrip().strip('"')
+        elif os.path.exists('/etc/SuSE-release'):
+            data = {}
+            data['DISTRIB_ID'] = 'SUSE LINUX'
+            with open('/etc/SuSE-release') as f:
+                for line in f:
+                    if line.startswith('VERSION = '):
+                        data['DISTRIB_RELEASE'] = line[10:].rstrip()
+                        break
+
     except IOError:
         return None
     return data

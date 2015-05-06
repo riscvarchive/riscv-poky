@@ -16,20 +16,25 @@ export TZ=/etc/localtime
 [ -x @UDEVD@ ] || exit 1
 SYSCONF_CACHED="/etc/udev/cache.data"
 SYSCONF_TMP="/dev/shm/udev.cache"
+DEVCACHE_REGEN="/dev/shm/udev-regen" # create to request cache regen
+
+# A list of files which are used as a criteria to judge whether the udev cache could be reused.
+CMP_FILE_LIST="/proc/version /proc/cmdline /proc/devices"
+[ -f /proc/atags ] && CMP_FILE_LIST="$CMP_FILE_LIST /proc/atags"
+
+# List of files whose metadata (size/mtime/name) will be included in cached
+# system state.
+META_FILE_LIST="lib/udev/rules.d/* etc/udev/rules.d/*"
+
+# Command to compute system configuration.
+sysconf_cmd () {
+	cat -- $CMP_FILE_LIST
+	stat -c '%s %Y %n' -- $META_FILE_LIST | awk -F/ '{print $1 " " $NF;}'
+}
+
 [ -f /etc/default/udev-cache ] && . /etc/default/udev-cache
 [ -f /etc/udev/udev.conf ] && . /etc/udev/udev.conf
 [ -f /etc/default/rcS ] && . /etc/default/rcS
-
-readfiles () {
-   READDATA=""
-   for filename in $@; do
-	   if [ -r $filename ]; then
-		   while read line; do
-			   READDATA="$READDATA$line"
-		   done < $filename
-	   fi
-   done
-}
 
 kill_udevd () {
     pid=`pidof -x udevd`
@@ -62,35 +67,32 @@ case "$1" in
     mkdir -m 1777 -p /var/volatile/tmp
 
     # Cache handling.
-    # A list of files which are used as a criteria to judge whether the udev cache could be reused.
-    CMP_FILE_LIST="/proc/version /proc/cmdline /proc/devices /proc/atags"
     if [ "$DEVCACHE" != "" ]; then
             if [ -e $DEVCACHE ]; then
-		    readfiles $CMP_FILE_LIST
-		    NEWDATA="$READDATA"
-		    readfiles "$SYSCONF_CACHED"
-		    OLDDATA="$READDATA"
-		    if [ "$OLDDATA" = "$NEWDATA" ]; then
+		    sysconf_cmd > "$SYSCONF_TMP"
+		    if cmp $SYSCONF_CACHED $SYSCONF_TMP >/dev/null; then
                             tar xmf $DEVCACHE -C / -m
                             not_first_boot=1
                             [ "$VERBOSE" != "no" ] && echo "udev: using cache file $DEVCACHE"
                             [ -e $SYSCONF_TMP ] && rm -f "$SYSCONF_TMP"
+                            [ -e "$DEVCACHE_REGEN" ] && rm -f "$DEVCACHE_REGEN"
                     else
 			    # Output detailed reason why the cached /dev is not used
-			    if [ "$VERBOSE" != "no" ]; then
-				    echo "udev: udev cache not used"
-				    echo "udev: we use $CMP_FILE_LIST as criteria to judge whether the cache /dev could be resued"
-				    echo "udev: olddata: $OLDDATA"
-				    echo "udev: newdata: $NEWDATA"
-			    fi
-			    echo "$NEWDATA" > "$SYSCONF_TMP"
+			    cat <<EOF
+udev: Not using udev cache because of changes detected in the following files:
+udev:     $CMP_FILE_LIST
+udev:     $META_FILE_LIST
+udev: The udev cache will be regenerated. To identify the detected changes,
+udev: compare the cached sysconf at   $SYSCONF_CACHED
+udev: against the current sysconf at  $SYSCONF_TMP
+EOF
+			    touch "$DEVCACHE_REGEN"
                     fi
 	    else
 		    if [ "$ROOTFS_READ_ONLY" != "yes" ]; then
 			    # If rootfs is not read-only, it's possible that a new udev cache would be generated;
 			    # otherwise, we do not bother to read files.
-			    readfiles $CMP_FILE_LIST
-			    echo "$READDATA" > "$SYSCONF_TMP"
+			    touch "$DEVCACHE_REGEN"
 		    fi
             fi
     fi
@@ -99,7 +101,7 @@ case "$1" in
     kill_udevd > "/dev/null" 2>&1
 
     # trigger the sorted events
-    echo -e '\000\000\000\000' > /proc/sys/kernel/hotplug
+    [ -e /proc/sys/kernel/hotplug ] && echo -e '\000' >/proc/sys/kernel/hotplug
     @UDEVD@ -d
 
     udevadm control --env=STARTUP=1

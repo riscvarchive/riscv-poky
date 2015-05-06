@@ -25,18 +25,13 @@
 #
 
 import os
-import shutil
-import re
-import tempfile
 
+from wic.utils.errors import ImageError
 from wic import kickstart, msger
-from wic.utils import misc, fs_related, errors, runner, cmdln
-from wic.conf import configmgr
-from wic.plugin import pluginmgr
-import wic.imager.direct as direct
+from wic.utils import runner
 from wic.pluginbase import SourcePlugin
-from wic.utils.oe.misc import *
-from wic.imager.direct import DirectImageCreator
+from wic.utils.oe.misc import exec_cmd, exec_native_cmd, \
+                              get_bitbake_var, BOOTDD_EXTRA_SPACE
 
 class BootimgPcbiosPlugin(SourcePlugin):
     name = 'bootimg-pcbios'
@@ -144,7 +139,6 @@ class BootimgPcbiosPlugin(SourcePlugin):
             cr.set_bootimg_dir(bootimg_dir)
 
         staging_kernel_dir = kernel_dir
-        staging_data_dir = bootimg_dir
 
         hdddir = "%s/hdd/boot" % cr_workdir
 
@@ -153,7 +147,7 @@ class BootimgPcbiosPlugin(SourcePlugin):
         exec_cmd(install_cmd)
 
         install_cmd = "install -m 444 %s/syslinux/ldlinux.sys %s/ldlinux.sys" \
-            % (staging_data_dir, hdddir)
+            % (bootimg_dir, hdddir)
         exec_cmd(install_cmd)
 
         du_cmd = "du -bks %s" % hdddir
@@ -191,7 +185,7 @@ class BootimgPcbiosPlugin(SourcePlugin):
         chmod_cmd = "chmod 644 %s" % bootimg
         exec_cmd(chmod_cmd)
 
-        du_cmd = "du -Lbms %s" % bootimg
+        du_cmd = "du -Lbks %s" % bootimg
         out = exec_cmd(du_cmd)
         bootimg_size = out.split()[0]
 

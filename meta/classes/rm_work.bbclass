@@ -97,3 +97,24 @@ do_rm_work_all () {
 }
 do_rm_work_all[recrdeptask] = "do_rm_work"
 addtask rm_work_all after do_rm_work
+
+do_populate_sdk[postfuncs] += "rm_work_populatesdk"
+rm_work_populatesdk () {
+    :
+}
+rm_work_populatesdk[cleandirs] = "${WORKDIR}/sdk"
+
+do_rootfs[postfuncs] += "rm_work_rootfs"
+rm_work_rootfs () {
+    :
+}
+rm_work_rootfs[cleandirs] = "${WORKDIR}/rootfs"
+
+python () {
+    # If the recipe name is in the RM_WORK_EXCLUDE, skip the recipe.
+    excludes = (d.getVar("RM_WORK_EXCLUDE", True) or "").split()
+    pn = d.getVar("PN", True)
+    if pn in excludes:
+        d.delVarFlag('rm_work_rootfs', 'cleandirs')
+        d.delVarFlag('rm_work_populatesdk', 'cleandirs')
+}

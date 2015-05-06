@@ -1,14 +1,14 @@
 LICENSE = "GPLv2"
 LIC_FILES_CHKSUM = "file://COPYING;md5=b234ee4d69f5fce4486a80fdaf4a4263"
-SRCREV = "8f0fcd995f7f650a2ee0a94539f90c99e6d19e1d"
-PV = "2.5+git${SRCPV}"
+SRCREV = "bf16266782e1f2588b519a50d9684279d4e21036"
+PV = "2.7+git${SRCPV}"
 
 SRC_URI = "git://sourceware.org/git/systemtap.git \
            file://docproc-build-fix.patch \
            file://obsolete_automake_macros.patch \
            file://system_map_location.patch \
-           file://tapset-linux-sendfile-syscall.patch \
            file://configure-allow-to-disable-libvirt.patch \
+           file://x32_abi_time.patch \
           "
 
 # systemtap doesn't support mips

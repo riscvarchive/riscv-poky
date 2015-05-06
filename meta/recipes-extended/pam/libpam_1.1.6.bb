@@ -133,6 +133,7 @@ python populate_packages_prepend () {
     pam_plugin_append_file('%spam-plugin-tally2' % mlprefix, pam_sbindir, 'pam_tally2')
     pam_plugin_append_file('%spam-plugin-timestamp' % mlprefix, pam_sbindir, 'pam_timestamp_check')
     pam_plugin_append_file('%spam-plugin-mkhomedir' % mlprefix, pam_sbindir, 'mkhomedir_helper')
+    pam_plugin_append_file('%spam-plugin-console' % mlprefix, pam_sbindir, 'pam_console_apply')
     do_split_packages(d, pam_filterdir, '^(.*)$', 'pam-filter-%s', 'PAM filter for %s', extra_depends='')
 }
 
@@ -162,3 +163,9 @@ python do_pam_sanity () {
 addtask pam_sanity before do_configure
 
 BBCLASSEXTEND = "nativesdk native"
+
+CONFFILES_${PN}-runtime += "${sysconfdir}/pam.d/common-session"
+CONFFILES_${PN}-runtime += "${sysconfdir}/pam.d/common-auth"
+CONFFILES_${PN}-runtime += "${sysconfdir}/pam.d/common-password"
+CONFFILES_${PN}-runtime += "${sysconfdir}/pam.d/common-session-noninteractive"
+CONFFILES_${PN}-runtime += "${sysconfdir}/pam.d/common-account"

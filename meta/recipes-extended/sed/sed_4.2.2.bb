@@ -7,6 +7,7 @@ SECTION = "console/utils"
 
 SRC_URI = "${GNU_MIRROR}/sed/sed-${PV}.tar.gz \
            file://sed-add-ptest.patch \
+	   file://0001-Unset-need_charset_alias-when-building-for-musl.patch \
            file://run-ptest \
 "
 
@@ -22,8 +23,10 @@ EXTRA_OECONF = "--disable-acl \
 do_install () {
 	autotools_do_install
 	install -d ${D}${base_bindir}
-	mv ${D}${bindir}/sed ${D}${base_bindir}/sed
-	rmdir ${D}${bindir}/
+	if [ ! ${D}${bindir} -ef ${D}${base_bindir} ]; then
+	    mv ${D}${bindir}/sed ${D}${base_bindir}/sed
+	    rmdir ${D}${bindir}/
+	fi
 }
 
 ALTERNATIVE_${PN} = "sed"
@@ -40,4 +43,3 @@ do_install_ptest() {
 	oe_runmake -C ${TESTDIR} install-ptest BUILDDIR=${B} DESTDIR=${D}${PTEST_PATH} TESTDIR=${TESTDIR}
 }
 
-BBCLASSEXTEND = "native"

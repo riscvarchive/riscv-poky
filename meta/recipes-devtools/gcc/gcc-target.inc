@@ -19,7 +19,6 @@ PACKAGES = "\
     g77 g77-symlinks \
     gfortran gfortran-symlinks \
     gcov gcov-symlinks \
-    ${PN}-plugin-dev \
     ${PN}-doc \
     ${PN}-dev \
     ${PN}-dbg \
@@ -47,8 +46,6 @@ FILES_${PN}-dbg += "\
 FILES_${PN}-dev = "\
     ${gcclibdir}/${TARGET_SYS}/${BINV}/lib*${SOLIBSDEV} \
     ${libexecdir}/gcc/${TARGET_SYS}/${BINV}/lib*${SOLIBSDEV} \
-"
-FILES_${PN}-plugin-dev = "\
     ${gcclibdir}/${TARGET_SYS}/${BINV}/plugin/include/ \
     ${libexecdir}/gcc/${TARGET_SYS}/${BINV}/plugin/gengtype \
     ${gcclibdir}/${TARGET_SYS}/${BINV}/plugin/gtype.state \
@@ -165,4 +162,13 @@ do_install () {
 	ln -sf gcc cc
 
 	chown -R root:root ${D}
+}
+
+# Installing /usr/lib/gcc/* means we'd have two copies, one from gcc-cross
+# and one from here. These can confuse gcc cross where includes use #include_next
+# and builds track file dependencies (e.g. perl and its makedepends code).
+# For determinism we don't install this ever and rely on the copy from gcc-cross.
+# [YOCTO #7287]
+sysroot_stage_dirs_append () {
+	rm -rf $to${libdir}/gcc
 }

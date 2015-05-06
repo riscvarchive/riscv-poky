@@ -27,7 +27,7 @@ class BitbakeTests(oeSelfTest):
     def test_event_handler(self):
         self.write_config("INHERIT += \"test_events\"")
         result = bitbake('m4-native')
-        find_build_started = re.search("NOTE: Test for bb\.event\.BuildStarted(\n.*)*NOTE: Preparing runqueue", result.output)
+        find_build_started = re.search("NOTE: Test for bb\.event\.BuildStarted(\n.*)*NOTE: Preparing RunQueue", result.output)
         find_build_completed = re.search("Tasks Summary:.*(\n.*)*NOTE: Test for bb\.event\.BuildCompleted", result.output)
         self.assertTrue(find_build_started, msg = "Match failed in:\n%s"  % result.output)
         self.assertTrue(find_build_completed, msg = "Match failed in:\n%s" % result.output)
@@ -71,6 +71,7 @@ class BitbakeTests(oeSelfTest):
     @testcase(163)
     def test_force_task(self):
         bitbake('m4-native')
+        self.add_command_to_tearDown('bitbake -c clean m4-native')
         result = bitbake('-C compile m4-native')
         look_for_tasks = ['do_compile', 'do_install', 'do_populate_sysroot']
         for task in look_for_tasks:
@@ -119,60 +120,71 @@ class BitbakeTests(oeSelfTest):
 
     @testcase(1028)
     def test_environment(self):
-	self.append_config("TEST_ENV=\"localconf\"")
-	result = runCmd('bitbake -e | grep TEST_ENV=')
-	self.assertTrue('localconf' in result.output)
-	self.remove_config("TEST_ENV=\"localconf\"")
+        self.append_config("TEST_ENV=\"localconf\"")
+        result = runCmd('bitbake -e | grep TEST_ENV=')
+        self.assertTrue('localconf' in result.output)
+        self.remove_config("TEST_ENV=\"localconf\"")
 
     @testcase(1029)
     def test_dry_run(self):
-	result = runCmd('bitbake -n m4-native')
-	self.assertEqual(0, result.status)
+        result = runCmd('bitbake -n m4-native')
+        self.assertEqual(0, result.status)
 
     @testcase(1030)
     def test_just_parse(self):
-	result = runCmd('bitbake -p')
-	self.assertEqual(0, result.status)
+        result = runCmd('bitbake -p')
+        self.assertEqual(0, result.status)
 
     @testcase(1031)
     def test_version(self):
-	result = runCmd('bitbake -s | grep wget')
-	find = re.search("wget *:([0-9a-zA-Z\.\-]+)", result.output)
-	self.assertTrue(find) 
+        result = runCmd('bitbake -s | grep wget')
+        find = re.search("wget *:([0-9a-zA-Z\.\-]+)", result.output)
+        self.assertTrue(find)
 
     @testcase(1032)
     def test_prefile(self):
-	preconf = os.path.join(self.builddir, 'conf/prefile.conf')
-	self.track_for_cleanup(preconf)
-	ftools.write_file(preconf ,"TEST_PREFILE=\"prefile\"")
-	result = runCmd('bitbake -r conf/prefile.conf -e | grep TEST_PREFILE=')
-	self.assertTrue('prefile' in result.output)
-	self.append_config("TEST_PREFILE=\"localconf\"")
-	result = runCmd('bitbake -r conf/prefile.conf -e | grep TEST_PREFILE=')
-	self.assertTrue('localconf' in result.output)
-	self.remove_config("TEST_PREFILE=\"localconf\"")
+        preconf = os.path.join(self.builddir, 'conf/prefile.conf')
+        self.track_for_cleanup(preconf)
+        ftools.write_file(preconf ,"TEST_PREFILE=\"prefile\"")
+        result = runCmd('bitbake -r conf/prefile.conf -e | grep TEST_PREFILE=')
+        self.assertTrue('prefile' in result.output)
+        self.append_config("TEST_PREFILE=\"localconf\"")
+        result = runCmd('bitbake -r conf/prefile.conf -e | grep TEST_PREFILE=')
+        self.assertTrue('localconf' in result.output)
+        self.remove_config("TEST_PREFILE=\"localconf\"")
 
     @testcase(1033)
     def test_postfile(self):
-	postconf = os.path.join(self.builddir, 'conf/postfile.conf')
-	self.track_for_cleanup(postconf)
-	ftools.write_file(postconf , "TEST_POSTFILE=\"postfile\"")
-	self.append_config("TEST_POSTFILE=\"localconf\"")
-	result = runCmd('bitbake -R conf/postfile.conf -e | grep TEST_POSTFILE=')
-	self.assertTrue('postfile' in result.output)
-	self.remove_config("TEST_POSTFILE=\"localconf\"")
+        postconf = os.path.join(self.builddir, 'conf/postfile.conf')
+        self.track_for_cleanup(postconf)
+        ftools.write_file(postconf , "TEST_POSTFILE=\"postfile\"")
+        self.append_config("TEST_POSTFILE=\"localconf\"")
+        result = runCmd('bitbake -R conf/postfile.conf -e | grep TEST_POSTFILE=')
+        self.assertTrue('postfile' in result.output)
+        self.remove_config("TEST_POSTFILE=\"localconf\"")
 
     @testcase(1034)
     def test_checkuri(self):
-	result = runCmd('bitbake -c checkuri m4')
-	self.assertEqual(0, result.status)
+        result = runCmd('bitbake -c checkuri m4')
+        self.assertEqual(0, result.status)
 
     @testcase(1035)
     def test_continue(self):
-	self.write_recipeinc('man',"\ndo_fail_task () {\nexit 1 \n}\n\naddtask do_fail_task before do_fetch\n" )
-	runCmd('bitbake -c cleanall man xcursor-transparent-theme')
-	result = runCmd('bitbake man xcursor-transparent-theme -k', ignore_status=True)
-	errorpos = result.output.find('ERROR: Function failed: do_fail_task')
-	manver = re.search("NOTE: recipe xcursor-transparent-theme-(.*?): task do_unpack: Started", result.output)
-	continuepos = result.output.find('NOTE: recipe xcursor-transparent-theme-%s: task do_unpack: Started' % manver.group(1))
-	self.assertLess(errorpos,continuepos)
+        self.write_recipeinc('man',"\ndo_fail_task () {\nexit 1 \n}\n\naddtask do_fail_task before do_fetch\n" )
+        runCmd('bitbake -c cleanall man xcursor-transparent-theme')
+        result = runCmd('bitbake man xcursor-transparent-theme -k', ignore_status=True)
+        errorpos = result.output.find('ERROR: Function failed: do_fail_task')
+        manver = re.search("NOTE: recipe xcursor-transparent-theme-(.*?): task do_unpack: Started", result.output)
+        continuepos = result.output.find('NOTE: recipe xcursor-transparent-theme-%s: task do_unpack: Started' % manver.group(1))
+        self.assertLess(errorpos,continuepos)
+
+    @testcase(1119)
+    def test_non_gplv3(self):
+        data = 'INCOMPATIBLE_LICENSE = "GPLv3"'
+        conf = os.path.join(self.builddir, 'conf/local.conf')
+        ftools.append_file(conf ,data)
+        result = bitbake('readline', ignore_status=True)
+        self.assertEqual(result.status, 0)
+        self.assertFalse(os.path.isfile(os.path.join(self.builddir, 'tmp/deploy/licenses/readline/generic_GPLv3')))
+        self.assertTrue(os.path.isfile(os.path.join(self.builddir, 'tmp/deploy/licenses/readline/generic_GPLv2')))
+        ftools.remove_from_file(conf ,data)

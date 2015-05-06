@@ -24,6 +24,8 @@ import re
 from django import template
 from django.utils import timezone
 from django.template.defaultfilters import filesizeformat
+import json as JsonLib
+from django.utils.safestring import mark_safe
 
 register = template.Library()
 
@@ -40,6 +42,19 @@ def sectohms(time):
     hours = int(tdsec / 3600)
     return "%02d:%02d:%02d" % (hours, int((tdsec - (hours * 3600))/ 60), int(tdsec) % 60)
 
+
+@register.filter(name = 'mapselect')
+def mapselect(value, argument):
+    return map(lambda x: vars(x)[argument], value)
+
+
+@register.filter(name = "json")
+def json(value):
+    # JSON spec says that "\/" is functionally identical to "/" to allow for HTML-tag embedding in JSON strings
+    # unfortunately, I can't find any option in the json module to turn on forward-slash escaping, so we do
+    # it manually here
+    return mark_safe(JsonLib.dumps(value, ensure_ascii=False).replace('</', '<\\/'))
+
 @register.assignment_tag
 def query(qs, **kwargs):
     """ template tag which allows queryset filtering. Usage:
@@ -49,6 +64,25 @@ def query(qs, **kwargs):
           {% endfor %}
     """
     return qs.filter(**kwargs)
+
+
+@register.filter("whitespace_slice")
+def whitespace_space_filter(value, arg):
+    try:
+        bits = []
+        for x in arg.split(":"):
+            if len(x) == 0:
+                bits.append(None)
+            else:
+                # convert numeric value to the first whitespace after
+                first_whitespace = value.find(" ", int(x))
+                if first_whitespace == -1:
+                    bits.append(int(x))
+                else:
+                    bits.append(first_whitespace)
+        return value[slice(*bits)]
+    except (ValueError, TypeError):
+        raise
 
 @register.filter
 def divide(value, arg):
@@ -91,6 +125,8 @@ def filtered_icon(options, filter):
     for option in options:
         if filter == option[1]:
             return "btn-primary"
+        if ('daterange' == option[1]) and filter.startswith(option[4]):
+            return "btn-primary"
     return ""
 
 @register.filter
@@ -99,6 +135,8 @@ def filtered_tooltip(options, filter):
     """
     for option in options:
         if filter == option[1]:
+            return "Showing only %s"%option[0]
+        if ('daterange' == option[1]) and filter.startswith(option[4]):
             return "Showing only %s"%option[0]
     return ""
 
@@ -253,3 +291,38 @@ def get_dict_value(dictionary, key):
         return dictionary[key]
     except (KeyError, IndexError):
         return ''
+
+@register.filter
+def format_build_date(completed_on):
+    now = timezone.now()
+    delta = now - completed_on
+
+    if delta.days >= 1:
+        return True
+
+@register.filter
+def is_shaid(text):
+    """ return True if text length is 40 characters and all hex-digits
+    """
+    try:
+        int(text, 16)
+        if len(text) == 40:
+            return True
+        return False
+    except ValueError:
+        return False
+
+@register.filter
+def cut_layer_path_prefix(fullpath,layer_names):
+    ### if some part of the full local path to a layer matches
+    ### an entry in layer_names (sorted desc), return the layer
+    ### name relative path.
+    for lname in layer_names:
+        # import rpdb; rpdb.set_trace()
+        # only try layer names that are non-trivial to avoid false matches
+        if len(lname) >= 4:
+            # match layer name with as a subdir / or for remote layers /_
+            if re.search('/' + lname, fullpath) or re.search('/_' + lname, fullpath):
+                parts = re.split(lname, fullpath, 1)
+                return lname + parts[1]
+    return fullpath

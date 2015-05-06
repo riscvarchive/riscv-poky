@@ -4,7 +4,7 @@ SECTION = "base"
 LICENSE = "GPLv2+"
 LIC_FILES_CHKSUM = "file://COPYING;md5=eb723b61539feef013de476e68b5c50a"
 
-SRC_URI = "${DEBIAN_MIRROR}/main/b/base-passwd/base-passwd_${PV}.tar.gz \
+SRC_URI = "https://launchpad.net/debian/+archive/primary/+files/${BPN}_${PV}.tar.gz \
            file://add_shutdown.patch \
            file://nobash.patch \
            file://noshadow.patch \
@@ -75,11 +75,11 @@ python populate_packages_prepend() {
     preinst = """#!/bin/sh
 mkdir -p $D${sysconfdir}
 if [ ! -e $D${sysconfdir}/passwd ]; then
-\tcat << EOF > $D${sysconfdir}/passwd
+\tcat << 'EOF' > $D${sysconfdir}/passwd
 """ + passwd + """EOF
 fi
 if [ ! -e $D${sysconfdir}/group ]; then
-\tcat << EOF > $D${sysconfdir}/group
+\tcat << 'EOF' > $D${sysconfdir}/group
 """ + group + """EOF
 fi
 """

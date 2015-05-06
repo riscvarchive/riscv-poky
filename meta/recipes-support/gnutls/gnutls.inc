@@ -17,7 +17,7 @@ SHRT_VER = "${@d.getVar('PV',1).split('.')[0]}.${@d.getVar('PV',1).split('.')[1]
 
 SRC_URI = "ftp://ftp.gnutls.org/gcrypt/gnutls/v${SHRT_VER}/gnutls-${PV}.tar.xz"
 
-inherit autotools-brokensep texinfo binconfig pkgconfig gettext lib_package
+inherit autotools texinfo binconfig pkgconfig gettext lib_package
 
 EXTRA_OECONF="--disable-rpath \
               --with-included-libtasn1 \
@@ -34,6 +34,9 @@ do_configure_prepend() {
 		rm -f ${dir}/aclocal.m4 ${dir}/m4/libtool.m4 ${dir}/m4/lt*.m4
 	done
 }
+
+PACKAGECONFIG ??= ""
+PACKAGECONFIG[tpm] = "--with-tpm, --without-tpm, trousers"
 
 PACKAGES =+ "${PN}-openssl ${PN}-xx"
 

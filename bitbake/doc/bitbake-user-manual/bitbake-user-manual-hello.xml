@@ -221,7 +221,7 @@
                 <para>From your shell, enter the following commands to set and
                 export the <filename>BBPATH</filename> variable:
                 <literallayout class='monospaced'>
-     $ BBPATH="&lt;projectdirectory&gt;"
+     $ BBPATH="<replaceable>projectdirectory</replaceable>"
      $ export BBPATH
                 </literallayout>
                 Use your actual project directory in the command.
@@ -471,7 +471,7 @@ ERROR: Unable to parse base: ParseError in configuration INHERITs: Could not inh
      Time: 00:00:00
      Parsing of 1 .bb files complete (0 cached, 1 parsed). 1 targets, 0 skipped, 0 masked, 0 errors.
      NOTE: Resolving any missing task queue dependencies
-     NOTE: Preparing runqueue
+     NOTE: Preparing RunQueue
      NOTE: Executing RunQueue Tasks
      ********************
      *                  *

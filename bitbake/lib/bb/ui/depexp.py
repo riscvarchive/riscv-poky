@@ -17,6 +17,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import sys
 import gobject
 import gtk
 import Queue
@@ -215,6 +216,12 @@ def main(server, eventHandler, params):
         print("XMLRPC Fault getting commandline:\n %s" % x)
         return
 
+    try:
+        gtk.init_check()
+    except RuntimeError:
+        sys.stderr.write("Please set DISPLAY variable before running this command \n")
+        return
+
     shutdown = 0
 
     gtkgui = gtkthread(shutdown)
@@ -236,7 +243,7 @@ def main(server, eventHandler, params):
         try:
             event = eventHandler.waitEvent(0.25)
             if gtkthread.quit.isSet():
-                _, error = server.runCommand(["stateStop"])
+                _, error = server.runCommand(["stateForceShutdown"])
                 if error:
                     print('Unable to cleanly stop: %s' % error)
                 break

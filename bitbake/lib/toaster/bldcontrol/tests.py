@@ -44,7 +44,7 @@ class BEControllerTests(object):
 
         # test start server and stop
         self.assertTrue(socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect_ex((hostname, 8200)), "Port already occupied")
-        bc.startBBServer()
+        bc.startBBServer("0:0")
         self.assertFalse(socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect_ex((hostname, 8200)), "Server not answering")
 
         bc.stopBBServer()
@@ -57,14 +57,8 @@ class BEControllerTests(object):
         bc = self._getBEController(obe)
         bc.setLayers(BITBAKE_LAYERS, POKY_LAYERS) # setting layers, skip any layer info
 
-        bbc = bc.getBBController()
+        bbc = bc.getBBController("%d:%d" % (-1, obe.pk))
         self.assertTrue(isinstance(bbc, BitbakeController))
-        # test set variable, use no build marker -1 for BR value
-        try:
-            bbc.setVariable("TOASTER_BRBE", "%d:%d" % (-1, obe.pk))
-        except Exception as e :
-            self.fail("setVariable raised %s", e)
-
         bc.stopBBServer()
 
         self._serverForceStop(bc)
@@ -136,7 +130,7 @@ class RunBuildsCommandTests(TestCase):
 
     def test_br_select(self):
         from orm.models import Project, Release, BitbakeVersion
-        p = Project.objects.create_project("test", Release.objects.get_or_create(name = "HEAD", bitbake_version = BitbakeVersion.objects.get_or_create(name="HEAD", branch="HEAD")[0])[0])
+        p = Project.objects.create_project("test", Release.objects.get_or_create(name = "HEAD", bitbake_version = BitbakeVersion.objects.get_or_create(name="HEAD", branch=Branch.objects.get_or_create(name="HEAD"))[0])[0])
         obr = BuildRequest.objects.create(state = BuildRequest.REQ_QUEUED, project = p)
         command = Command()
         br = command._selectBuildRequest()
@@ -147,3 +141,22 @@ class RunBuildsCommandTests(TestCase):
         self.assertTrue(br.state == BuildRequest.REQ_INPROGRESS, "Request is not updated")
         # no more selections possible here
         self.assertRaises(IndexError, command._selectBuildRequest)
+
+
+class UtilityTests(TestCase):
+    def test_reduce_path(self):
+        from bldcontrol.management.commands.loadconf import _reduce_canon_path, _get_id_for_sourcetype
+
+        self.assertTrue( _reduce_canon_path("/") == "/")
+        self.assertTrue( _reduce_canon_path("/home/..") == "/")
+        self.assertTrue( _reduce_canon_path("/home/../ana") == "/ana")
+        self.assertTrue( _reduce_canon_path("/home/../ana/..") == "/")
+        self.assertTrue( _reduce_canon_path("/home/ana/mihai/../maria") == "/home/ana/maria")
+
+    def test_get_id_for_sorucetype(self):
+        from bldcontrol.management.commands.loadconf import _reduce_canon_path, _get_id_for_sourcetype
+        self.assertTrue( _get_id_for_sourcetype("layerindex") == 1)
+        self.assertTrue( _get_id_for_sourcetype("local") == 0)
+        self.assertTrue( _get_id_for_sourcetype("imported") == 2)
+        with self.assertRaises(Exception):
+            _get_id_for_sourcetype("unknown")

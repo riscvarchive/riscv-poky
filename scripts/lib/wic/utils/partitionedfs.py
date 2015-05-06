@@ -1,4 +1,4 @@
-#!/usr/bin/python -tt
+#!/usr/bin/env python -tt
 #
 # Copyright (c) 2009, 2010, 2011 Intel, Inc.
 # Copyright (c) 2007, 2008 Red Hat, Inc.
@@ -18,16 +18,15 @@
 # with this program; if not, write to the Free Software Foundation, Inc., 59
 # Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
-import os
-
 from wic import msger
-from wic.utils import runner
 from wic.utils.errors import ImageError
-from wic.utils.fs_related import *
-from wic.utils.oe.misc import *
+from wic.utils.oe.misc import exec_cmd, exec_native_cmd
 
 # Overhead of the MBR partitioning scheme (just one sector)
 MBR_OVERHEAD = 1
+
+# Overhead of the GPT partitioning scheme
+GPT_OVERHEAD = 34
 
 # Size of a sector in bytes
 SECTOR_SIZE = 512
@@ -39,13 +38,13 @@ class Image:
     An Image is a container for a set of DiskImages and associated
     partitions.
     """
-    def __init__(self):
+    def __init__(self, native_sysroot=None):
         self.disks = {}
         self.partitions = []
-        self.parted = find_binary_path("parted")
         # Size of a sector used in calculations
         self.sector_size = SECTOR_SIZE
         self._partitions_layed_out = False
+        self.native_sysroot = native_sysroot
 
     def __add_disk(self, disk_name):
         """ Add a disk 'disk_name' to the internal list of disks. Note,
@@ -61,6 +60,7 @@ class Image:
         self.disks[disk_name] = \
                 { 'disk': None,     # Disk object
                   'numpart': 0,     # Number of allocate partitions
+                  'realpart': 0,    # Number of partitions in the partition table
                   'partitions': [], # Indexes to self.partitions
                   'offset': 0,      # Offset of next partition (in sectors)
                   # Minimum required disk size to fit all partitions (in bytes)
@@ -84,16 +84,16 @@ class Image:
         self.partitions.append(part)
         self.__add_disk(part['disk_name'])
 
-    def add_partition(self, size, disk_name, mountpoint, source_file = None, fstype = None,
-                      label=None, fsopts = None, boot = False, align = None,
-                      part_type = None):
+    def add_partition(self, size, disk_name, mountpoint, source_file=None, fstype=None,
+                      label=None, fsopts=None, boot=False, align=None, no_table=False,
+                      part_type=None):
         """ Add the next partition. Prtitions have to be added in the
         first-to-last order. """
 
         ks_pnum = len(self.partitions)
 
-        # Converting MB to sectors for parted
-        size = size * 1024 * 1024 / self.sector_size
+        # Converting kB to sectors for parted
+        size = size * 1024 / self.sector_size
 
         # We still need partition for "/" or non-subvolume
         if mountpoint == "/" or not fsopts:
@@ -109,18 +109,19 @@ class Image:
                      'num': None, # Partition number
                      'boot': boot, # Bootable flag
                      'align': align, # Partition alignment
+                     'no_table' : no_table, # Partition does not appear in partition table
                      'part_type' : part_type } # Partition type
 
             self.__add_partition(part)
 
-    def layout_partitions(self, ptable_format = "msdos"):
+    def layout_partitions(self, ptable_format="msdos"):
         """ Layout the partitions, meaning calculate the position of every
         partition on the disk. The 'ptable_format' parameter defines the
         partition table format and may be "msdos". """
 
         msger.debug("Assigning %s partitions to disks" % ptable_format)
 
-        if ptable_format not in ('msdos'):
+        if ptable_format not in ('msdos', 'gpt'):
             raise ImageError("Unknown partition table format '%s', supported " \
                              "formats are: 'msdos'" % ptable_format)
 
@@ -147,14 +148,25 @@ class Image:
             # Get the disk where the partition is located
             d = self.disks[p['disk_name']]
             d['numpart'] += 1
+            if not p['no_table']:
+                d['realpart'] += 1
             d['ptable_format'] = ptable_format
 
             if d['numpart'] == 1:
                 if ptable_format == "msdos":
                     overhead = MBR_OVERHEAD
+                elif ptable_format == "gpt":
+                    overhead = GPT_OVERHEAD
 
                 # Skip one sector required for the partitioning scheme overhead
                 d['offset'] += overhead
+
+            if d['realpart'] > 3:
+                # Reserve a sector for EBR for every logical partition
+                # before alignment is performed.
+                if ptable_format == "msdos":
+                    d['offset'] += 1
+
 
             if p['align']:
                 # If not first partition and we do have alignment set we need
@@ -182,20 +194,15 @@ class Image:
             d['offset'] += p['size']
 
             p['type'] = 'primary'
-            p['num'] = d['numpart']
+            if not p['no_table']:
+                p['num'] = d['realpart']
+            else:
+                p['num'] = 0
 
             if d['ptable_format'] == "msdos":
-                if d['numpart'] > 2:
-                    # Every logical partition requires an additional sector for
-                    # the EBR, so steal the last sector from the end of each
-                    # partition starting from the 3rd one for the EBR. This
-                    # will make sure the logical partitions are aligned
-                    # correctly.
-                    p['size'] -= 1
-
-                if d['numpart'] > 3:
+                if d['realpart'] > 3:
                     p['type'] = 'logical'
-                    p['num'] = d['numpart'] + 1
+                    p['num'] = d['realpart'] + 1
 
             d['partitions'].append(n)
             msger.debug("Assigned %s to %s%d, sectors range %d-%d size %d "
@@ -208,17 +215,20 @@ class Image:
         # minumim disk sizes.
         for disk_name, d in self.disks.items():
             d['min_size'] = d['offset']
+            if d['ptable_format'] == "gpt":
+                d['min_size'] += GPT_OVERHEAD
 
             d['min_size'] *= self.sector_size
 
     def __run_parted(self, args):
         """ Run parted with arguments specified in the 'args' list. """
 
-        args.insert(0, self.parted)
+        args.insert(0, "parted")
+        args = ' '.join(args)
         msger.debug(args)
 
-        rc, out = runner.runtool(args, catch = 3)
-        out = out.strip()
+        rc, out = exec_native_cmd(args, self.native_sysroot)
+
         if out:
             msger.debug('"parted" output: %s' % out)
 
@@ -257,15 +267,25 @@ class Image:
         msger.debug("Creating partitions")
 
         for p in self.partitions:
+            if p['num'] == 0:
+                continue
+
             d = self.disks[p['disk_name']]
             if d['ptable_format'] == "msdos" and p['num'] == 5:
-                # The last sector of the 3rd partition was reserved for the EBR
-                # of the first _logical_ partition. This is why the extended
-                # partition should start one sector before the first logical
-                # partition.
+                # Create an extended partition (note: extended
+                # partition is described in MBR and contains all
+                # logical partitions). The logical partitions save a
+                # sector for an EBR just before the start of a
+                # partition. The extended partition must start one
+                # sector before the start of the first logical
+                # partition. This way the first EBR is inside of the
+                # extended partition. Since the extended partitions
+                # starts a sector before the first logical partition,
+                # add a sector at the back, so that there is enough
+                # room for all logical partitions.
                 self.__create_partition(d['disk'].device, "extended",
                                         None, p['start'] - 1,
-                                        d['offset'] - p['start'])
+                                        d['offset'] - p['start'] + 1)
 
             if p['fstype'] == "swap":
                 parted_fs_type = "linux-swap"
@@ -273,6 +293,8 @@ class Image:
                 parted_fs_type = "fat32"
             elif p['fstype'] == "msdos":
                 parted_fs_type = "fat16"
+            elif p['fstype'] == "ontrackdm6aux3":
+                parted_fs_type = "ontrackdm6aux3"
             else:
                 # Type for ext2/ext3/ext4/btrfs
                 parted_fs_type = "ext2"
@@ -338,14 +360,6 @@ class Image:
 
         for p in self.partitions:
             d = self.disks[p['disk_name']]
-            if d['ptable_format'] == "msdos" and p['num'] == 5:
-                # The last sector of the 3rd partition was reserved for the EBR
-                # of the first _logical_ partition. This is why the extended
-                # partition should start one sector before the first logical
-                # partition.
-                self.__write_partition(p['num'], p['source_file'],
-                                       p['start'] - 1,
-                                       d['offset'] - p['start'])
 
             self.__write_partition(p['num'], p['source_file'],
                                    p['start'], p['size'])

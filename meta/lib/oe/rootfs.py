@@ -40,6 +40,43 @@ class Rootfs(object):
     def _log_check(self):
         pass
 
+    def _log_check_warn(self):
+        r = re.compile('^(warn|Warn|NOTE: warn|NOTE: Warn|WARNING:)')
+        log_path = self.d.expand("${T}/log.do_rootfs")
+        with open(log_path, 'r') as log:
+            for line in log.read().split('\n'):
+                if 'log_check' in line or 'NOTE:' in line:
+                    continue
+
+                m = r.search(line)
+                if m:
+                    bb.warn('log_check: There is a warn message in the logfile')
+                    bb.warn('log_check: Matched keyword: [%s]' % m.group())
+                    bb.warn('log_check: %s\n' % line)
+
+    def _log_check_error(self):
+        r = re.compile(self.log_check_regex)
+        log_path = self.d.expand("${T}/log.do_rootfs")
+        with open(log_path, 'r') as log:
+            found_error = 0
+            message = "\n"
+            for line in log.read().split('\n'):
+                if 'log_check' in line:
+                    continue
+
+                m = r.search(line)
+                if m:
+                    found_error = 1
+                    bb.warn('log_check: There were error messages in the logfile')
+                    bb.warn('log_check: Matched keyword: [%s]\n\n' % m.group())
+
+                if found_error >= 1 and found_error <= 5:
+                    message += line + '\n'
+                    found_error += 1
+
+                if found_error == 6:
+                    bb.fatal(message)
+
     def _insert_feed_uris(self):
         if bb.utils.contains("IMAGE_FEATURES", "package-management",
                          True, False, self.d):
@@ -118,17 +155,19 @@ class Rootfs(object):
         if self.d.getVar('USE_DEVFS', True) != "1":
             self._create_devfs()
 
-        self._uninstall_uneeded()
+        self._uninstall_unneeded()
 
         self._insert_feed_uris()
 
         self._run_ldconfig()
 
-        self._generate_kernel_module_deps()
+        if self.d.getVar('USE_DEPMOD', True) != "0":
+            self._generate_kernel_module_deps()
 
         self._cleanup()
+        self._log_check()
 
-    def _uninstall_uneeded(self):
+    def _uninstall_unneeded(self):
         # Remove unneeded init script symlinks
         delayed_postinsts = self._get_delayed_postinsts()
         if delayed_postinsts is None:
@@ -137,34 +176,41 @@ class Rootfs(object):
                                       self.d.getVar('IMAGE_ROOTFS', True),
                                       "run-postinsts", "remove"])
 
-        # Remove unneeded package-management related components
-        if bb.utils.contains("IMAGE_FEATURES", "package-management",
-                         True, False, self.d):
-            return
+        runtime_pkgmanage = bb.utils.contains("IMAGE_FEATURES", "package-management",
+                         True, False, self.d)
+        if not runtime_pkgmanage:
+            # Remove components that we don't need if we're not going to install
+            # additional packages at runtime
+            if delayed_postinsts is None:
+                installed_pkgs_dir = self.d.expand('${WORKDIR}/installed_pkgs.txt')
+                pkgs_to_remove = list()
+                with open(installed_pkgs_dir, "r+") as installed_pkgs:
+                    pkgs_installed = installed_pkgs.read().split('\n')
+                    for pkg_installed in pkgs_installed[:]:
+                        pkg = pkg_installed.split()[0]
+                        if pkg in ["update-rc.d",
+                                "base-passwd",
+                                "shadow",
+                                "update-alternatives",
+                                self.d.getVar("ROOTFS_BOOTSTRAP_INSTALL", True)
+                                ]:
+                            pkgs_to_remove.append(pkg)
+                            pkgs_installed.remove(pkg_installed)
 
-        if delayed_postinsts is None:
-            installed_pkgs_dir = self.d.expand('${WORKDIR}/installed_pkgs.txt')
-            pkgs_to_remove = list()
-            with open(installed_pkgs_dir, "r+") as installed_pkgs:
-                pkgs_installed = installed_pkgs.read().split('\n')
-                for pkg_installed in pkgs_installed[:]:
-                    pkg = pkg_installed.split()[0]
-                    if pkg in ["update-rc.d",
-                               "base-passwd",
-                               self.d.getVar("ROOTFS_BOOTSTRAP_INSTALL", True)
-                               ]:
-                        pkgs_to_remove.append(pkg)
-                        pkgs_installed.remove(pkg_installed)
+                if len(pkgs_to_remove) > 0:
+                    self.pm.remove(pkgs_to_remove, False)
+                    # Update installed_pkgs.txt
+                    open(installed_pkgs_dir, "w+").write('\n'.join(pkgs_installed))
 
-            if len(pkgs_to_remove) > 0:
-                self.pm.remove(pkgs_to_remove, False)
-                # Update installed_pkgs.txt
-                open(installed_pkgs_dir, "w+").write('\n'.join(pkgs_installed))
+            else:
+                self._save_postinsts()
 
-        else:
-            self._save_postinsts()
+        post_uninstall_cmds = self.d.getVar("ROOTFS_POSTUNINSTALL_COMMAND", True)
+        execute_pre_post_process(self.d, post_uninstall_cmds)
 
-        self.pm.remove_packaging_data()
+        if not runtime_pkgmanage:
+            # Remove the package manager data files
+            self.pm.remove_packaging_data()
 
     def _run_intercepts(self):
         intercepts_dir = os.path.join(self.d.getVar('WORKDIR', True),
@@ -209,16 +255,17 @@ class Rootfs(object):
                                   'new', '-v'])
 
     def _generate_kernel_module_deps(self):
-        kernel_abi_ver_file = os.path.join(self.d.getVar('STAGING_KERNEL_DIR', True),
+        kernel_abi_ver_file = oe.path.join(self.d.getVar('PKGDATA_DIR', True), "kernel-depmod",
                                            'kernel-abiversion')
-        if os.path.exists(kernel_abi_ver_file):
-            kernel_ver = open(kernel_abi_ver_file).read().strip(' \n')
-            modules_dir = os.path.join(self.image_rootfs, 'lib', 'modules', kernel_ver)
+        if not os.path.exists(kernel_abi_ver_file):
+            bb.fatal("No kernel-abiversion file found (%s), cannot run depmod, aborting" % kernel_abi_ver_file)
 
-            bb.utils.mkdirhier(modules_dir)
+        kernel_ver = open(kernel_abi_ver_file).read().strip(' \n')
+        modules_dir = os.path.join(self.image_rootfs, 'lib', 'modules', kernel_ver)
 
-            self._exec_shell_cmd(['depmodwrapper', '-a', '-b', self.image_rootfs,
-                                  kernel_ver])
+        bb.utils.mkdirhier(modules_dir)
+
+        self._exec_shell_cmd(['depmodwrapper', '-a', '-b', self.image_rootfs, kernel_ver])
 
     """
     Create devfs:
@@ -248,7 +295,7 @@ class Rootfs(object):
 class RpmRootfs(Rootfs):
     def __init__(self, d, manifest_dir):
         super(RpmRootfs, self).__init__(d)
-
+        self.log_check_regex = '(unpacking of archive failed|Cannot find package|exit 1|ERR|Fail)'
         self.manifest = RpmManifest(d, manifest_dir)
 
         self.pm = RpmPM(d,
@@ -320,8 +367,6 @@ class RpmRootfs(Rootfs):
 
         self.pm.install_complementary()
 
-        self._log_check()
-
         if self.inc_rpm_image_gen == "1":
             self.pm.backup_packaging_data()
 
@@ -346,20 +391,6 @@ class RpmRootfs(Rootfs):
         # this is just a stub. For RPM, the failed postinstalls are
         # already saved in /etc/rpm-postinsts
         pass
-
-    def _log_check_warn(self):
-        r = re.compile('(warn|Warn)')
-        log_path = self.d.expand("${T}/log.do_rootfs")
-        with open(log_path, 'r') as log:
-            for line in log.read().split('\n'):
-                if 'log_check' in line:
-                    continue
-
-                m = r.search(line)
-                if m:
-                    bb.warn('log_check: There is a warn message in the logfile')
-                    bb.warn('log_check: Matched keyword: [%s]' % m.group())
-                    bb.warn('log_check: %s\n' % line)
 
     def _log_check_error(self):
         r = re.compile('(unpacking of archive failed|Cannot find package|exit 1|ERR|Fail)')
@@ -402,12 +433,16 @@ class RpmRootfs(Rootfs):
         # __db.00* (Berkeley DB files that hold locks, rpm specific environment
         # settings, etc.), that should not get into the final rootfs
         self.pm.unlock_rpm_db()
-        bb.utils.remove(self.image_rootfs + "/install", True)
+        if os.path.isdir(self.pm.install_dir_path + "/tmp") and not os.listdir(self.pm.install_dir_path + "/tmp"):
+           bb.utils.remove(self.pm.install_dir_path + "/tmp", True)
+        if os.path.isdir(self.pm.install_dir_path) and not os.listdir(self.pm.install_dir_path):
+           bb.utils.remove(self.pm.install_dir_path, True)
 
 
 class DpkgRootfs(Rootfs):
     def __init__(self, d, manifest_dir):
         super(DpkgRootfs, self).__init__(d)
+        self.log_check_regex = '^E:'
 
         bb.utils.remove(self.image_rootfs, True)
         bb.utils.remove(self.d.getVar('MULTILIB_TEMP_ROOTFS', True), True)
@@ -479,7 +514,8 @@ class DpkgRootfs(Rootfs):
         self.pm.mark_packages("unpacked", registered_pkgs.split())
 
     def _log_check(self):
-        pass
+        self._log_check_warn()
+        self._log_check_error()
 
     def _cleanup(self):
         pass
@@ -488,6 +524,7 @@ class DpkgRootfs(Rootfs):
 class OpkgRootfs(Rootfs):
     def __init__(self, d, manifest_dir):
         super(OpkgRootfs, self).__init__(d)
+        self.log_check_regex = '(exit 1|Collected errors)'
 
         self.manifest = OpkgManifest(d, manifest_dir)
         self.opkg_conf = self.d.getVar("IPKGCONF_TARGET", True)
@@ -749,7 +786,8 @@ class OpkgRootfs(Rootfs):
         self.pm.mark_packages("unpacked", registered_pkgs.split())
 
     def _log_check(self):
-        pass
+        self._log_check_warn()
+        self._log_check_error()
 
     def _cleanup(self):
         pass

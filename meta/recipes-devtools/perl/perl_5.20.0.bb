@@ -1,7 +1,7 @@
 SUMMARY = "Perl scripting language"
 HOMEPAGE = "http://www.perl.org/"
 SECTION = "devel"
-LICENSE = "Artistic-1.0 | GPL-1.0"
+LICENSE = "Artistic-1.0 | GPL-1.0+"
 LIC_FILES_CHKSUM = "file://Copying;md5=5b122a36d0f6dc55279a0ebc69f3c60b \
 		    file://Artistic;md5=2e6fd2475335af892494fe1f7327baf3"
 # We need gnugrep (for -I)
@@ -63,6 +63,7 @@ SRC_URI += " \
 	file://fix_bad_rpath.patch \
 	file://perl-archlib-exp.patch \
 	file://dynaloaderhack.patch \
+	file://fix-FF_MORE-crash.patch \
 	\
         \
         file://config.sh \
@@ -94,6 +95,11 @@ HOSTPERL = "${STAGING_BINDIR_NATIVE}/perl-native/perl${PV}"
 # Where to find .so files - use the -native versions not those from the target build
 export PERLHOSTLIB = "${STAGING_LIBDIR_NATIVE}/perl-native/perl/${PV}/"
 
+# Where to find perl @INC/#include files
+# - use the -native versions not those from the target build
+export PERL_LIB = "${STAGING_LIBDIR_NATIVE}/perl-native/perl/${PV}/"
+export PERL_ARCHLIB = "${STAGING_LIBDIR_NATIVE}/perl-native/perl/${PV}/"
+
 # LDFLAGS for shared libraries
 export LDDLFLAGS = "${LDFLAGS} -shared"
 
@@ -116,6 +122,16 @@ do_nolargefile() {
 do_configure() {
         # Make hostperl in build directory be the native perl
         ln -sf ${HOSTPERL} hostperl
+
+	if [ -n "${CONFIGURESTAMPFILE}" -a -e "${CONFIGURESTAMPFILE}" ]; then
+		if [ "`cat ${CONFIGURESTAMPFILE}`" != "${BB_TASKHASH}" -a -e Makefile ]; then
+			${MAKE} clean
+		fi
+		find ${S} -name *.so -delete
+	fi
+	if [ -n "${CONFIGURESTAMPFILE}" ]; then
+		echo ${BB_TASKHASH} > ${CONFIGURESTAMPFILE}
+	fi
 
         # Do our work in the cross subdir
         cd Cross
@@ -147,6 +163,29 @@ do_configure() {
                        -e "s,\(d_stdiobase=\)'define',\1'undef',g" \
                        -e "s,\(d_stdstdio=\)'define',\1'undef',g" \
                        -e "s,-fstack-protector,-fno-stack-protector,g" \
+                    config.sh-${TARGET_ARCH}-${TARGET_OS}
+        fi
+        # Fixups for musl
+        if [ "${TARGET_OS}" = "linux-musl" -o "${TARGET_OS}" = "linux-musleabi" ]; then
+                sed -i -e "s,\(d_libm_lib_version=\)'define',\1'undef',g" \
+                       -e "s,\(d_stdio_ptr_lval=\)'define',\1'undef',g" \
+                       -e "s,\(d_stdio_ptr_lval_sets_cnt=\)'define',\1'undef',g" \
+                       -e "s,\(d_stdiobase=\)'define',\1'undef',g" \
+                       -e "s,\(d_stdstdio=\)'define',\1'undef',g" \
+                       -e "s,\(d_getnetbyname_r=\)'define',\1'undef',g" \
+                       -e "s,\(getprotobyname_r=\)'define',\1'undef',g" \
+                       -e "s,\(getpwent_r=\)'define',\1'undef',g" \
+                       -e "s,\(getservent_r=\)'define',\1'undef',g" \
+                       -e "s,\(gethostent_r=\)'define',\1'undef',g" \
+                       -e "s,\(getnetent_r=\)'define',\1'undef',g" \
+                       -e "s,\(getnetbyaddr_r=\)'define',\1'undef',g" \
+                       -e "s,\(getprotoent_r=\)'define',\1'undef',g" \
+                       -e "s,\(getprotobynumber_r=\)'define',\1'undef',g" \
+                       -e "s,\(getgrent_r=\)'define',\1'undef',g" \
+                       -e "s,\(i_fcntl=\)'undef',\1'define',g" \
+                       -e "s,\(h_fcntl=\)'false',\1'true',g" \
+                       -e "s,-fstack-protector,-fno-stack-protector,g" \
+                       -e "s,-lnsl,,g" \
                     config.sh-${TARGET_ARCH}-${TARGET_OS}
         fi
 
@@ -221,7 +260,7 @@ do_install() {
 
 do_install_append_class-nativesdk () {
         create_wrapper ${D}${bindir}/perl \
-            PERL5LIB='$PERL5LIB:$OECORE_NATIVE_SYSROOT/${libdir_nativesdk}/perl:$OECORE_NATIVE_SYSROOT/${libdir_nativesdk}/perl/${PV}'
+            PERL5LIB='$PERL5LIB:$OECORE_NATIVE_SYSROOT/${libdir_nativesdk}/perl:$OECORE_NATIVE_SYSROOT/${libdir_nativesdk}/perl/${PV}:$OECORE_NATIVE_SYSROOT/${libdir_nativesdk}/perl/site_perl/${PV}:$OECORE_NATIVE_SYSROOT/${libdir_nativesdk}/perl/vendor_perl/${PV}'
 }
 
 PACKAGE_PREPROCESS_FUNCS += "perl_package_preprocess"

@@ -45,6 +45,13 @@ _checksum_cache = bb.checksum.FileChecksumCache()
 
 logger = logging.getLogger("BitBake.Fetcher")
 
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+    logger.info("Importing cPickle failed. "
+                "Falling back to a very slow implementation.")
+
 class BBFetchException(Exception):
     """Class all fetch exceptions inherit from"""
     def __init__(self, message):
@@ -525,7 +532,7 @@ def fetcher_compare_revisions(d):
 def mirror_from_string(data):
     return [ i.split() for i in (data or "").replace('\\n','\n').split('\n') if i ]
 
-def verify_checksum(ud, d):
+def verify_checksum(ud, d, precomputed={}):
     """
     verify the MD5 and SHA256 checksum for downloaded src
 
@@ -533,13 +540,28 @@ def verify_checksum(ud, d):
     the downloaded file, or if BB_STRICT_CHECKSUM is set and there are no
     checksums specified.
 
+    Returns a dict of checksums that can be stored in a done stamp file and
+    passed in as precomputed parameter in a later call to avoid re-computing
+    the checksums from the file. This allows verifying the checksums of the
+    file against those in the recipe each time, rather than only after
+    downloading. See https://bugzilla.yoctoproject.org/show_bug.cgi?id=5571.
     """
 
-    if not ud.method.supports_checksum(ud):
-        return
+    _MD5_KEY = "md5"
+    _SHA256_KEY = "sha256"
 
-    md5data = bb.utils.md5_file(ud.localpath)
-    sha256data = bb.utils.sha256_file(ud.localpath)
+    if ud.ignore_checksums or not ud.method.supports_checksum(ud):
+        return {}
+
+    if _MD5_KEY in precomputed:
+        md5data = precomputed[_MD5_KEY]
+    else:
+        md5data = bb.utils.md5_file(ud.localpath)
+
+    if _SHA256_KEY in precomputed:
+        sha256data = precomputed[_SHA256_KEY]
+    else:
+        sha256data = bb.utils.sha256_file(ud.localpath)
 
     if ud.method.recommends_checksum(ud):
         # If strict checking enabled and neither sum defined, raise error
@@ -589,6 +611,72 @@ def verify_checksum(ud, d):
     if len(msg):
         raise ChecksumError('Checksum mismatch!%s' % msg, ud.url, md5data)
 
+    return {
+        _MD5_KEY: md5data,
+        _SHA256_KEY: sha256data
+    }
+
+
+def verify_donestamp(ud, d):
+    """
+    Check whether the done stamp file has the right checksums (if the fetch
+    method supports them). If it doesn't, delete the done stamp and force
+    a re-download.
+
+    Returns True, if the donestamp exists and is valid, False otherwise. When
+    returning False, any existing done stamps are removed.
+    """
+    if not os.path.exists(ud.donestamp):
+        return False
+
+    if not ud.method.supports_checksum(ud):
+        # done stamp exists, checksums not supported; assume the local file is
+        # current
+        return True
+
+    if not os.path.exists(ud.localpath):
+        # done stamp exists, but the downloaded file does not; the done stamp
+        # must be incorrect, re-trigger the download
+        bb.utils.remove(ud.donestamp)
+        return False
+
+    precomputed_checksums = {}
+    # Only re-use the precomputed checksums if the donestamp is newer than the
+    # file. Do not rely on the mtime of directories, though. If ud.localpath is
+    # a directory, there will probably not be any checksums anyway.
+    if (os.path.isdir(ud.localpath) or
+            os.path.getmtime(ud.localpath) < os.path.getmtime(ud.donestamp)):
+        try:
+            with open(ud.donestamp, "rb") as cachefile:
+                pickled = pickle.Unpickler(cachefile)
+                precomputed_checksums.update(pickled.load())
+        except Exception as e:
+            # Avoid the warnings on the upgrade path from emtpy done stamp
+            # files to those containing the checksums.
+            if not isinstance(e, EOFError):
+                # Ignore errors, they aren't fatal
+                logger.warn("Couldn't load checksums from donestamp %s: %s "
+                            "(msg: %s)" % (ud.donestamp, type(e).__name__,
+                                           str(e)))
+
+    try:
+        checksums = verify_checksum(ud, d, precomputed_checksums)
+        # If the cache file did not have the checksums, compute and store them
+        # as an upgrade path from the previous done stamp file format.
+        if checksums != precomputed_checksums:
+            with open(ud.donestamp, "wb") as cachefile:
+                p = pickle.Pickler(cachefile, pickle.HIGHEST_PROTOCOL)
+                p.dump(checksums)
+        return True
+    except ChecksumError as e:
+        # Checksums failed to verify, trigger re-download and remove the
+        # incorrect stamp file.
+        logger.warn("Checksum mismatch for local file %s\n"
+                    "Cleaning and trying again." % ud.localpath)
+        rename_bad_checksum(ud, e.checksum)
+        bb.utils.remove(ud.donestamp)
+    return False
+
 
 def update_stamp(ud, d):
     """
@@ -603,8 +691,11 @@ def update_stamp(ud, d):
             # Errors aren't fatal here
             pass
     else:
-        verify_checksum(ud, d)
-        open(ud.donestamp, 'w').close()
+        checksums = verify_checksum(ud, d)
+        # Store the checksums for later re-verification against the recipe
+        with open(ud.donestamp, "wb") as cachefile:
+            p = pickle.Pickler(cachefile, pickle.HIGHEST_PROTOCOL)
+            p.dump(checksums)
 
 def subprocess_setup():
     # Python installs a SIGPIPE handler by default. This is usually not what
@@ -620,11 +711,13 @@ def get_autorev(d):
 
 def get_srcrev(d):
     """
-    Return the version string for the current package
-    (usually to be used as PV)
+    Return the revsion string, usually for use in the version string (PV) of the current package
     Most packages usually only have one SCM so we just pass on the call.
     In the multi SCM case, we build a value based on SRCREV_FORMAT which must
     have been set.
+
+    The idea here is that we put the string "AUTOINC+" into return value if the revisions are not 
+    incremental, other code is then responsible for turning that into an increasing value (if needed)
     """
 
     scms = []
@@ -803,7 +896,7 @@ def try_mirror_url(origud, ud, ld, check = False):
 
         os.chdir(ld.getVar("DL_DIR", True))
 
-        if not os.path.exists(ud.donestamp) or ud.method.need_update(ud, ld):
+        if not verify_donestamp(ud, ld) or ud.method.need_update(ud, ld):
             ud.method.download(ud, ld)
             if hasattr(ud.method,"build_mirror_data"):
                 ud.method.build_mirror_data(ud, ld)
@@ -819,12 +912,13 @@ def try_mirror_url(origud, ud, ld, check = False):
         dldir = ld.getVar("DL_DIR", True)
         if origud.mirrortarball and os.path.basename(ud.localpath) == os.path.basename(origud.mirrortarball) \
                 and os.path.basename(ud.localpath) != os.path.basename(origud.localpath):
+            # Create donestamp in old format to avoid triggering a re-download
             bb.utils.mkdirhier(os.path.dirname(ud.donestamp))
             open(ud.donestamp, 'w').close()
             dest = os.path.join(dldir, os.path.basename(ud.localpath))
             if not os.path.exists(dest):
                 os.symlink(ud.localpath, dest)
-            if not os.path.exists(origud.donestamp) or origud.method.need_update(origud, ld):
+            if not verify_donestamp(origud, ld) or origud.method.need_update(origud, ld):
                 origud.method.download(origud, ld)
                 if hasattr(origud.method,"build_mirror_data"):
                     origud.method.build_mirror_data(origud, ld)
@@ -936,21 +1030,20 @@ def get_checksum_file_list(d):
         ud = fetch.ud[u]
 
         if ud and isinstance(ud.method, local.Local):
-            ud.setup_localpath(d)
-            f = ud.localpath
-            pth = ud.decodedurl
-            if '*' in pth:
-                f = os.path.join(os.path.abspath(f), pth)
-            if f.startswith(dl_dir):
-                # The local fetcher's behaviour is to return a path under DL_DIR if it couldn't find the file anywhere else
-                if os.path.exists(f):
-                    bb.warn("Getting checksum for %s SRC_URI entry %s: file not found except in DL_DIR" % (d.getVar('PN', True), os.path.basename(f)))
-                else:
-                    bb.warn("Unable to get checksum for %s SRC_URI entry %s: file could not be found" % (d.getVar('PN', True), os.path.basename(f)))
-            filelist.append(f)
+            paths = ud.method.localpaths(ud, d)
+            for f in paths:
+                pth = ud.decodedurl
+                if '*' in pth:
+                    f = os.path.join(os.path.abspath(f), pth)
+                if f.startswith(dl_dir):
+                    # The local fetcher's behaviour is to return a path under DL_DIR if it couldn't find the file anywhere else
+                    if os.path.exists(f):
+                        bb.warn("Getting checksum for %s SRC_URI entry %s: file not found except in DL_DIR" % (d.getVar('PN', True), os.path.basename(f)))
+                    else:
+                        bb.warn("Unable to get checksum for %s SRC_URI entry %s: file could not be found" % (d.getVar('PN', True), os.path.basename(f)))
+                filelist.append(f + ":" + str(os.path.exists(f)))
 
     return " ".join(filelist)
-
 
 def get_file_checksums(filelist, pn):
     """Get a list of the checksums for a list of local files
@@ -981,6 +1074,10 @@ def get_file_checksums(filelist, pn):
 
     checksums = []
     for pth in filelist.split():
+        exist = pth.split(":")[1]
+        if exist == "False":
+            continue
+        pth = pth.split(":")[0]
         if '*' in pth:
             # Handle globs
             for f in glob.glob(pth):
@@ -988,14 +1085,12 @@ def get_file_checksums(filelist, pn):
                     checksums.extend(checksum_dir(f))
                 else:
                     checksum = checksum_file(f)
-                    if checksum:
-                        checksums.append((f, checksum))
+                    checksums.append((f, checksum))
         elif os.path.isdir(pth):
             checksums.extend(checksum_dir(pth))
         else:
             checksum = checksum_file(pth)
-            if checksum:
-                checksums.append((pth, checksum))
+            checksums.append((pth, checksum))
 
     checksums.sort(key=operator.itemgetter(1))
     return checksums
@@ -1041,6 +1136,7 @@ class FetchData(object):
             self.sha256_expected = None
         else:
             self.sha256_expected = d.getVarFlag("SRC_URI", self.sha256_name)
+        self.ignore_checksums = False
 
         self.names = self.parm.get("name",'default').split(',')
 
@@ -1197,9 +1293,9 @@ class FetchMethod(object):
             bb.fatal("Invalid value for 'unpack' parameter for %s: %s" %
                      (file, urldata.parm.get('unpack')))
 
-        dots = file.split(".")
-        if dots[-1] in ['gz', 'bz2', 'Z', 'xz']:
-            efile = os.path.join(rootdir, os.path.basename('.'.join(dots[0:-1])))
+        base, ext = os.path.splitext(file)
+        if ext in ['.gz', '.bz2', '.Z', '.xz', '.lz']:
+            efile = os.path.join(rootdir, os.path.basename(base))
         else:
             efile = file
         cmd = None
@@ -1219,6 +1315,10 @@ class FetchMethod(object):
                 cmd = 'xz -dc %s | tar x --no-same-owner -f -' % file
             elif file.endswith('.xz'):
                 cmd = 'xz -dc %s > %s' % (file, efile)
+            elif file.endswith('.tar.lz'):
+                cmd = 'lzip -dc %s | tar x --no-same-owner -f -' % file
+            elif file.endswith('.lz'):
+                cmd = 'lzip -dc %s > %s' % (file, efile)
             elif file.endswith('.zip') or file.endswith('.jar'):
                 try:
                     dos = bb.utils.to_boolean(urldata.parm.get('dos'), False)
@@ -1414,7 +1514,7 @@ class Fetch(object):
             try:
                 self.d.setVar("BB_NO_NETWORK", network)
  
-                if os.path.exists(ud.donestamp) and not m.need_update(ud, self.d):
+                if verify_donestamp(ud, self.d) and not m.need_update(ud, self.d):
                     localpath = ud.localpath
                 elif m.try_premirror(ud, self.d):
                     logger.debug(1, "Trying PREMIRRORS")
@@ -1427,7 +1527,7 @@ class Fetch(object):
                 os.chdir(self.d.getVar("DL_DIR", True))
 
                 firsterr = None
-                if not localpath and ((not os.path.exists(ud.donestamp)) or m.need_update(ud, self.d)):
+                if not localpath and ((not verify_donestamp(ud, self.d)) or m.need_update(ud, self.d)):
                     try:
                         logger.debug(1, "Trying Upstream")
                         m.download(ud, self.d)

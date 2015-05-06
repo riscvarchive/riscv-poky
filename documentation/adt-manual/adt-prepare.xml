@@ -17,24 +17,34 @@
     <title>Installing the ADT and Toolchains</title>
 
     <para>
-        The following list describes installation methods that set up varying degrees of tool
-        availability on your system.
+        The following list describes installation methods that set up varying
+        degrees of tool availability on your system.
         Regardless of the installation method you choose,
         you must <filename>source</filename> the cross-toolchain
-        environment setup script before you use a toolchain.
-        See the "<link linkend='setting-up-the-cross-development-environment'>Setting Up the
-        Cross-Development Environment</link>" section for more information.
+        environment setup script, which establishes several key
+        environment variables, before you use a toolchain.
+        See the
+        "<link linkend='setting-up-the-cross-development-environment'>Setting Up the Cross-Development Environment</link>"
+        section for more information.
     </para>
 
     <note>
-        <para>Avoid mixing installation methods when installing toolchains for different architectures.
-        For example, avoid using the ADT Installer to install some toolchains and then hand-installing
-        cross-development toolchains by running the toolchain installer for different architectures.
-        Mixing installation methods can result in situations where the ADT Installer becomes
-        unreliable and might not install the toolchain.</para>
-        <para>If you must mix installation methods, you might avoid problems by deleting
-        <filename>/var/lib/opkg</filename>, thus purging the <filename>opkg</filename> package
-        metadata</para>
+        <para>
+            Avoid mixing installation methods when installing toolchains for
+            different architectures.
+            For example, avoid using the ADT Installer to install some
+            toolchains and then hand-installing cross-development toolchains
+            by running the toolchain installer for different architectures.
+            Mixing installation methods can result in situations where the
+            ADT Installer becomes unreliable and might not install the
+            toolchain.
+        </para>
+
+        <para>
+            If you must mix installation methods, you might avoid problems by
+            deleting <filename>/var/lib/opkg</filename>, thus purging the
+            <filename>opkg</filename> package metadata.
+        </para>
     </note>
 
     <para>
@@ -115,6 +125,10 @@
                             sure to make sure your
                             <filename>local.conf</filename> file is properly
                             configured.
+                            See the
+                            "<ulink url='&YOCTO_DOCS_REF_URL;#user-configuration'>User Configuration</ulink>"
+                            section in the Yocto Project Reference Manual for
+                            general configuration information.
                         </note>
                         <literallayout class='monospaced'>
      $ cd ~
@@ -276,7 +290,7 @@
                             target, go into the <filename>x86_64</filename>
                             folder and download the following installer:
                             <literallayout class='monospaced'>
-     poky-eglibc-x86_64-core-image-sato-i586-toolchain-&DISTRO;.sh
+     poky-glibc-x86_64-core-image-sato-i586-toolchain-&DISTRO;.sh
                             </literallayout></para></listitem>
                         <listitem><para>Build your own toolchain installer.
                             For cases where you cannot use an installer
@@ -296,7 +310,7 @@
                     The example assumes the toolchain installer is located
                     in <filename>~/Downloads/</filename>.
                     <literallayout class='monospaced'>
-     $ ~/Downloads/poky-eglibc-x86_64-core-image-sato-i586-toolchain-&DISTRO;.sh
+     $ ~/Downloads/poky-glibc-x86_64-core-image-sato-i586-toolchain-&DISTRO;.sh
                     </literallayout>
                     The first thing the installer prompts you for is the
                     directory into which you want to install the toolchain.
@@ -405,6 +419,32 @@
         would be the following:
         <literallayout class='monospaced'>
      &YOCTO_ADTPATH_DIR;/environment-setup-x86_64-poky-linux
+        </literallayout>
+        When you run the setup script, many environment variables are
+        defined:
+        <literallayout class='monospaced'>
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-SDKTARGETSYSROOT'><filename>SDKTARGETSYSROOT</filename></ulink> - The path to the sysroot used for cross-compilation
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-PKG_CONFIG_PATH'><filename>PKG_CONFIG_PATH</filename></ulink> - The path to the target pkg-config files
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-CONFIG_SITE'><filename>CONFIG_SITE</filename></ulink> - A GNU autoconf site file preconfigured for the target
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-CC'><filename>CC</filename></ulink> - The minimal command and arguments to run the C compiler
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-CXX'><filename>CXX</filename></ulink> - The minimal command and arguments to run the C++ compiler
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-CPP'><filename>CPP</filename></ulink> - The minimal command and arguments to run the C preprocessor
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-AS'><filename>AS</filename></ulink> - The minimal command and arguments to run the assembler
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-LD'><filename>LD</filename></ulink> - The minimal command and arguments to run the linker
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-GDB'><filename>GDB</filename></ulink> - The minimal command and arguments to run the GNU Debugger
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-STRIP'><filename>STRIP</filename></ulink> - The minimal command and arguments to run 'strip', which strips symbols
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-RANLIB'><filename>RANLIB</filename></ulink> - The minimal command and arguments to run 'ranlib'
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-OBJCOPY'><filename>OBJCOPY</filename></ulink> - The minimal command and arguments to run 'objcopy'
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-OBJDUMP'><filename>OBJDUMP</filename></ulink> - The minimal command and arguments to run 'objdump'
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-AR'><filename>AR</filename></ulink> - The minimal command and arguments to run 'ar'
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-NM'><filename>NM</filename></ulink> - The minimal command and arguments to run 'nm'
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-TARGET_PREFIX'><filename>TARGET_PREFIX</filename></ulink> - The toolchain binary prefix for the target tools
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-CROSS_COMPILE'><filename>CROSS_COMPILE</filename></ulink> - The toolchain binary prefix for the target tools
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-CONFIGURE_FLAGS'><filename>CONFIGURE_FLAGS</filename></ulink> - The minimal arguments for GNU configure
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-CFLAGS'><filename>CFLAGS</filename></ulink> - Suggested C flags
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-CXXFLAGS'><filename>CXXFLAGS</filename></ulink> - Suggested C++ flags
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-LDFLAGS'><filename>LDFLAGS</filename></ulink> - Suggested linker flags when you use CC to link
+     <ulink url='&YOCTO_DOCS_REF_URL;#var-CPPFLAGS'><filename>CPPFLAGS</filename></ulink> - Suggested preprocessor flags
         </literallayout>
     </para>
 </section>
@@ -539,7 +579,8 @@
 
         <para>
             To extract the root filesystem, first <filename>source</filename>
-            the cross-development environment setup script.
+            the cross-development environment setup script to establish
+            necessary environment variables.
             If you built the toolchain in the Build Directory, you will find
             the toolchain environment script in the
             <filename>tmp</filename> directory.
@@ -616,7 +657,10 @@
                 hardware can be passed to <filename>gcc</filename> as a set of
                 compiler options.
                 Those options are set up by the environment script and
-                contained in variables like CC and LD.
+                contained in variables such as
+                <ulink url='&YOCTO_DOCS_REF_URL;#var-CC'><filename>CC</filename></ulink>
+                and
+                <ulink url='&YOCTO_DOCS_REF_URL;#var-LD'><filename>LD</filename></ulink>.
                 This reduces the space needed for the tools.
                 Understand, however, that a sysroot is still needed for every
                 target since those binaries are target-specific.
@@ -656,15 +700,54 @@
             <ulink url='&YOCTO_DOCS_REF_URL;#var-IMAGE_INSTALL'><filename>IMAGE_INSTALL</filename></ulink>
             variable inside your <filename>local.conf</filename> file to
             install the appropriate library packages.
-            Following is an example using <filename>eglibc</filename> static
+            Following is an example using <filename>glibc</filename> static
             development libraries:
             <literallayout class='monospaced'>
-     IMAGE_INSTALL_append = " eglibc-staticdev"
+     IMAGE_INSTALL_append = " glibc-staticdev"
             </literallayout>
         </note>
     </para>
 </section>
 
+<section id='optionally-using-an-external-toolchain'>
+    <title>Optionally Using an External Toolchain</title>
+
+    <para>
+        You might want to use an external toolchain as part of your
+        development.
+        If this is the case, the fundamental steps you need to accomplish
+        are as follows:
+        <itemizedlist>
+            <listitem><para>
+                Understand where the installed toolchain resides.
+                For cases where you need to build the external toolchain, you
+                would need to take separate steps to build and install the
+                toolchain.
+                </para></listitem>
+            <listitem><para>
+                Make sure you add the layer that contains the toolchain to
+                your <filename>bblayers.conf</filename> file through the
+                <ulink url='&YOCTO_DOCS_REF_URL;#var-BBLAYERS'><filename>BBLAYERS</filename></ulink>
+                variable.
+                </para></listitem>
+            <listitem><para>
+                Set the
+                <ulink url='&YOCTO_DOCS_REF_URL;#var-EXTERNAL_TOOLCHAIN'><filename>EXTERNAL_TOOLCHAIN</filename></ulink>
+                variable in your <filename>local.conf</filename> file
+                to the location in which you installed the toolchain.
+                </para></listitem>
+        </itemizedlist>
+        A good example of an external toolchain used with the Yocto Project
+        is <trademark class='registered'>Mentor Graphics</trademark>
+        Sourcery G++ Toolchain.
+        You can see information on how to use that particular layer in the
+        <filename>README</filename> file at
+        <ulink url='http://github.com/MentorEmbedded/meta-sourcery/'></ulink>.
+        You can find further information by reading about the
+        <ulink url='&YOCTO_DOCS_REF_URL;#var-TCMODE'><filename>TCMODE</filename></ulink>
+        variable in the Yocto Project Reference Manual's variable glossary.
+    </para>
+</section>
 </chapter>
 <!--
 vim: expandtab tw=80 ts=4

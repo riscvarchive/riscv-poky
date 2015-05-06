@@ -20,17 +20,39 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from django.db import models
-from django.db.models import F
-from django.utils.encoding import python_2_unicode_compatible
+from django.db.models import F, Q
 from django.utils import timezone
+
+
+from django.core import validators
+from django.conf import settings
+
+class GitURLValidator(validators.URLValidator):
+    import re
+    regex = re.compile(
+        r'^(?:ssh|git|http|ftp)s?://'  # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain...
+        r'localhost|'  # localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|'  # ...or ipv4
+        r'\[?[A-F0-9]*:[A-F0-9:]+\]?)'  # ...or ipv6
+        r'(?::\d+)?'  # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+
+def GitURLField(**kwargs):
+    r = models.URLField(**kwargs)
+    for i in xrange(len(r.validators)):
+        if isinstance(r.validators[i], validators.URLValidator):
+            r.validators[i] = GitURLValidator()
+    return r
+
 
 class ToasterSetting(models.Model):
     name = models.CharField(max_length=63)
     helptext = models.TextField()
     value = models.CharField(max_length=255)
 
-class ToasterSettingDefaultLayer(models.Model):
-    layer_version = models.ForeignKey('Layer_Version')
+    def __unicode__(self):
+        return "Setting %s = " % (self.name, self.value)
 
 class ProjectManager(models.Manager):
     def create_project(self, name, release):
@@ -43,12 +65,16 @@ class ProjectManager(models.Manager):
                 name = name,
                 value = defaultconf.value)
 
-        for layer in map(lambda x: x.layer, ReleaseDefaultLayer.objects.filter(release = release)):
-            for branches in Branch.objects.filter(name = release.branch):
-                for lv in Layer_Version.objects.filter(layer = layer, up_branch = branches ):
-                    ProjectLayer.objects.create( project = prj,
+
+        for rdl in release.releasedefaultlayer_set.all():
+            try:
+                lv =Layer_Version.objects.filter(layer__name = rdl.layer_name, up_branch__name = release.branch_name)[0].get_equivalents_wpriority(prj)[0]
+                ProjectLayer.objects.create( project = prj,
                         layercommit = lv,
                         optional = False )
+            except IndexError:
+                # we may have no valid layer version objects, and that's ok
+                pass
 
         return prj
 
@@ -59,6 +85,7 @@ class ProjectManager(models.Manager):
         raise Exception("Invalid call to Project.objects.get_or_create. Use Project.objects.create_project() to create a project")
 
 class Project(models.Model):
+    search_allowed_fields = ['name', 'short_description', 'release__name', 'release__branch_name']
     name = models.CharField(max_length=100)
     short_description = models.CharField(max_length=50, blank=True)
     bitbake_version = models.ForeignKey('BitbakeVersion')
@@ -72,25 +99,115 @@ class Project(models.Model):
     user_id     = models.IntegerField(null = True)
     objects     = ProjectManager()
 
+    def __unicode__(self):
+        return "%s (Release %s, BBV %s)" % (self.name, self.release, self.bitbake_version)
+
+    def get_current_machine_name(self):
+        try:
+            return self.projectvariable_set.get(name="MACHINE").value
+        except (ProjectVariable.DoesNotExist,IndexError):
+            return( "None" );
+
+    def get_number_of_builds(self):
+        try:
+            return len(Build.objects.filter( project = self.id ))
+        except (Build.DoesNotExist,IndexError):
+            return( 0 )
+
+    def get_last_build_id(self):
+        try:
+            return Build.objects.filter( project = self.id ).order_by('-completed_on')[0].id
+        except (Build.DoesNotExist,IndexError):
+            return( -1 )
+
+    def get_last_outcome(self):
+        build_id = self.get_last_build_id
+        if (-1 == build_id):
+            return( "" )
+        try:
+            return Build.objects.filter( id = self.get_last_build_id )[ 0 ].outcome
+        except (Build.DoesNotExist,IndexError):
+            return( "not_found" )
+
+    def get_last_target(self):
+        build_id = self.get_last_build_id
+        if (-1 == build_id):
+            return( "" )
+        try:
+            return Target.objects.filter(build = build_id)[0].target
+        except (Target.DoesNotExist,IndexError):
+            return( "not_found" )
+
+    def get_last_errors(self):
+        build_id = self.get_last_build_id
+        if (-1 == build_id):
+            return( 0 )
+        try:
+            return Build.objects.filter(id = build_id)[ 0 ].errors_no
+        except (Build.DoesNotExist,IndexError):
+            return( "not_found" )
+
+    def get_last_warnings(self):
+        build_id = self.get_last_build_id
+        if (-1 == build_id):
+            return( 0 )
+        try:
+            return Build.objects.filter(id = build_id)[ 0 ].warnings_no
+        except (Build.DoesNotExist,IndexError):
+            return( "not_found" )
+
+    def get_last_imgfiles(self):
+        build_id = self.get_last_build_id
+        if (-1 == build_id):
+            return( "" )
+        try:
+            return Variable.objects.filter(build = build_id, variable_name = "IMAGE_FSTYPES")[ 0 ].variable_value
+        except (Variable.DoesNotExist,IndexError):
+            return( "not_found" )
+
+    # returns a queryset of compatible layers for a project
+    def compatible_layerversions(self, release = None, layer_name = None):
+        if release == None:
+            release = self.release
+        # layers on the same branch or layers specifically set for this project
+        queryset = Layer_Version.objects.filter((Q(up_branch__name = release.branch_name) & Q(project = None)) | Q(project = self) | Q(build__project = self))
+        if layer_name is not None:
+            # we select only a layer name
+            queryset = queryset.filter(layer__name = layer_name)
+
+        # order by layer version priority
+        queryset = queryset.filter(layer_source__releaselayersourcepriority__release = release).order_by("-layer_source__releaselayersourcepriority__priority")
+
+        return queryset
+
+    # returns a set of layer-equivalent set of layers already in project
+    def projectlayer_equivalent_set(self):
+        return [j for i in [x.layercommit.get_equivalents_wpriority(self) for x in self.projectlayer_set.all().select_related("up_branch")] for j in i]
 
     def schedule_build(self):
         from bldcontrol.models import BuildRequest, BRTarget, BRLayer, BRVariable, BRBitbake
         br = BuildRequest.objects.create(project = self)
+        try:
 
-        BRBitbake.objects.create(req = br,
-            giturl = self.bitbake_version.giturl,
-            commit = self.bitbake_version.branch,
-            dirpath = self.bitbake_version.dirpath)
+            BRBitbake.objects.create(req = br,
+                giturl = self.bitbake_version.giturl,
+                commit = self.bitbake_version.branch,
+                dirpath = self.bitbake_version.dirpath)
 
-        for l in self.projectlayer_set.all():
-            BRLayer.objects.create(req = br, name = l.layercommit.layer.name, giturl = l.layercommit.layer.vcs_url, commit = l.layercommit.commit, dirpath = l.layercommit.dirpath)
-        for t in self.projecttarget_set.all():
-            BRTarget.objects.create(req = br, target = t.target, task = t.task)
-        for v in self.projectvariable_set.all():
-            BRVariable.objects.create(req = br, name = v.name, value = v.value)
+            for l in self.projectlayer_set.all().order_by("pk"):
+                commit = l.layercommit.get_vcs_reference()
+                print("ii Building layer ", l.layercommit.layer.name, " at vcs point ", commit)
+                BRLayer.objects.create(req = br, name = l.layercommit.layer.name, giturl = l.layercommit.layer.vcs_url, commit = commit, dirpath = l.layercommit.dirpath)
+            for t in self.projecttarget_set.all():
+                BRTarget.objects.create(req = br, target = t.target, task = t.task)
+            for v in self.projectvariable_set.all():
+                BRVariable.objects.create(req = br, name = v.name, value = v.value)
 
-        br.state = BuildRequest.REQ_QUEUED
-        br.save()
+            br.state = BuildRequest.REQ_QUEUED
+            br.save()
+        except Exception as e:
+            br.delete()
+            raise e
         return br
 
 class Build(models.Model):
@@ -131,10 +248,10 @@ class Build(models.Model):
 
     def eta(self):
         from django.utils import timezone
-        eta = 0
+        eta = timezone.now()
         completeper = self.completeper()
         if self.completeper() > 0:
-            eta = timezone.now() + ((timezone.now() - self.started_on)*(100-completeper)/completeper)
+            eta += ((eta - self.started_on)*(100-completeper))/completeper
         return eta
 
 
@@ -142,12 +259,38 @@ class Build(models.Model):
         tgts = Target.objects.filter(build_id = self.id).order_by( 'target' );
         return( tgts );
 
+    @property
+    def toaster_exceptions(self):
+        return self.logmessage_set.filter(level=LogMessage.EXCEPTION)
+
+
+# an Artifact is anything that results from a Build, and may be of interest to the user, and is not stored elsewhere
+class BuildArtifact(models.Model):
+    build = models.ForeignKey(Build)
+    file_name = models.FilePathField()
+    file_size = models.IntegerField()
+
+
+    def get_local_file_name(self):
+        try:
+            deploydir = Variable.objects.get(build = self.build, variable_name="DEPLOY_DIR").variable_value
+            return  self.file_name[len(deploydir)+1:]
+        except:
+            raise
+
+        return self.file_name
+
+
+    def is_available(self):
+        if settings.MANAGED and build.project is not None:
+            return build.buildrequest.environment.has_artifact(file_path)
+        return False
+
 class ProjectTarget(models.Model):
     project = models.ForeignKey(Project)
     target = models.CharField(max_length=100)
     task = models.CharField(max_length=100, null=True)
 
-@python_2_unicode_compatible
 class Target(models.Model):
     search_allowed_fields = ['target', 'file_name']
     build = models.ForeignKey(Build)
@@ -159,7 +302,7 @@ class Target(models.Model):
     def package_count(self):
         return Target_Installed_Package.objects.filter(target_id__exact=self.id).count()
 
-    def __str__(self):
+    def __unicode__(self):
         return self.target
 
 class Target_Image_File(models.Model):
@@ -194,10 +337,6 @@ class Target_File(models.Model):
     directory = models.ForeignKey('Target_File', related_name="directory_set", null=True)
     sym_target = models.ForeignKey('Target_File', related_name="symlink_set", null=True)
 
-
-class TaskManager(models.Manager):
-    def related_setscene(self, task_object):
-        return Task.objects.filter(task_executed=True, build = task_object.build, recipe = task_object.recipe, task_name=task_object.task_name+"_setscene")
 
 class Task(models.Model):
 
@@ -253,10 +392,8 @@ class Task(models.Model):
 
     search_allowed_fields = [ "recipe__name", "recipe__version", "task_name", "logfile" ]
 
-    objects = TaskManager()
-
     def get_related_setscene(self):
-        return Task.objects.related_setscene(self)
+        return Task.objects.filter(task_executed=True, build = self.build, recipe = self.recipe, task_name=self.task_name+"_setscene")
 
     def get_outcome_text(self):
         return Task.TASK_OUTCOME[self.outcome + 1][1]
@@ -276,11 +413,14 @@ class Task(models.Model):
         return "Not Executed"
 
     def get_description(self):
-        helptext = HelpText.objects.filter(key=self.task_name, area=HelpText.VARIABLE, build=self.build)
+        if '_helptext' in vars(self) and self._helptext != None:
+            return self._helptext
         try:
-            return helptext[0].text
-        except IndexError:
-            return ''
+            self._helptext = HelpText.objects.get(key=self.task_name, area=HelpText.VARIABLE, build=self.build).text
+        except HelpText.DoesNotExist:
+            self._helptext = None
+
+        return self._helptext
 
     build = models.ForeignKey(Build, related_name='task_build')
     order = models.IntegerField(null=True)
@@ -288,7 +428,7 @@ class Task(models.Model):
     outcome = models.IntegerField(choices=TASK_OUTCOME, default=OUTCOME_NA)
     sstate_checksum = models.CharField(max_length=100, blank=True)
     path_to_sstate_obj = models.FilePathField(max_length=500, blank=True)
-    recipe = models.ForeignKey('Recipe', related_name='build_recipe')
+    recipe = models.ForeignKey('Recipe', related_name='tasks')
     task_name = models.CharField(max_length=100)
     source_url = models.FilePathField(max_length=255, blank=True)
     work_directory = models.FilePathField(max_length=255, blank=True)
@@ -303,6 +443,9 @@ class Task(models.Model):
 
     outcome_text = property(get_outcome_text)
     sstate_text  = property(get_sstate_text)
+
+    def __unicode__(self):
+        return "%d(%d) %s:%s" % (self.pk, self.build.pk, self.recipe.name, self.task_name)
 
     class Meta:
         ordering = ('order', 'recipe' ,)
@@ -321,7 +464,7 @@ class Package(models.Model):
     installed_name = models.CharField(max_length=100, default='')
     version = models.CharField(max_length=100, blank=True)
     revision = models.CharField(max_length=32, blank=True)
-    summary = models.CharField(max_length=200, blank=True)
+    summary = models.TextField(blank=True)
     description = models.TextField(blank=True)
     size = models.IntegerField(default=0)
     installed_size = models.IntegerField(default=0)
@@ -354,10 +497,10 @@ class Package_Dependency(models.Model):
         (TYPE_RREPLACES, "replaces"),
         (TYPE_RCONFLICTS, "conflicts"),
     )
-    ''' Indexed by dep_type, in view order, key for short name and help
+    """ Indexed by dep_type, in view order, key for short name and help
         description which when viewed will be printf'd with the
         package name.
-    '''
+    """
     DEPENDS_DICT = {
         TYPE_RDEPENDS :     ("depends", "%s is required to run %s"),
         TYPE_TRDEPENDS :    ("depends", "%s is required to run %s"),
@@ -385,7 +528,7 @@ class Package_File(models.Model):
     size = models.IntegerField()
 
 class Recipe(models.Model):
-    search_allowed_fields = ['name', 'version', 'file_path', 'section', 'license', 'layer_version__layer__name', 'layer_version__branch', 'layer_version__commit', 'layer_version__layer__local_path']
+    search_allowed_fields = ['name', 'version', 'file_path', 'section', 'summary', 'description', 'license', 'layer_version__layer__name', 'layer_version__branch', 'layer_version__commit', 'layer_version__layer__local_path', 'layer_version__layer_source__name']
 
     layer_source = models.ForeignKey('LayerSource', default = None, null = True)  # from where did we get this recipe
     up_id = models.IntegerField(null = True, default = None)                    # id of entry in the source
@@ -394,18 +537,13 @@ class Recipe(models.Model):
     name = models.CharField(max_length=100, blank=True)                 # pn
     version = models.CharField(max_length=100, blank=True)              # pv
     layer_version = models.ForeignKey('Layer_Version', related_name='recipe_layer_version')
-    summary = models.CharField(max_length=100, blank=True)
+    summary = models.TextField(blank=True)
     description = models.TextField(blank=True)
     section = models.CharField(max_length=100, blank=True)
     license = models.CharField(max_length=200, blank=True)
     homepage = models.URLField(blank=True)
     bugtracker = models.URLField(blank=True)
     file_path = models.FilePathField(max_length=255)
-
-    def get_vcs_link_url(self):
-        if self.layer_version.layer.vcs_web_file_base_url is None:
-            return ""
-        return self.layer_version.layer.vcs_web_file_base_url.replace('%path%', self.file_path).replace('%branch%', self.layer_version.up_branch.name)
 
     def get_layersource_view_url(self):
         if self.layer_source is None:
@@ -416,6 +554,21 @@ class Recipe(models.Model):
 
     def __unicode__(self):
         return "Recipe " + self.name + ":" + self.version
+
+    def get_local_path(self):
+        if settings.MANAGED and self.layer_version.build.project is not None:
+            # strip any tag prefixes ('virtual:native:')
+            layer_path=self.layer_version.layer.local_path.split(":")[-1]
+            recipe_path=self.file_path.split(":")[-1]
+            if 0 == recipe_path.find(layer_path):
+                return recipe_path[len(layer_path)+1:]
+            else:
+                return recipe_path
+
+        return self.file_path
+
+    class Meta:
+        unique_together = ("layer_version", "file_path")
 
 class Recipe_DependencyManager(models.Manager):
     use_for_related_fields = True
@@ -438,6 +591,7 @@ class Recipe_Dependency(models.Model):
 
 
 class Machine(models.Model):
+    search_allowed_fields = ["name", "description", "layer_version__layer__name"]
     layer_source = models.ForeignKey('LayerSource', default = None, null = True)  # from where did we get this machine
     up_id = models.IntegerField(null = True, default = None)                      # id of entry in the source
     up_date = models.DateTimeField(null = True, default = None)
@@ -445,6 +599,11 @@ class Machine(models.Model):
     layer_version = models.ForeignKey('Layer_Version')
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255)
+
+    def get_vcs_machine_file_link_url(self):
+        path = 'conf/machine/'+self.name+'.conf'
+
+        return self.layer_version.get_vcs_file_link_url(path)
 
     def __unicode__(self):
         return "Machine " + self.name + "(" + self.description + ")"
@@ -469,33 +628,55 @@ class LayerSource(models.Model):
 
     TYPE_LOCAL = 0
     TYPE_LAYERINDEX = 1
+    TYPE_IMPORTED = 2
     SOURCE_TYPE = (
         (TYPE_LOCAL, "local"),
         (TYPE_LAYERINDEX, "layerindex"),
+        (TYPE_IMPORTED, "imported"),
       )
 
-    name = models.CharField(max_length=63)
+    name = models.CharField(max_length=63, unique = True)
     sourcetype = models.IntegerField(choices=SOURCE_TYPE)
     apiurl = models.CharField(max_length=255, null=True, default=None)
 
+    def update(self):
+        """
+            Updates the local database information from the upstream layer source
+        """
+        raise Exception("Abstract, update() must be implemented by all LayerSource-derived classes (object is %s)" % str(vars(self)))
+
     def save(self, *args, **kwargs):
-        if isinstance(self, LocalLayerSource):
-            self.sourcetype = LayerSource.TYPE_LOCAL
-        elif isinstance(self, LayerIndexLayerSource):
-            self.sourcetype = LayerSource.TYPE_LAYERINDEX
+        if self.sourcetype == LayerSource.TYPE_LOCAL:
+            self.__class__ = LocalLayerSource
+        elif self.sourcetype == LayerSource.TYPE_LAYERINDEX:
+            self.__class__ = LayerIndexLayerSource
+        elif self.sourcetype == LayerSource.TYPE_IMPORTED:
+            self.__class__ = ImportedLayerSource
         elif self.sourcetype == None:
-            raise Exception("Invalid LayerSource type")
+            raise Exception("Unknown LayerSource-derived class. If you added a new layer source type, fill out all code stubs.")
         return super(LayerSource, self).save(*args, **kwargs)
 
     def get_object(self):
-        if self.sourcetype is not None:
-            if self.sourcetype == LayerSource.TYPE_LOCAL:
-                self.__class__ = LocalLayerSource
-            if self.sourcetype == LayerSource.TYPE_LAYERINDEX:
-                self.__class__ = LayerIndexLayerSource
+        # preset an un-initilized object
+        if None == self.name:
+            self.name=""
+        if None == self.apiurl:
+            self.apiurl=""
+        if None == self.sourcetype:
+            self.sourcetype=LayerSource.TYPE_LOCAL
+
+        if self.sourcetype == LayerSource.TYPE_LOCAL:
+            self.__class__ = LocalLayerSource
+        elif self.sourcetype == LayerSource.TYPE_LAYERINDEX:
+            self.__class__ = LayerIndexLayerSource
+        elif self.sourcetype == LayerSource.TYPE_IMPORTED:
+            self.__class__ = ImportedLayerSource
+        else:
+            raise Exception("Unknown LayerSource type. If you added a new layer source type, fill out all code stubs.")
         return self
 
-        return "LS " + self.sourcetype + " " + self.name
+    def __unicode__(self):
+        return "%s (%s)" % (self.name, self.sourcetype)
 
 
 class LocalLayerSource(LayerSource):
@@ -507,10 +688,25 @@ class LocalLayerSource(LayerSource):
         self.sourcetype = LayerSource.TYPE_LOCAL
 
     def update(self):
-        '''
+        """
             Fetches layer, recipe and machine information from local repository
-        '''
+        """
         pass
+
+class ImportedLayerSource(LayerSource):
+    class Meta(LayerSource._meta.__class__):
+        proxy = True
+
+    def __init__(self, *args, **kwargs):
+        super(ImportedLayerSource, self).__init__(args, kwargs)
+        self.sourcetype = LayerSource.TYPE_IMPORTED
+
+    def update(self):
+        """
+            Fetches layer, recipe and machine information from local repository
+        """
+        pass
+
 
 class LayerIndexLayerSource(LayerSource):
     class Meta(LayerSource._meta.__class__):
@@ -521,42 +717,67 @@ class LayerIndexLayerSource(LayerSource):
         self.sourcetype = LayerSource.TYPE_LAYERINDEX
 
     def get_object_view(self, branch, objectype, upid):
-        if self != branch.layer_source:
-            raise Exception("Invalid branch specification")
         return self.apiurl + "../branch/" + branch.name + "/" + objectype + "/?q=" + str(upid)
 
     def update(self):
-        '''
+        """
             Fetches layer, recipe and machine information from remote repository
-        '''
+        """
         assert self.apiurl is not None
+        from django.db import IntegrityError
+        from django.db import transaction, connection
+
+        import httplib, urlparse, json
+        import os
+        proxy_settings = os.environ.get("http_proxy", None)
 
         def _get_json_response(apiurl = self.apiurl):
-            import httplib, urlparse, json
-            parsedurl = urlparse.urlparse(apiurl)
-            (host, port) = parsedurl.netloc.split(":")
-            if port is None:
-                port = 80
+            conn = None
+            _parsedurl = urlparse.urlparse(apiurl)
+            path = _parsedurl.path
+            query = _parsedurl.query
+            def parse_url(url):
+                parsedurl = urlparse.urlparse(url)
+                try:
+                    (host, port) = parsedurl.netloc.split(":")
+                except ValueError:
+                    host = parsedurl.netloc
+                    port = None
+
+                if port is None:
+                    port = 80
+                else:
+                    port = int(port)
+                return (host, port)
+
+            if proxy_settings is None:
+                host, port = parse_url(apiurl)
+                conn = httplib.HTTPConnection(host, port)
+                conn.request("GET", path + "?" + query)
             else:
-                port = int(port)
-            #print "-- connect to: http://%s:%s%s?%s" % (host, port, parsedurl.path, parsedurl.query)
-            conn = httplib.HTTPConnection(host, port)
-            conn.request("GET", parsedurl.path + "?" + parsedurl.query)
+                host, port = parse_url(proxy_settings)
+                conn = httplib.HTTPConnection(host, port)
+                conn.request("GET", apiurl)
+
             r = conn.getresponse()
             if r.status != 200:
-                raise Exception("Failed to read " + parsedurl.path + ": %d %s" % (r.status, r.reason))
+                raise Exception("Failed to read " + path + ": %d %s" % (r.status, r.reason))
             return json.loads(r.read())
 
         # verify we can get the basic api
         try:
             apilinks = _get_json_response()
-        except:
-            print "EE: could not connect to %s, skipping update" % self.apiurl
+        except Exception as e:
+            import traceback
+            if proxy_settings is not None:
+                print "EE: Using proxy ", proxy_settings
+            print "EE: could not connect to %s, skipping update: %s\n%s" % (self.apiurl, e, traceback.format_exc(e))
             return
 
-        # update branches; only those that we already have names listed in the database
-        whitelist_branch_names = map(lambda x: x.name, Branch.objects.all())
+        # update branches; only those that we already have names listed in the Releases table
+        whitelist_branch_names = map(lambda x: x.branch_name, Release.objects.all())
 
+        print "Fetching branches"
         branches_info = _get_json_response(apilinks['branches']
             + "?filter=name:%s" % "OR".join(whitelist_branch_names))
         for bi in branches_info:
@@ -564,90 +785,160 @@ class LayerIndexLayerSource(LayerSource):
             b.up_id = bi['id']
             b.up_date = bi['updated']
             b.name = bi['name']
-            b.bitbake_branch = bi['bitbake_branch']
             b.short_description = bi['short_description']
             b.save()
 
         # update layers
         layers_info = _get_json_response(apilinks['layerItems'])
+        if not connection.features.autocommits_when_autocommit_is_off:
+            transaction.set_autocommit(False)
         for li in layers_info:
-            l, created = Layer.objects.get_or_create(layer_source = self, up_id = li['id'])
+            l, created = Layer.objects.get_or_create(layer_source = self, name = li['name'])
+            l.up_id = li['id']
             l.up_date = li['updated']
-            l.name = li['name']
             l.vcs_url = li['vcs_url']
+            l.vcs_web_url = li['vcs_web_url']
+            l.vcs_web_tree_base_url = li['vcs_web_tree_base_url']
             l.vcs_web_file_base_url = li['vcs_web_file_base_url']
             l.summary = li['summary']
             l.description = li['description']
             l.save()
+        if not connection.features.autocommits_when_autocommit_is_off:
+            transaction.set_autocommit(True)
 
         # update layerbranches/layer_versions
+        print "Fetching layer information"
         layerbranches_info = _get_json_response(apilinks['layerBranches']
-                + "?filter=branch:%s" % "OR".join(map(lambda x: str(x.up_id), Branch.objects.filter(layer_source = self)))
+                + "?filter=branch:%s" % "OR".join(map(lambda x: str(x.up_id), [i for i in Branch.objects.filter(layer_source = self) if i.up_id is not None] ))
             )
+
+        if not connection.features.autocommits_when_autocommit_is_off:
+            transaction.set_autocommit(False)
         for lbi in layerbranches_info:
-            lv, created = Layer_Version.objects.get_or_create(layer_source = self, up_id = lbi['id'])
+            lv, created = Layer_Version.objects.get_or_create(layer_source = self,
+                    up_id = lbi['id'],
+                    layer=Layer.objects.get(layer_source = self, up_id = lbi['layer'])
+                )
 
             lv.up_date = lbi['updated']
-            lv.layer = Layer.objects.get(layer_source = self, up_id = lbi['layer'])
             lv.up_branch = Branch.objects.get(layer_source = self, up_id = lbi['branch'])
             lv.branch = lbi['actual_branch']
-            lv.commit = lbi['vcs_last_rev']
+            lv.commit = lbi['actual_branch']
             lv.dirpath = lbi['vcs_subdir']
             lv.save()
+        if not connection.features.autocommits_when_autocommit_is_off:
+            transaction.set_autocommit(True)
+
+        # update layer dependencies
+        layerdependencies_info = _get_json_response(apilinks['layerDependencies'])
+        dependlist = {}
+        if not connection.features.autocommits_when_autocommit_is_off:
+            transaction.set_autocommit(False)
+        for ldi in layerdependencies_info:
+            try:
+                lv = Layer_Version.objects.get(layer_source = self, up_id = ldi['layerbranch'])
+            except Layer_Version.DoesNotExist as e:
+                continue
+
+            if lv not in dependlist:
+                dependlist[lv] = []
+            try:
+                dependlist[lv].append(Layer_Version.objects.get(layer_source = self, layer__up_id = ldi['dependency'], up_branch = lv.up_branch))
+            except Layer_Version.DoesNotExist as e:
+                print "Cannot find layer version ", self, ldi['dependency'], lv.up_branch
+                raise e
+
+        for lv in dependlist:
+            LayerVersionDependency.objects.filter(layer_version = lv).delete()
+            for lvd in dependlist[lv]:
+                LayerVersionDependency.objects.get_or_create(layer_version = lv, depends_on = lvd)
+        if not connection.features.autocommits_when_autocommit_is_off:
+            transaction.set_autocommit(True)
 
 
         # update machines
+        print "Fetching machine information"
         machines_info = _get_json_response(apilinks['machines']
                 + "?filter=layerbranch:%s" % "OR".join(map(lambda x: str(x.up_id), Layer_Version.objects.filter(layer_source = self)))
             )
+
+        if not connection.features.autocommits_when_autocommit_is_off:
+            transaction.set_autocommit(False)
         for mi in machines_info:
-            mo, created = Machine.objects.get_or_create(layer_source = self, up_id = mi['id'])
+            mo, created = Machine.objects.get_or_create(layer_source = self, up_id = mi['id'], layer_version = Layer_Version.objects.get(layer_source = self, up_id = mi['layerbranch']))
             mo.up_date = mi['updated']
-            mo.layer_version = Layer_Version.objects.get(layer_source = self, up_id = mi['layerbranch'])
             mo.name = mi['name']
             mo.description = mi['description']
             mo.save()
 
+        if not connection.features.autocommits_when_autocommit_is_off:
+            transaction.set_autocommit(True)
+
         # update recipes; paginate by layer version / layer branch
+        print "Fetching target information"
         recipes_info = _get_json_response(apilinks['recipes']
                 + "?filter=layerbranch:%s" % "OR".join(map(lambda x: str(x.up_id), Layer_Version.objects.filter(layer_source = self)))
             )
+        if not connection.features.autocommits_when_autocommit_is_off:
+            transaction.set_autocommit(False)
         for ri in recipes_info:
-            ro, created = Recipe.objects.get_or_create(layer_source = self, up_id = ri['id'])
-
-            ro.up_date = ri['updated']
-            ro.layer_version = Layer_Version.objects.get(layer_source = self, up_id = mi['layerbranch'])
-
-            ro.name = ri['pn']
-            ro.version = ri['pv']
-            ro.summary = ri['summary']
-            ro.description = ri['description']
-            ro.section = ri['section']
-            ro.license = ri['license']
-            ro.homepage = ri['homepage']
-            ro.bugtracker = ri['bugtracker']
-            ro.file_path = ri['filepath'] + ri['filename']
-            ro.save()
-
+            try:
+                ro, created = Recipe.objects.get_or_create(layer_source = self, up_id = ri['id'], layer_version = Layer_Version.objects.get(layer_source = self, up_id = ri['layerbranch']))
+                ro.up_date = ri['updated']
+                ro.name = ri['pn']
+                ro.version = ri['pv']
+                ro.summary = ri['summary']
+                ro.description = ri['description']
+                ro.section = ri['section']
+                ro.license = ri['license']
+                ro.homepage = ri['homepage']
+                ro.bugtracker = ri['bugtracker']
+                ro.file_path = ri['filepath'] + "/" + ri['filename']
+                ro.save()
+            except:
+                #print "Duplicate Recipe, ignoring: ", vars(ro)
+                pass
+        if not connection.features.autocommits_when_autocommit_is_off:
+            transaction.set_autocommit(True)
         pass
 
 class BitbakeVersion(models.Model):
+
     name = models.CharField(max_length=32, unique = True)
-    giturl = models.URLField()
+    giturl = GitURLField()
     branch = models.CharField(max_length=32)
     dirpath = models.CharField(max_length=255)
 
+    def __unicode__(self):
+        return "%s (Branch: %s)" % (self.name, self.branch)
+
 
 class Release(models.Model):
+    """ A release is a project template, used to pre-populate Project settings with a configuration set """
     name = models.CharField(max_length=32, unique = True)
     description = models.CharField(max_length=255)
     bitbake_version = models.ForeignKey(BitbakeVersion)
-    branch = models.CharField(max_length=32)
+    branch_name = models.CharField(max_length=50, default = "")
+    helptext = models.TextField(null=True)
+
+    def __unicode__(self):
+        return "%s (%s)" % (self.name, self.branch_name)
+
+class ReleaseLayerSourcePriority(models.Model):
+    """ Each release selects layers from the set up layer sources, ordered by priority """
+    release = models.ForeignKey("Release")
+    layer_source = models.ForeignKey("LayerSource")
+    priority = models.IntegerField(default = 0)
+
+    def __unicode__(self):
+        return "%s-%s:%d" % (self.release.name, self.layer_source.name, self.priority)
+    class Meta:
+        unique_together = (('release', 'layer_source'),)
 
 
 class ReleaseDefaultLayer(models.Model):
     release = models.ForeignKey(Release)
-    layer = models.ForeignKey('Layer')
+    layer_name = models.CharField(max_length=100, default="")
 
 
 # Branch class is synced with layerindex.Branch, branches can only come from remote layer indexes
@@ -657,7 +948,6 @@ class Branch(models.Model):
     up_date = models.DateTimeField(null = True, default = None)
 
     name = models.CharField(max_length=50)
-    bitbake_branch = models.CharField(max_length=50, blank=True)
     short_description = models.CharField(max_length=50, blank=True)
 
     class Meta:
@@ -677,14 +967,16 @@ class Layer(models.Model):
     name = models.CharField(max_length=100)
     local_path = models.FilePathField(max_length=255, null = True, default = None)
     layer_index_url = models.URLField()
-    vcs_url = models.URLField(default = None, null = True)
+    vcs_url = GitURLField(default = None, null = True)
+    vcs_web_url = models.URLField(null = True, default = None)
+    vcs_web_tree_base_url = models.URLField(null = True, default = None)
     vcs_web_file_base_url = models.URLField(null = True, default = None)
 
-    summary = models.CharField(max_length=200, help_text='One-line description of the layer', null = True, default = None)
+    summary = models.TextField(help_text='One-line description of the layer', null = True, default = None)
     description = models.TextField(null = True, default = None)
 
     def __unicode__(self):
-        return "L " + self.name
+        return "%s / %s " % (self.name, self.layer_source)
 
     class Meta:
         unique_together = (("layer_source", "up_id"), ("layer_source", "name"))
@@ -692,7 +984,7 @@ class Layer(models.Model):
 
 # LayerCommit class is synced with layerindex.LayerBranch
 class Layer_Version(models.Model):
-    search_allowed_fields = ["layer__name", "layer__summary",]
+    search_allowed_fields = ["layer__name", "layer__summary", "layer__description", "layer__vcs_url", "dirpath", "up_branch__name", "commit", "branch"]
     build = models.ForeignKey(Build, related_name='layer_version_build', default = None, null = True)
     layer = models.ForeignKey(Layer, related_name='layer_version_layer')
 
@@ -706,8 +998,106 @@ class Layer_Version(models.Model):
     dirpath = models.CharField(max_length=255, null = True, default = None)          # LayerBranch.vcs_subdir
     priority = models.IntegerField(default = 0)         # if -1, this is a default layer
 
+    project = models.ForeignKey('Project', null = True, default = None)   # Set if this layer is project-specific; always set for imported layers, and project-set branches
+
+    # code lifted, with adaptations, from the layerindex-web application https://git.yoctoproject.org/cgit/cgit.cgi/layerindex-web/
+    def _handle_url_path(self, base_url, path):
+        import re, posixpath
+        if base_url:
+            if self.dirpath:
+                if path:
+                    extra_path = self.dirpath + '/' + path
+                    # Normalise out ../ in path for usage URL
+                    extra_path = posixpath.normpath(extra_path)
+                    # Minor workaround to handle case where subdirectory has been added between branches
+                    # (should probably support usage URL per branch to handle this... sigh...)
+                    if extra_path.startswith('../'):
+                        extra_path = extra_path[3:]
+                else:
+                    extra_path = self.dirpath
+            else:
+                extra_path = path
+            branchname = self.up_branch.name
+            url = base_url.replace('%branch%', branchname)
+
+            # If there's a % in the path (e.g. a wildcard bbappend) we need to encode it
+            if extra_path:
+                extra_path = extra_path.replace('%', '%25')
+
+            if '%path%' in base_url:
+                if extra_path:
+                    url = re.sub(r'\[([^\]]*%path%[^\]]*)\]', '\\1', url)
+                else:
+                    url = re.sub(r'\[([^\]]*%path%[^\]]*)\]', '', url)
+                return url.replace('%path%', extra_path)
+            else:
+                return url + extra_path
+        return None
+
+    def get_vcs_link_url(self):
+        if self.layer.vcs_web_url is None:
+            return None
+        return self.layer.vcs_web_url
+
+    def get_vcs_file_link_url(self, file_path=""):
+        if self.layer.vcs_web_file_base_url is None:
+            return None
+        return self._handle_url_path(self.layer.vcs_web_file_base_url, file_path)
+
+    def get_vcs_dirpath_link_url(self):
+        if self.layer.vcs_web_tree_base_url is None:
+            return None
+        return self._handle_url_path(self.layer.vcs_web_tree_base_url, '')
+
+    def get_equivalents_wpriority(self, project):
+        """ Returns an ordered layerversion list that satisfies a LayerVersionDependency using the layer name and the current Project Releases' LayerSource priority """
+
+        # layers created for this project, or coming from a build inthe project
+        query = Q(project = project) | Q(build__project = project)
+        if self.up_branch is not None:
+            # the same up_branch name
+            query |= Q(up_branch__name=self.up_branch.name)
+        else:
+            # or we have a layer in the project that's similar to mine (See the layer.name constraint below)
+            query |= Q(projectlayer__project=project)
+
+        candidate_layer_versions = list(Layer_Version.objects.filter(layer__name = self.layer.name).filter(query).select_related('layer_source', 'layer', 'up_branch').order_by("-id"))
+
+        # optimization - if we have only one, we don't need no stinking sort
+        if len(candidate_layer_versions) == 1:
+            return candidate_layer_versions
+
+#        raise Exception(candidate_layer_versions)
+
+        release_priorities = {}
+
+        for ls_id, prio in map(lambda x: (x.layer_source_id, x.priority), project.release.releaselayersourcepriority_set.all().order_by("-priority")):
+            release_priorities[ls_id] = prio
+
+        def _get_ls_priority(ls):
+            # if there is no layer source, we have minus infinite priority, as we don't want this layer selected
+            if ls == None:
+                return -10000
+            try:
+                return release_priorities[ls.id]
+            except IndexError:
+                raise Exception("Unknown %d %s" % (ls.id, release_priorities))
+
+        return sorted( candidate_layer_versions ,
+                key = lambda x: _get_ls_priority(x.layer_source),
+                reverse = True)
+
+    def get_vcs_reference(self):
+        if self.commit is not None and len(self.commit) > 0:
+            return self.commit
+        if self.branch is not None and len(self.branch) > 0:
+            return self.branch
+        if self.up_branch is not None:
+            return self.up_branch.name
+        return ("Cannot determine the vcs_reference for layer version %s" % vars(self))
+
     def __unicode__(self):
-        return "LV " + str(self.layer) + " " + self.commit
+        return "%d %s (VCS %s, Project %s)" % (self.pk, str(self.layer), self.get_vcs_reference(), self.build.project if self.build is not None else "No project")
 
     class Meta:
         unique_together = ("layer_source", "up_id")
@@ -726,6 +1116,12 @@ class ProjectLayer(models.Model):
     project = models.ForeignKey(Project)
     layercommit = models.ForeignKey(Layer_Version, null=True)
     optional = models.BooleanField(default = True)
+
+    def __unicode__(self):
+        return "%s, %s" % (self.project.name, self.layercommit)
+
+    class Meta:
+        unique_together = (("project", "layercommit"),)
 
 class ProjectVariable(models.Model):
     project = models.ForeignKey(Project)
@@ -759,13 +1155,15 @@ class HelpText(models.Model):
     text = models.TextField()
 
 class LogMessage(models.Model):
+    EXCEPTION = -1      # used to signal self-toaster-exceptions
     INFO = 0
     WARNING = 1
     ERROR = 2
 
     LOG_LEVEL = ( (INFO, "info"),
             (WARNING, "warn"),
-            (ERROR, "error") )
+            (ERROR, "error"),
+            (EXCEPTION, "toaster exception"))
 
     build = models.ForeignKey(Build)
     task  = models.ForeignKey(Task, blank = True, null=True)

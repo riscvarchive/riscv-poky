@@ -42,7 +42,7 @@ from wic.utils import cmdln, misc, errors
 from wic.conf import configmgr
 from wic.plugin import pluginmgr
 from wic.__version__ import VERSION
-from wic.utils.oe.misc import *
+from wic.utils.oe import misc
 
 
 def verify_build_env():
@@ -65,40 +65,29 @@ def find_artifacts(image_name):
     Gather the build artifacts for the current image (the image_name
     e.g. core-image-minimal) for the current MACHINE set in local.conf
     """
-    bitbake_env_lines = get_bitbake_env_lines()
+    bitbake_env_lines = misc.get_bitbake_env_lines()
 
-    rootfs_dir = kernel_dir = bootimg_dir = ""
-    hdddir = staging_data_dir = native_sysroot = ""
+    rootfs_dir = kernel_dir = bootimg_dir = native_sysroot = ""
 
     for line in bitbake_env_lines.split('\n'):
-        if (get_line_val(line, "IMAGE_ROOTFS")):
-            rootfs_dir = get_line_val(line, "IMAGE_ROOTFS")
+        if (misc.get_line_val(line, "IMAGE_ROOTFS")):
+            rootfs_dir = misc.get_line_val(line, "IMAGE_ROOTFS")
             continue
-        if (get_line_val(line, "STAGING_KERNEL_DIR")):
-            kernel_dir = get_line_val(line, "STAGING_KERNEL_DIR")
+        if (misc.get_line_val(line, "DEPLOY_DIR_IMAGE")):
+            kernel_dir = misc.get_line_val(line, "DEPLOY_DIR_IMAGE")
             continue
-        if (get_line_val(line, "HDDDIR")):
-            hdddir = get_line_val(line, "HDDDIR")
-            continue
-        if (get_line_val(line, "STAGING_DATADIR")):
-            staging_data_dir = get_line_val(line, "STAGING_DATADIR")
-            continue
-        if (get_line_val(line, "STAGING_DIR_NATIVE")):
-            native_sysroot = get_line_val(line, "STAGING_DIR_NATIVE")
-            continue
-        if (get_line_val(line, "DEPLOY_DIR_IMAGE")):
-            bootimg_dir = get_line_val(line, "DEPLOY_DIR_IMAGE")
+        if (misc.get_line_val(line, "STAGING_DIR_NATIVE")):
+            native_sysroot = misc.get_line_val(line, "STAGING_DIR_NATIVE")
             continue
 
-    return (rootfs_dir, kernel_dir, bootimg_dir, hdddir, staging_data_dir, \
-            native_sysroot)
+    return (rootfs_dir, kernel_dir, bootimg_dir, native_sysroot)
 
 
 CANNED_IMAGE_DIR = "lib/image/canned-wks" # relative to scripts
 SCRIPTS_CANNED_IMAGE_DIR = "scripts/" + CANNED_IMAGE_DIR
 
 def build_canned_image_list(dl):
-    layers_path = get_bitbake_var("BBLAYERS")
+    layers_path = misc.get_bitbake_var("BBLAYERS")
     canned_wks_layer_dirs = []
 
     if layers_path is not None:
@@ -190,18 +179,15 @@ def list_source_plugins():
 
 
 def wic_create(args, wks_file, rootfs_dir, bootimg_dir, kernel_dir,
-               native_sysroot, hdddir, staging_data_dir, scripts_path,
-               image_output_dir, debug, properties_file, properties=None):
-    """
-    Create image
+               native_sysroot, scripts_path, image_output_dir, debug,
+               properties_file, properties=None):
+    """Create image
 
     wks_file - user-defined OE kickstart file
     rootfs_dir - absolute path to the build's /rootfs dir
     bootimg_dir - absolute path to the build's boot artifacts directory
     kernel_dir - absolute path to the build's kernel directory
     native_sysroot - absolute path to the build's native sysroots dir
-    hdddir - absolute path to the build's HDDDIR dir
-    staging_data_dir - absolute path to the build's STAGING_DATA_DIR dir
     scripts_path - absolute path to /scripts dir
     image_output_dir - dirname to create for image
     properties_file - use values from this file if nonempty i.e no prompting
@@ -214,24 +200,16 @@ def wic_create(args, wks_file, rootfs_dir, bootimg_dir, kernel_dir,
     values from the output of 'bitbake -e':
 
     rootfs_dir:        IMAGE_ROOTFS
-    kernel_dir:        STAGING_KERNEL_DIR
+    kernel_dir:        DEPLOY_DIR_IMAGE
     native_sysroot:    STAGING_DIR_NATIVE
-    hdddir:            HDDDIR
-    staging_data_dir:  STAGING_DATA_DIR
 
-    In the above case, bootimg_dir remains unset and the image
-    creation code determines which of the passed-in directories to
-    use.
+    In the above case, bootimg_dir remains unset and the
+    plugin-specific image creation code is responsible for finding the
+    bootimg artifacts.
 
     In the case where the values are passed in explicitly i.e 'wic -e'
     is not used but rather the individual 'wic' options are used to
-    explicitly specify these values, hdddir and staging_data_dir will
-    be unset, but bootimg_dir must be explicit i.e. explicitly set to
-    either hdddir or staging_data_dir, depending on the image being
-    generated.  The other values (rootfs_dir, kernel_dir, and
-    native_sysroot) correspond to the same values found above via
-    'bitbake -e').
-
+    explicitly specify these values.
     """
     try:
         oe_builddir = os.environ["BUILDDIR"]
@@ -247,8 +225,6 @@ def wic_create(args, wks_file, rootfs_dir, bootimg_dir, kernel_dir,
     direct_args.insert(0, bootimg_dir)
     direct_args.insert(0, kernel_dir)
     direct_args.insert(0, native_sysroot)
-    direct_args.insert(0, hdddir)
-    direct_args.insert(0, staging_data_dir)
     direct_args.insert(0, "direct")
 
     if debug:

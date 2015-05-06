@@ -1,5 +1,7 @@
 BPN = "libgcc"
 
+require gcc-shared-source.inc
+
 INHIBIT_DEFAULT_DEPS = "1"
 
 do_configure () {
@@ -52,7 +54,7 @@ addtask multilib_install after do_install before do_package do_populate_sysroot
 # by creating this symlink to it
 #    /usr/lib64/x86_64-poky-linux/4.7/32
 
-python do_multilib_install() {
+fakeroot python do_multilib_install() {
     import re
 
     multilibs = d.getVar('MULTILIB_VARIANTS', True)
@@ -115,7 +117,7 @@ python do_multilib_install() {
 }
 
 addtask extra_symlinks after do_multilib_install before do_package do_populate_sysroot
-python do_extra_symlinks() {
+fakeroot python do_extra_symlinks() {
     targetsysnoext = d.getVar('TARGET_SYS_NO_EXTENSION', True)
 
     if targetsysnoext != d.getVar('TARGET_SYS', True):

@@ -5,7 +5,7 @@
 # See the help output for details on available commands.
 
 # Copyright (C) 2011 Mentor Graphics Corporation
-# Copyright (C) 2012 Intel Corporation
+# Copyright (C) 2011-2015 Intel Corporation
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 as
@@ -20,13 +20,15 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import cmd
 import logging
 import os
 import sys
 import fnmatch
 from collections import defaultdict
+import argparse
 import re
+import httplib, urlparse, json
+import subprocess
 
 bindir = os.path.dirname(__file__)
 topdir = os.path.dirname(bindir)
@@ -39,53 +41,30 @@ import bb.utils
 import bb.tinfoil
 
 
-logger = logging.getLogger('BitBake')
+def logger_create(name, output=sys.stderr):
+    logger = logging.getLogger(name)
+    console = logging.StreamHandler(output)
+    format = bb.msg.BBLogFormatter("%(levelname)s: %(message)s")
+    if output.isatty():
+        format.enable_color()
+    console.setFormatter(format)
+    logger.addHandler(console)
+    logger.setLevel(logging.INFO)
+    return logger
+
+logger = logger_create('bitbake-layers', sys.stdout)
 
 
-def main(args):
-    cmds = Commands()
-    if args:
-        # Allow user to specify e.g. show-layers instead of show_layers
-        args = [args[0].replace('-', '_')] + args[1:]
-        cmds.onecmd(' '.join(args))
-    else:
-        cmds.do_help('')
-    return cmds.returncode
-
-
-class Commands(cmd.Cmd):
+class Commands():
     def __init__(self):
         self.bbhandler = None
-        self.returncode = 0
         self.bblayers = []
-        cmd.Cmd.__init__(self)
 
     def init_bbhandler(self, config_only = False):
         if not self.bbhandler:
             self.bbhandler = bb.tinfoil.Tinfoil()
             self.bblayers = (self.bbhandler.config_data.getVar('BBLAYERS', True) or "").split()
             self.bbhandler.prepare(config_only)
-
-    def default(self, line):
-        """Handle unrecognised commands"""
-        sys.stderr.write("Unrecognised command or option\n")
-        self.do_help('')
-
-    def do_help(self, topic):
-        """display general help or help on a specified command"""
-        if topic:
-            sys.stdout.write('%s: ' % topic)
-            cmd.Cmd.do_help(self, topic.replace('-', '_'))
-        else:
-            sys.stdout.write("usage: bitbake-layers <command> [arguments]\n\n")
-            sys.stdout.write("Available commands:\n")
-            procnames = list(set(self.get_names()))
-            for procname in procnames:
-                if procname[:3] == 'do_':
-                    sys.stdout.write("  %s\n" % procname[3:].replace('_', '-'))
-                    doc = getattr(self, procname).__doc__
-                    if doc:
-                        sys.stdout.write("    %s\n" % doc.splitlines()[0])
 
     def do_show_layers(self, args):
         """show current configured layers"""
@@ -103,6 +82,293 @@ class Commands(cmd.Cmd):
             logger.plain("%s  %s  %d" % (layername.ljust(20), layerdir.ljust(40), layerpri))
 
 
+    def do_add_layer(self, args):
+        """Add a layer to bblayers.conf
+
+Adds the specified layer to bblayers.conf
+"""
+        layerdir = os.path.abspath(args.layerdir)
+        if not os.path.exists(layerdir):
+            sys.stderr.write("Specified layer directory doesn't exist\n")
+            return 1
+
+        layer_conf = os.path.join(layerdir, 'conf', 'layer.conf')
+        if not os.path.exists(layer_conf):
+            sys.stderr.write("Specified layer directory doesn't contain a conf/layer.conf file\n")
+            return 1
+
+        bblayers_conf = os.path.join('conf', 'bblayers.conf')
+        if not os.path.exists(bblayers_conf):
+            sys.stderr.write("Unable to find bblayers.conf\n")
+            return 1
+
+        (notadded, _) = bb.utils.edit_bblayers_conf(bblayers_conf, layerdir, None)
+        if notadded:
+            for item in notadded:
+                sys.stderr.write("Specified layer %s is already in BBLAYERS\n" % item)
+
+
+    def do_remove_layer(self, args):
+        """Remove a layer from bblayers.conf
+
+Removes the specified layer from bblayers.conf
+"""
+        bblayers_conf = os.path.join('conf', 'bblayers.conf')
+        if not os.path.exists(bblayers_conf):
+            sys.stderr.write("Unable to find bblayers.conf\n")
+            return 1
+
+        if args.layerdir.startswith('*'):
+            layerdir = args.layerdir
+        else:
+            layerdir = os.path.abspath(args.layerdir)
+        (_, notremoved) = bb.utils.edit_bblayers_conf(bblayers_conf, None, layerdir)
+        if notremoved:
+            for item in notremoved:
+                sys.stderr.write("No layers matching %s found in BBLAYERS\n" % item)
+            return 1
+
+
+    def get_json_data(self, apiurl):
+        proxy_settings = os.environ.get("http_proxy", None)
+        conn = None
+        _parsedurl = urlparse.urlparse(apiurl)
+        path = _parsedurl.path
+        query = _parsedurl.query
+        def parse_url(url):
+            parsedurl = urlparse.urlparse(url)
+            if parsedurl.netloc[0] == '[':
+                host, port = parsedurl.netloc[1:].split(']', 1)
+                if ':' in port:
+                    port = port.rsplit(':', 1)[1]
+                else:
+                    port = None
+            else:
+                if parsedurl.netloc.count(':') == 1:
+                    (host, port) = parsedurl.netloc.split(":")
+                else:
+                    host = parsedurl.netloc
+                    port = None
+            return (host, 80 if port is None else int(port))
+
+        if proxy_settings is None:
+            host, port = parse_url(apiurl)
+            conn = httplib.HTTPConnection(host, port)
+            conn.request("GET", path + "?" + query)
+        else:
+            host, port = parse_url(proxy_settings)
+            conn = httplib.HTTPConnection(host, port)
+            conn.request("GET", apiurl)
+
+        r = conn.getresponse()
+        if r.status != 200:
+            raise Exception("Failed to read " + path + ": %d %s" % (r.status, r.reason))
+        return json.loads(r.read())
+
+
+    def get_layer_deps(self, layername, layeritems, layerbranches, layerdependencies, branchnum, selfname=False):
+        def layeritems_info_id(items_name, layeritems):
+            litems_id = None
+            for li in layeritems:
+                if li['name'] == items_name:
+                    litems_id = li['id']
+                    break
+            return litems_id
+
+        def layerbranches_info(items_id, layerbranches):
+            lbranch = {}
+            for lb in layerbranches:
+                if lb['layer'] == items_id and lb['branch'] == branchnum:
+                    lbranch['id'] = lb['id']
+                    lbranch['vcs_subdir'] = lb['vcs_subdir']
+                    break
+            return lbranch
+
+        def layerdependencies_info(lb_id, layerdependencies):
+            ld_deps = []
+            for ld in layerdependencies:
+                if ld['layerbranch'] == lb_id and not ld['dependency'] in ld_deps:
+                    ld_deps.append(ld['dependency'])
+            if not ld_deps:
+                logger.error("The dependency of layerDependencies is not found.")
+            return ld_deps
+
+        def layeritems_info_name_subdir(items_id, layeritems):
+            litems = {}
+            for li in layeritems:
+                if li['id'] == items_id:
+                    litems['vcs_url'] = li['vcs_url']
+                    litems['name'] = li['name']
+                    break
+            return litems
+
+        if selfname:
+            selfid = layeritems_info_id(layername, layeritems)
+            lbinfo = layerbranches_info(selfid, layerbranches)
+            if lbinfo:
+                selfsubdir = lbinfo['vcs_subdir']
+            else:
+                logger.error("%s is not found in the specified branch" % layername)
+                return
+            selfurl = layeritems_info_name_subdir(selfid, layeritems)['vcs_url']
+            if selfurl:
+                return selfurl, selfsubdir
+            else:
+                logger.error("Cannot get layer %s git repo and subdir" % layername)
+                return
+        ldict = {}
+        itemsid = layeritems_info_id(layername, layeritems)
+        if not itemsid:
+            return layername, None
+        lbid = layerbranches_info(itemsid, layerbranches)
+        if lbid:
+            lbid = layerbranches_info(itemsid, layerbranches)['id']
+        else:
+            logger.error("%s is not found in the specified branch" % layername)
+            return None, None
+        for dependency in layerdependencies_info(lbid, layerdependencies):
+            lname = layeritems_info_name_subdir(dependency, layeritems)['name']
+            lurl = layeritems_info_name_subdir(dependency, layeritems)['vcs_url']
+            lsubdir = layerbranches_info(dependency, layerbranches)['vcs_subdir']
+            ldict[lname] = lurl, lsubdir
+        return None, ldict
+
+
+    def get_fetch_layer(self, fetchdir, url, subdir, fetch_layer):
+        layername = self.get_layer_name(url)
+        if os.path.splitext(layername)[1] == '.git':
+            layername = os.path.splitext(layername)[0]
+        repodir = os.path.join(fetchdir, layername)
+        layerdir = os.path.join(repodir, subdir)
+        if not os.path.exists(repodir):
+            if fetch_layer:
+                result = subprocess.call('git clone %s %s' % (url, repodir), shell = True)
+                if result:
+                    logger.error("Failed to download %s" % url)
+                    return None, None
+                else:
+                    return layername, layerdir
+            else:
+                logger.plain("Repository %s needs to be fetched" % url)
+                return layername, layerdir
+        elif os.path.exists(layerdir):
+            return layername, layerdir
+        else:
+            logger.error("%s is not in %s" % (url, subdir))
+        return None, None
+
+
+    def do_layerindex_fetch(self, args):
+        """Fetches a layer from a layer index along with its dependent layers, and adds them to conf/bblayers.conf.
+"""
+        self.init_bbhandler(config_only = True)
+        apiurl = self.bbhandler.config_data.getVar('BBLAYERS_LAYERINDEX_URL', True)
+        if not apiurl:
+            logger.error("Cannot get BBLAYERS_LAYERINDEX_URL")
+        else:
+            if apiurl[-1] != '/':
+                apiurl += '/'
+            apiurl += "api/"
+        apilinks = self.get_json_data(apiurl)
+        branches = self.get_json_data(apilinks['branches'])
+
+        branchnum = 0
+        for branch in branches:
+            if branch['name'] == args.branch:
+                branchnum = branch['id']
+                break
+        if branchnum == 0:
+            validbranches = ', '.join([branch['name'] for branch in branches])
+            logger.error('Invalid layer branch name "%s". Valid branches: %s' % (args.branch, validbranches))
+            return 1
+
+        ignore_layers = []
+        for collection in self.bbhandler.config_data.getVar('BBFILE_COLLECTIONS', True).split():
+            lname = self.bbhandler.config_data.getVar('BBLAYERS_LAYERINDEX_NAME_%s' % collection, True)
+            if lname:
+                ignore_layers.append(lname)
+
+        if args.ignore:
+            ignore_layers.extend(args.ignore.split(','))
+
+        layeritems = self.get_json_data(apilinks['layerItems'])
+        layerbranches = self.get_json_data(apilinks['layerBranches'])
+        layerdependencies = self.get_json_data(apilinks['layerDependencies'])
+        invaluenames = []
+        repourls = {}
+        printlayers = []
+        def query_dependencies(layers, layeritems, layerbranches, layerdependencies, branchnum):
+            depslayer = []
+            for layername in layers:
+                invaluename, layerdict = self.get_layer_deps(layername, layeritems, layerbranches, layerdependencies, branchnum)
+                if layerdict:
+                    repourls[layername] = self.get_layer_deps(layername, layeritems, layerbranches, layerdependencies, branchnum, selfname=True)
+                    for layer in layerdict:
+                        if not layer in ignore_layers:
+                            depslayer.append(layer)
+                        printlayers.append((layername, layer, layerdict[layer][0], layerdict[layer][1]))
+                        if not layer in ignore_layers and not layer in repourls:
+                            repourls[layer] = (layerdict[layer][0], layerdict[layer][1])
+                if invaluename and not invaluename in invaluenames:
+                    invaluenames.append(invaluename)
+            return depslayer
+
+        depslayers = query_dependencies(args.layername, layeritems, layerbranches, layerdependencies, branchnum)
+        while depslayers:
+            depslayer = query_dependencies(depslayers, layeritems, layerbranches, layerdependencies, branchnum)
+            depslayers = depslayer
+        if invaluenames:
+            for invaluename in invaluenames:
+                logger.error('Layer "%s" not found in layer index' % invaluename)
+            return 1
+        logger.plain("%s  %s  %s  %s" % ("Layer".ljust(19), "Required by".ljust(19), "Git repository".ljust(54), "Subdirectory"))
+        logger.plain('=' * 115)
+        for layername in args.layername:
+            layerurl = repourls[layername]
+            logger.plain("%s %s %s %s" % (layername.ljust(20), '-'.ljust(20), layerurl[0].ljust(55), layerurl[1]))
+        printedlayers = []
+        for layer, dependency, gitrepo, subdirectory in printlayers:
+            if dependency in printedlayers:
+                continue
+            logger.plain("%s %s %s %s" % (dependency.ljust(20), layer.ljust(20), gitrepo.ljust(55), subdirectory))
+            printedlayers.append(dependency)
+
+        if repourls:
+            fetchdir = self.bbhandler.config_data.getVar('BBLAYERS_FETCH_DIR', True)
+            if not fetchdir:
+                logger.error("Cannot get BBLAYERS_FETCH_DIR")
+                return 1
+            if not os.path.exists(fetchdir):
+                os.makedirs(fetchdir)
+            addlayers = []
+            for repourl, subdir in repourls.values():
+                name, layerdir = self.get_fetch_layer(fetchdir, repourl, subdir, not args.show_only)
+                if not name:
+                    # Error already shown
+                    return 1
+                addlayers.append((subdir, name, layerdir))
+        if not args.show_only:
+            for subdir, name, layerdir in set(addlayers):
+                if os.path.exists(layerdir):
+                    if subdir:
+                        logger.plain("Adding layer \"%s\" to conf/bblayers.conf" % subdir)
+                    else:
+                        logger.plain("Adding layer \"%s\" to conf/bblayers.conf" % name)
+                    localargs = argparse.Namespace()
+                    localargs.layerdir = layerdir
+                    self.do_add_layer(localargs)
+                else:
+                    break
+
+
+    def do_layerindex_show_depends(self, args):
+        """Find layer dependencies from layer index.
+"""
+        args.show_only = True
+        args.ignore = []
+        self.do_layerindex_fetch(args)
+
+
     def version_str(self, pe, pv, pr = None):
         verstr = "%s" % pv
         if pr:
@@ -115,32 +381,13 @@ class Commands(cmd.Cmd):
     def do_show_overlayed(self, args):
         """list overlayed recipes (where the same recipe exists in another layer)
 
-usage: show-overlayed [-f] [-s]
-
 Lists the names of overlayed recipes and the available versions in each
 layer, with the preferred version first. Note that skipped recipes that
 are overlayed will also be listed, with a " (skipped)" suffix.
-
-Options:
-  -f   instead of the default formatting, list filenames of higher priority
-       recipes with the ones they overlay indented underneath
-  -s   only list overlayed recipes where the version is the same
 """
         self.init_bbhandler()
 
-        show_filenames = False
-        show_same_ver_only = False
-        for arg in args.split():
-            if arg == '-f':
-                show_filenames = True
-            elif arg == '-s':
-                show_same_ver_only = True
-            else:
-                sys.stderr.write("show-overlayed: invalid option %s\n" % arg)
-                self.do_help('')
-                return
-
-        items_listed = self.list_recipes('Overlayed recipes', None, True, show_same_ver_only, show_filenames, True)
+        items_listed = self.list_recipes('Overlayed recipes', None, True, args.same_version, args.filenames, True)
 
         # Check for overlayed .bbclass files
         classes = defaultdict(list)
@@ -167,7 +414,7 @@ Options:
                     overlayed_class_found = True
 
                 mainfile = bb.utils.which(bbpath, os.path.join('classes', classfile))
-                if show_filenames:
+                if args.filenames:
                     logger.plain('%s' % mainfile)
                 else:
                     # We effectively have to guess the layer here
@@ -181,7 +428,7 @@ Options:
                 for classdir in classdirs:
                     fullpath = os.path.join(classdir, classfile)
                     if fullpath != mainfile:
-                        if show_filenames:
+                        if args.filenames:
                             print('  %s' % fullpath)
                         else:
                             print('  %s' % self.get_layer_name(os.path.dirname(classdir)))
@@ -196,38 +443,15 @@ Options:
     def do_show_recipes(self, args):
         """list available recipes, showing the layer they are provided by
 
-usage: show-recipes [-f] [-m] [pnspec]
-
-Lists the names of overlayed recipes and the available versions in each
+Lists the names of recipes and the available versions in each
 layer, with the preferred version first. Optionally you may specify
 pnspec to match a specified recipe name (supports wildcards). Note that
 skipped recipes will also be listed, with a " (skipped)" suffix.
-
-Options:
-  -f   instead of the default formatting, list filenames of higher priority
-       recipes with other available recipes indented underneath
-  -m   only list where multiple recipes (in the same layer or different
-       layers) exist for the same recipe name
 """
         self.init_bbhandler()
 
-        show_filenames = False
-        show_multi_provider_only = False
-        pnspec = None
         title = 'Available recipes:'
-        for arg in args.split():
-            if arg == '-f':
-                show_filenames = True
-            elif arg == '-m':
-                show_multi_provider_only = True
-            elif not arg.startswith('-'):
-                pnspec = arg
-                title = 'Available recipes matching %s:' % pnspec
-            else:
-                sys.stderr.write("show-recipes: invalid option %s\n" % arg)
-                self.do_help('')
-                return
-        self.list_recipes(title, pnspec, False, False, show_filenames, show_multi_provider_only)
+        self.list_recipes(title, args.pnspec, False, False, args.filenames, args.multiple)
 
 
     def list_recipes(self, title, pnspec, show_overlayed_only, show_same_ver_only, show_filenames, show_multi_provider_only):
@@ -277,7 +501,13 @@ Options:
 
             if len(allproviders[p]) > 1 or not show_multi_provider_only:
                 pref = preferred_versions[p]
-                preffile = bb.cache.Cache.virtualfn2realfn(pref[1])[0]
+                realfn = bb.cache.Cache.virtualfn2realfn(pref[1])
+                preffile = realfn[0]
+                # We only display once per recipe, we should prefer non extended versions of the
+                # recipe if present (so e.g. in OpenEmbedded, openssl rather than nativesdk-openssl
+                # which would otherwise sort first).
+                if realfn[1] and realfn[0] in self.bbhandler.cooker.recipecache.pkg_fn:
+                    continue
                 if preffile not in preffiles:
                     preflayer = self.get_file_layer(preffile)
                     multilayer = False
@@ -307,9 +537,7 @@ Options:
 
 
     def do_flatten(self, args):
-        """flattens layer configuration into a separate output directory.
-
-usage: flatten [layer1 layer2 [layer3]...] <outputdir>
+        """flatten layer configuration into a separate output directory.
 
 Takes the specified layers (or all layers in the current layer
 configuration if none are specified) and builds a "flattened" directory
@@ -331,26 +559,19 @@ bbappends in the layers interact, and then attempt to use the new output
 layer together with that other layer, you may no longer get the same
 build results (as the layer priority order has effectively changed).
 """
-        arglist = args.split()
-        if len(arglist) < 1:
-            logger.error('Please specify an output directory')
-            self.do_help('flatten')
-            return
-
-        if len(arglist) == 2:
+        if len(args.layer) == 1:
             logger.error('If you specify layers to flatten you must specify at least two')
-            self.do_help('flatten')
-            return
+            return 1
 
-        outputdir = arglist[-1]
+        outputdir = args.outputdir
         if os.path.exists(outputdir) and os.listdir(outputdir):
             logger.error('Directory %s exists and is non-empty, please clear it out first' % outputdir)
-            return
+            return 1
 
         self.init_bbhandler()
         layers = self.bblayers
-        if len(arglist) > 2:
-            layernames = arglist[:-1]
+        if len(args.layer) > 2:
+            layernames = args.layer
             found_layernames = []
             found_layerdirs = []
             for layerdir in layers:
@@ -499,14 +720,12 @@ build results (as the layer priority order has effectively changed).
     def do_show_appends(self, args):
         """list bbappend files and recipe files they apply to
 
-usage: show-appends
-
-Recipes are listed with the bbappends that apply to them as subitems.
+Lists recipes with the bbappends that apply to them as subitems.
 """
         self.init_bbhandler()
         if not self.bbhandler.cooker.collection.appendlist:
             logger.plain('No append files found')
-            return
+            return 0
 
         logger.plain('=== Appended recipes ===')
 
@@ -545,7 +764,6 @@ Recipes are listed with the bbappends that apply to them as subitems.
                 if best_filename in missing:
                     logger.warn('%s: missing append for preferred version',
                                 best_filename)
-                    self.returncode |= 1
 
 
     def get_appends_for_files(self, filenames):
@@ -564,29 +782,13 @@ Recipes are listed with the bbappends that apply to them as subitems.
         return appended, notappended
 
     def do_show_cross_depends(self, args):
-        """figure out the dependency between recipes that crosses a layer boundary.
+        """Show dependencies between recipes that cross layer boundaries.
 
-usage: show-cross-depends [-f] [-i layer1[,layer2[,layer3...]]]
+Figure out the dependencies between recipes that cross layer boundaries.
 
-Figure out the dependency between recipes that crosses a layer boundary.
-
-Options:
-  -f   show full file path
-  -i   ignore dependencies on items in the specified layer(s)
-
-NOTE:
-The .bbappend file can impact the dependency.
+NOTE: .bbappend files can impact the dependencies.
 """
-        import optparse
-
-        parser = optparse.OptionParser(usage="show-cross-depends [-f] [-i layer1[,layer2[,layer3...]]]")
-        parser.add_option("-f", "",
-                action="store_true", dest="show_filenames")
-        parser.add_option("-i", "",
-                action="store", dest="ignore_layers", default="")
-
-        options, args = parser.parse_args(sys.argv)
-        ignore_layers = options.ignore_layers.split(',')
+        ignore_layers = (args.ignore or '').split(',')
 
         self.init_bbhandler()
 
@@ -612,7 +814,7 @@ The .bbappend file can impact the dependency.
                             self.bbhandler.config_data,
                             self.bbhandler.cooker_data,
                             self.bbhandler.cooker_data.pkg_pn)
-                    self.check_cross_depends("DEPENDS", layername, f, best[3], options.show_filenames, ignore_layers)
+                    self.check_cross_depends("DEPENDS", layername, f, best[3], args.filenames, ignore_layers)
 
             # The RDPENDS
             all_rdeps = self.bbhandler.cooker_data.rundeps[f].values()
@@ -632,7 +834,7 @@ The .bbappend file can impact the dependency.
                     best = bb.providers.filterProvidersRunTime(all_p, rdep,
                                     self.bbhandler.config_data,
                                     self.bbhandler.cooker_data)[0][0]
-                    self.check_cross_depends("RDEPENDS", layername, f, best, options.show_filenames, ignore_layers)
+                    self.check_cross_depends("RDEPENDS", layername, f, best, args.filenames, ignore_layers)
 
             # The RRECOMMENDS
             all_rrecs = self.bbhandler.cooker_data.runrecs[f].values()
@@ -652,7 +854,7 @@ The .bbappend file can impact the dependency.
                     best = bb.providers.filterProvidersRunTime(all_p, rrec,
                                     self.bbhandler.config_data,
                                     self.bbhandler.cooker_data)[0][0]
-                    self.check_cross_depends("RRECOMMENDS", layername, f, best, options.show_filenames, ignore_layers)
+                    self.check_cross_depends("RRECOMMENDS", layername, f, best, args.filenames, ignore_layers)
 
             # The inherit class
             cls_re = re.compile('classes/')
@@ -667,7 +869,7 @@ The .bbappend file can impact the dependency.
                             continue
                         inherit_layername = self.get_file_layer(cls)
                         if inherit_layername != layername and not inherit_layername in ignore_layers:
-                            if not options.show_filenames:
+                            if not args.filenames:
                                 f_short = self.remove_layer_prefix(f)
                                 cls = self.remove_layer_prefix(cls)
                             else:
@@ -687,7 +889,7 @@ The .bbappend file can impact the dependency.
                     if pv_re.search(needed_file) and f in self.bbhandler.cooker_data.pkg_pepvpr:
                         pv = self.bbhandler.cooker_data.pkg_pepvpr[f][1]
                         needed_file = re.sub(r"\${PV}", pv, needed_file)
-                    self.print_cross_files(bbpath, keyword, layername, f, needed_file, options.show_filenames, ignore_layers)
+                    self.print_cross_files(bbpath, keyword, layername, f, needed_file, args.filenames, ignore_layers)
                 line = fnfile.readline()
             fnfile.close()
 
@@ -714,7 +916,7 @@ The .bbappend file can impact the dependency.
                                 bbclass=".bbclass"
                             # Find a 'require/include xxxx'
                             if m:
-                                self.print_cross_files(bbpath, keyword, layername, f, m.group(1) + bbclass, options.show_filenames, ignore_layers)
+                                self.print_cross_files(bbpath, keyword, layername, f, m.group(1) + bbclass, args.filenames, ignore_layers)
                             line = ffile.readline()
                         ffile.close()
 
@@ -754,5 +956,84 @@ The .bbappend file can impact the dependency.
 
             logger.plain("%s %s %s" % (f, keyword, best_realfn))
 
-if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]) or 0)
+
+def main():
+
+    cmds = Commands()
+
+    def add_command(cmdname, function, *args, **kwargs):
+        # Convert docstring for function to help (one-liner shown in main --help) and description (shown in subcommand --help)
+        docsplit = function.__doc__.splitlines()
+        help = docsplit[0]
+        if len(docsplit) > 1:
+            desc = '\n'.join(docsplit[1:])
+        else:
+            desc = help
+        subparser = subparsers.add_parser(cmdname, *args, help=help, description=desc, formatter_class=argparse.RawTextHelpFormatter, **kwargs)
+        subparser.set_defaults(func=function)
+        return subparser
+
+    parser = argparse.ArgumentParser(description="BitBake layers utility",
+                                     epilog="Use %(prog)s <subcommand> --help to get help on a specific command")
+    parser.add_argument('-d', '--debug', help='Enable debug output', action='store_true')
+    parser.add_argument('-q', '--quiet', help='Print only errors', action='store_true')
+    subparsers = parser.add_subparsers(title='subcommands', metavar='<subcommand>')
+
+    parser_show_layers = add_command('show-layers', cmds.do_show_layers)
+
+    parser_add_layer = add_command('add-layer', cmds.do_add_layer)
+    parser_add_layer.add_argument('layerdir', help='Layer directory to add')
+
+    parser_remove_layer = add_command('remove-layer', cmds.do_remove_layer)
+    parser_remove_layer.add_argument('layerdir', help='Layer directory to remove (wildcards allowed, enclose in quotes to avoid shell expansion)')
+    parser_remove_layer.set_defaults(func=cmds.do_remove_layer)
+
+    parser_show_overlayed = add_command('show-overlayed', cmds.do_show_overlayed)
+    parser_show_overlayed.add_argument('-f', '--filenames', help='instead of the default formatting, list filenames of higher priority recipes with the ones they overlay indented underneath', action='store_true')
+    parser_show_overlayed.add_argument('-s', '--same-version', help='only list overlayed recipes where the version is the same', action='store_true')
+
+    parser_show_recipes = add_command('show-recipes', cmds.do_show_recipes)
+    parser_show_recipes.add_argument('-f', '--filenames', help='instead of the default formatting, list filenames of higher priority recipes with the ones they overlay indented underneath', action='store_true')
+    parser_show_recipes.add_argument('-m', '--multiple', help='only list where multiple recipes (in the same layer or different layers) exist for the same recipe name', action='store_true')
+    parser_show_recipes.add_argument('pnspec', nargs='?', help='optional recipe name specification (wildcards allowed, enclose in quotes to avoid shell expansion)')
+
+    parser_show_appends = add_command('show-appends', cmds.do_show_appends)
+
+    parser_flatten = add_command('flatten', cmds.do_flatten)
+    parser_flatten.add_argument('layer', nargs='*', help='Optional layer(s) to flatten (otherwise all are flattened)')
+    parser_flatten.add_argument('outputdir', help='Output directory')
+
+    parser_show_cross_depends = add_command('show-cross-depends', cmds.do_show_cross_depends)
+    parser_show_cross_depends.add_argument('-f', '--filenames', help='show full file path', action='store_true')
+    parser_show_cross_depends.add_argument('-i', '--ignore', help='ignore dependencies on items in the specified layer(s) (split multiple layer names with commas, no spaces)', metavar='LAYERNAME')
+
+    parser_layerindex_fetch = add_command('layerindex-fetch', cmds.do_layerindex_fetch)
+    parser_layerindex_fetch.add_argument('-n', '--show-only', help='show dependencies and do nothing else', action='store_true')
+    parser_layerindex_fetch.add_argument('-b', '--branch', help='branch name to fetch (default %(default)s)', default='master')
+    parser_layerindex_fetch.add_argument('-i', '--ignore', help='assume the specified layers do not need to be fetched/added (separate multiple layers with commas, no spaces)', metavar='LAYER')
+    parser_layerindex_fetch.add_argument('layername', nargs='+', help='layer to fetch')
+
+    parser_layerindex_show_depends = add_command('layerindex-show-depends', cmds.do_layerindex_show_depends)
+    parser_layerindex_show_depends.add_argument('-b', '--branch', help='branch name to fetch (default %(default)s)', default='master')
+    parser_layerindex_show_depends.add_argument('layername', nargs='+', help='layer to query')
+
+    args = parser.parse_args()
+
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+    elif args.quiet:
+        logger.setLevel(logging.ERROR)
+
+    ret = args.func(args)
+
+    return ret
+
+
+if __name__ == "__main__":
+    try:
+        ret = main()
+    except Exception:
+        ret = 1
+        import traceback
+        traceback.print_exc(5)
+    sys.exit(ret)

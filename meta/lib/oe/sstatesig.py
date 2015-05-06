@@ -137,13 +137,16 @@ class SignatureGeneratorOEBasicHash(bb.siggen.SignatureGeneratorBasicHash):
             return
         super(bb.siggen.SignatureGeneratorBasicHash, self).dump_sigtask(fn, task, stampbase, runtime)
 
-    def dump_lockedsigs(self, sigfile=None):
+    def dump_lockedsigs(self, sigfile=None, taskfilter=None):
         if not sigfile:
             sigfile = os.getcwd() + "/locked-sigs.inc"
 
         bb.plain("Writing locked sigs to %s" % sigfile)
         types = {}
         for k in self.runtaskdeps:
+            if taskfilter:
+                if not k in taskfilter:
+                    continue
             fn = k.rsplit(".",1)[0]
             t = self.lockedhashfn[fn].split(" ")[1].split(":")[5]
             t = 't-' + t.replace('_', '-')
@@ -203,9 +206,6 @@ def find_siginfo(pn, taskname, taskhashlist, d):
         if key.startswith('virtual:native:'):
             pn = pn + '-native'
 
-    if taskname in ['do_fetch', 'do_unpack', 'do_patch', 'do_populate_lic']:
-        pn.replace("-native", "")
-
     filedates = {}
 
     # First search in stamps dir
@@ -246,7 +246,10 @@ def find_siginfo(pn, taskname, taskhashlist, d):
             localdata.setVar('PV', '*')
             localdata.setVar('PR', '*')
             localdata.setVar('BB_TASKHASH', hashval)
-            if pn.endswith('-native') or "-cross-" in pn or "-crosssdk-" in pn:
+            swspec = localdata.getVar('SSTATE_SWSPEC', True)
+            if taskname in ['do_fetch', 'do_unpack', 'do_patch', 'do_populate_lic', 'do_preconfigure'] and swspec:
+                localdata.setVar('SSTATE_PKGSPEC', '${SSTATE_SWSPEC}')
+            elif pn.endswith('-native') or "-cross-" in pn or "-crosssdk-" in pn:
                 localdata.setVar('SSTATE_EXTRAPATH', "${NATIVELSBSTRING}/")
             sstatename = taskname[3:]
             filespec = '%s_%s.*.siginfo' % (localdata.getVar('SSTATE_PKG', True), sstatename)

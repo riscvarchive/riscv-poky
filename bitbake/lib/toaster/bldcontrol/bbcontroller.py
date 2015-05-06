@@ -81,14 +81,6 @@ def getBuildEnvironmentController(**kwargs):
         raise Exception("FIXME: Implement BEC for type %s" % str(be.betype))
 
 
-def _getgitcheckoutdirectoryname(url):
-    """ Utility that returns the last component of a git path as directory
-    """
-    import re
-    components = re.split(r'[:\.\/]', url)
-    return components[-2] if components[-1] == "git" else components[-1]
-
-
 class BuildEnvironmentController(object):
     """ BuildEnvironmentController (BEC) is the abstract class that defines the operations that MUST
         or SHOULD be supported by a Build Environment. It is used to establish the framework, and must
@@ -117,19 +109,43 @@ class BuildEnvironmentController(object):
         self.be = be
         self.connection = None
 
+    @staticmethod
+    def _updateBBLayers(bblayerconf, layerlist):
+        conflines = open(bblayerconf, "r").readlines()
+
+        bblayerconffile = open(bblayerconf, "w")
+        skip = 0
+        for i in xrange(len(conflines)):
+            if skip > 0:
+                skip =- 1
+                continue
+            if conflines[i].startswith("# line added by toaster"):
+                skip = 1
+            else:
+                bblayerconffile.write(conflines[i])
+
+        bblayerconffile.write("# line added by toaster build control\nBBLAYERS = \"" + " ".join(layerlist) + "\"")
+        bblayerconffile.close()
+
+
+    def writeConfFile(self, variable_list = None, raw = None):
+        """ Writes a configuration file in the build directory. Override with buildenv-specific implementation. """
+        raise Exception("FIXME: Must override to actually write a configuration file")
+
 
     def startBBServer(self):
         """ Starts a  BB server with Toaster toasterui set up to record the builds, an no controlling UI.
             After this method executes, self.be bbaddress/bbport MUST point to a running and free server,
             and the bbstate MUST be  updated to "started".
         """
-        raise Exception("Must override in order to actually start the BB server")
+        raise Exception("FIXME: Must override in order to actually start the BB server")
 
     def stopBBServer(self):
         """ Stops the currently running BB server.
             The bbstate MUST be updated to "stopped".
             self.connection must be none.
         """
+        raise Exception("FIXME: Must override stoBBServer")
 
     def setLayers(self, bbs, ls):
         """ Checks-out bitbake executor and layers from git repositories.
@@ -139,7 +155,7 @@ class BuildEnvironmentController(object):
 
             a word of attention: by convention, the first layer for any build will be poky!
         """
-        raise Exception("Must override setLayers")
+        raise Exception("FIXME: Must override setLayers")
 
 
     def getBBController(self):

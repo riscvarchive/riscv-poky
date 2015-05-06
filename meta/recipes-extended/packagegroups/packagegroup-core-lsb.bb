@@ -9,6 +9,15 @@ LICENSE = "MIT"
 
 inherit packagegroup
 
+#
+# We will skip parsing this packagegeoup for non-glibc systems
+#
+python __anonymous () {
+    if d.getVar('TCLIBC', True) != "glibc":
+        raise bb.parse.SkipPackage("incompatible with %s C library" %
+                                   d.getVar('TCLIBC', True))
+}
+
 PACKAGES = "\
     packagegroup-core-lsb \
     packagegroup-core-sys-extended \
@@ -211,6 +220,7 @@ QT4PKGS = " \
     ${@bb.utils.contains("DISTRO_FEATURES", "opengl", "libqtopengl4", "", d)} \
     "
 QT4PKGS_mips64 = ""
+QT4PKGS_mips64n32 = ""
 
 SUMMARY_packagegroup-core-lsb-desktop = "LSB Desktop"
 DESCRIPTION_packagegroup-core-lsb-desktop = "Packages required to support libraries \

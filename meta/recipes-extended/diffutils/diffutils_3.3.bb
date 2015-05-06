@@ -4,8 +4,11 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=d32239bcb673463ab874e80d47fae504"
 require diffutils.inc
 
 SRC_URI = "${GNU_MIRROR}/diffutils/diffutils-${PV}.tar.xz \
+           file://0001-Unset-need_charset_alias-when-building-for-musl.patch \
            file://run-ptest \
 "
+
+EXTRA_OECONF += "--without-libsigsegv-prefix"
 
 do_configure_prepend () {
 	# Need to remove gettext macros with weird mix of versions

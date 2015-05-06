@@ -121,6 +121,12 @@ class DataExpansions(unittest.TestCase):
         keys = self.d.keys()
         self.assertEqual(keys, ['value_of_foo', 'foo', 'bar'])
 
+    def test_keys_deletion(self):
+        newd = bb.data.createCopy(self.d)
+        newd.delVar("bar")
+        keys = newd.keys()
+        self.assertEqual(keys, ['value_of_foo', 'foo'])
+
 class TestNestedExpansions(unittest.TestCase):
     def setUp(self):
         self.d = bb.data.init()
@@ -265,6 +271,13 @@ class TestConcatOverride(unittest.TestCase):
         self.d.setVar("TEST_remove", "${BAR}/X")
         bb.data.update_data(self.d)
         self.assertEqual(self.d.getVar("TEST", True), "Y")
+
+    def test_remove_expansion_items(self):
+        self.d.setVar("TEST", "A B C D")
+        self.d.setVar("BAR", "B D")
+        self.d.setVar("TEST_remove", "${BAR}")
+        bb.data.update_data(self.d)
+        self.assertEqual(self.d.getVar("TEST", True), "A C")
 
 class TestOverrides(unittest.TestCase):
     def setUp(self):

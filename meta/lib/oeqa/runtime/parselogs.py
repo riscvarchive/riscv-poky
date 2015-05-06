@@ -7,10 +7,26 @@ from oeqa.utils.decorators import *
 errors = ["error", "cannot", "can\'t", "failed"]
 
 common_errors = [
-    '(WW) warning, (EE) error, (NI) not implemented, (??) unknown.',
-    'dma timeout',
-    'can\'t add hid device:',
-    'usbhid: probe of ',
+    "(WW) warning, (EE) error, (NI) not implemented, (??) unknown.",
+    "dma timeout",
+    "can\'t add hid device:",
+    "usbhid: probe of ",
+    "_OSC failed (AE_ERROR)",
+    "_OSC failed (AE_SUPPORT)",
+    "AE_ALREADY_EXISTS",
+    "ACPI _OSC request failed (AE_SUPPORT)",
+    "can\'t disable ASPM",
+    "Failed to load module \"vesa\"",
+    "Failed to load module vesa",
+    "Failed to load module \"modesetting\"",
+    "Failed to load module modesetting",
+    "Failed to load module \"glx\"",
+    "Failed to load module glx",
+    "[drm] Cannot find any crtc or sizes - going 1024x768",
+    "_OSC failed (AE_NOT_FOUND); disabling ASPM",
+    "Open ACPI failed (/var/run/acpid.socket) (No such file or directory)",
+    "NX (Execute Disable) protection cannot be enabled: non-PAE kernel!",
+    "hd.: possibly failed opcode"
     ]
 
 x86_common = [
@@ -22,11 +38,6 @@ x86_common = [
 
 qemux86_common = [
     'Fast TSC calibration', 
-    '_OSC failed (AE_NOT_FOUND); disabling ASPM',
-    'Open ACPI failed (/var/run/acpid.socket) (No such file or directory)',
-    'Failed to load module "vesa"',
-    'Failed to load module "modesetting"',
-    'Failed to load module "glx"',
     'wrong ELF class',
 ] + common_errors
 
@@ -39,9 +50,11 @@ ignore_errors = {
     'qemux86-64' : qemux86_common,
     'qemumips' : [
         'Failed to load module "glx"',
+        'pci 0000:00:00.0: [Firmware Bug]: reg 0x..: invalid BAR (can\'t size)',
         ] + common_errors,
     'qemuppc' : [
         'PCI 0000:00 Cannot reserve Legacy IO [io  0x0000-0x0fff]',
+        'host side 80-wire cable detection failed, limiting max speed',
         'mode "640x480" test failed',
         'Failed to load module "glx"',
         ] + common_errors,
@@ -54,6 +67,19 @@ ignore_errors = {
     'crownbay' : x86_common,
     'genericx86' : x86_common,
     'genericx86-64' : x86_common,
+    'edgerouter' : [
+        'Fatal server error:',
+        ] + common_errors,
+    'minnow' : [
+        'netlink init failed',
+        'NETLINK INITIALIZATION FAILED',
+        ] + common_errors,
+    'jasperforest' : [
+        'Activated service \'org.bluez\' failed:',
+        'Unable to find NFC netlink family',
+        'netlink init failed',
+        'NETLINK INITIALIZATION FAILED',
+        ] + common_errors,
 }
 
 log_locations = ["/var/log/","/var/log/dmesg", "/tmp/dmesg_output.log"]
@@ -100,9 +126,10 @@ class ParseLogsTest(oeRuntimeTest):
                 (status, output) = self.target.run("test -d "+str(location))
                 if (status == 0):
                     (status, output) = self.target.run("find "+str(location)+"/*.log -maxdepth 1 -type f")
-                    output = output.splitlines()
-                    for logfile in output:
-                        logs.append(os.path.join(location,str(logfile)))
+                    if (status == 0):
+                        output = output.splitlines()
+                        for logfile in output:
+                            logs.append(os.path.join(location,str(logfile)))
         return logs
 
     #build the grep command to be used with filters and exclusions
@@ -158,6 +185,7 @@ class ParseLogsTest(oeRuntimeTest):
         (status, dmesg) = self.target.run("dmesg")
         (status, dmesg2) = self.target.run("echo \""+str(dmesg)+"\" > /tmp/dmesg_output.log")
 
+    @testcase(1059)
     @skipUnlessPassed('test_ssh')
     def test_parselogs(self):
         self.write_dmesg()

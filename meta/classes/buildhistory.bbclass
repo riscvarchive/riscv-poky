@@ -155,7 +155,7 @@ python buildhistory_emit_pkghistory() {
         with open(os.path.join(pkgdata_dir, pn)) as f:
             for line in f.readlines():
                 if line.startswith('PACKAGES: '):
-                    packages = squashspaces(line.split(': ', 1)[1])
+                    packages = oe.utils.squashspaces(line.split(': ', 1)[1])
                     break
     except IOError as e:
         if e.errno == errno.ENOENT:
@@ -181,7 +181,7 @@ python buildhistory_emit_pkghistory() {
     rcpinfo.pe = pe
     rcpinfo.pv = pv
     rcpinfo.pr = pr
-    rcpinfo.depends = sortlist(squashspaces(d.getVar('DEPENDS', True) or ""))
+    rcpinfo.depends = sortlist(oe.utils.squashspaces(d.getVar('DEPENDS', True) or ""))
     rcpinfo.packages = packages
     write_recipehistory(rcpinfo, d)
 
@@ -222,13 +222,13 @@ python buildhistory_emit_pkghistory() {
         pkginfo.pkge = pkge
         pkginfo.pkgv = pkgv
         pkginfo.pkgr = pkgr
-        pkginfo.rprovides = sortpkglist(squashspaces(pkgdata.get('RPROVIDES', "")))
-        pkginfo.rdepends = sortpkglist(squashspaces(pkgdata.get('RDEPENDS', "")))
-        pkginfo.rrecommends = sortpkglist(squashspaces(pkgdata.get('RRECOMMENDS', "")))
-        pkginfo.rsuggests = sortpkglist(squashspaces(pkgdata.get('RSUGGESTS', "")))
-        pkginfo.rreplaces = sortpkglist(squashspaces(pkgdata.get('RREPLACES', "")))
-        pkginfo.rconflicts = sortpkglist(squashspaces(pkgdata.get('RCONFLICTS', "")))
-        pkginfo.files = squashspaces(pkgdata.get('FILES', ""))
+        pkginfo.rprovides = sortpkglist(oe.utils.squashspaces(pkgdata.get('RPROVIDES', "")))
+        pkginfo.rdepends = sortpkglist(oe.utils.squashspaces(pkgdata.get('RDEPENDS', "")))
+        pkginfo.rrecommends = sortpkglist(oe.utils.squashspaces(pkgdata.get('RRECOMMENDS', "")))
+        pkginfo.rsuggests = sortpkglist(oe.utils.squashspaces(pkgdata.get('RSUGGESTS', "")))
+        pkginfo.rreplaces = sortpkglist(oe.utils.squashspaces(pkgdata.get('RREPLACES', "")))
+        pkginfo.rconflicts = sortpkglist(oe.utils.squashspaces(pkgdata.get('RCONFLICTS', "")))
+        pkginfo.files = oe.utils.squashspaces(pkgdata.get('FILES', ""))
         for filevar in pkginfo.filevars:
             pkginfo.filevars[filevar] = pkgdata.get(filevar, "")
 
@@ -374,7 +374,7 @@ buildhistory_get_installed() {
 	printf "" > $1/installed-package-sizes.tmp
 	cat $pkgcache | while read pkg pkgfile pkgarch
 	do
-		size=`oe-pkgdata-util read-value ${PKGDATA_DIR} "PKGSIZE" ${pkg}_${pkgarch}`
+		size=`oe-pkgdata-util -p ${PKGDATA_DIR} read-value "PKGSIZE" ${pkg}_${pkgarch}`
 		if [ "$size" != "" ] ; then
 			echo "$size $pkg" >> $1/installed-package-sizes.tmp
 		fi
@@ -484,8 +484,9 @@ END
 	echo "SDKSIZE = $sdksize" >> ${BUILDHISTORY_DIR_SDK}/sdk-info.txt
 }
 
-# By prepending we get in before the removal of packaging files
-ROOTFS_POSTPROCESS_COMMAND =+ " buildhistory_list_installed_image ;\
+# By using ROOTFS_POSTUNINSTALL_COMMAND we get in after uninstallation of
+# unneeded packages but before the removal of packaging files
+ROOTFS_POSTUNINSTALL_COMMAND += " buildhistory_list_installed_image ;\
                                 buildhistory_get_image_installed ; "
 
 IMAGE_POSTPROCESS_COMMAND += " buildhistory_get_imageinfo ; "
@@ -525,11 +526,6 @@ def buildhistory_get_metadata_revs(d):
             for i in layers]
     return '\n'.join(medadata_revs)
 
-
-def squashspaces(string):
-    import re
-    return re.sub("\s+", " ", string).strip()
-
 def outputvars(vars, listvars, d):
     vars = vars.split()
     listvars = listvars.split()
@@ -538,7 +534,7 @@ def outputvars(vars, listvars, d):
         value = d.getVar(var, True) or ""
         if var in listvars:
             # Squash out spaces
-            value = squashspaces(value)
+            value = oe.utils.squashspaces(value)
         ret += "%s = %s\n" % (var, value)
     return ret.rstrip('\n')
 

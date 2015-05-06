@@ -1,0 +1,48 @@
+From 4e2e8dbf3f23ab7dca32286cc0f37bff6ac49e22 Mon Sep 17 00:00:00 2001
+From: Khem Raj <raj.khem@gmail.com>
+Date: Fri, 20 Feb 2015 05:05:45 +0000
+Subject: [PATCH 04/11] configure: Check for additional features that uclibc
+ doesnt support
+
+This helps in supporting uclibc which does not have all features that
+glibc might have
+
+Upstream-Status: Denied [no desire for uclibc support]
+
+Signed-off-by: Khem Raj <raj.khem@gmail.com>
+---
+ configure.ac | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/configure.ac b/configure.ac
+index 9a2235b..a5b2e6e 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -103,6 +103,24 @@ AS_IF([! ln --relative --help > /dev/null 2>&1], [AC_MSG_ERROR([*** ln doesn't s
+ 
+ M4_DEFINES=
+ 
++# check for few functions not implemented in uClibc
++
++AC_CHECK_FUNCS_ONCE(mkostemp execvpe posix_fallocate)
++
++# check for %ms format support - assume always no if cross compiling
++
++AC_MSG_CHECKING([whether %ms format is supported by *scanf])
++
++AC_LINK_IFELSE(
++	[AC_LANG_PROGRAM([ 
++	 #include <stdio.h>
++	 ],[
++	    char *buf1, *buf2, *buf3, str="1 2.3 abcde" ;
++	    int rc = sscanf(str, "%ms %ms %ms", &buf1, &buf2, &buf3) ;
++	    return (rc==3)?0:1;])],
++	[AC_DEFINE([HAVE_MSFORMAT], [1], [Define if %ms format is supported by *scanf.])],
++	[AC_MSG_RESULT([no])])
++
+ # gtkdocize greps for '^GTK_DOC_CHECK', so it needs to be on its own line
+ m4_ifdef([GTK_DOC_CHECK], [
+ GTK_DOC_CHECK([1.18],[--flavour no-tmpl])],
+-- 
+2.1.4
+

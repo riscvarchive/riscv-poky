@@ -10,9 +10,9 @@ GCCMULTILIB = "--enable-multilib"
 require gcc-configure-common.inc
 
 EXTRA_OECONF_PATHS = "\
-    --with-gxx-include-dir=${SDKPATH}/sysroots/${TUNE_PKGARCH}${TARGET_VENDOR}-${TARGET_OS}${target_includedir}/c++/${BINV} \
+    --with-gxx-include-dir=/not/exist${target_includedir}/c++/${BINV} \
     --with-build-time-tools=${STAGING_DIR_NATIVE}${prefix_native}/${TARGET_SYS}/bin \
-    --with-sysroot=${SDKPATH}/sysroots/${TUNE_PKGARCH}${TARGET_VENDOR}-${TARGET_OS} \
+    --with-sysroot=/not/exist \
     --with-build-sysroot=${STAGING_DIR_TARGET} \
 "
 # We have to point gcc at a sysroot but we don't need to rebuild if this changes
@@ -55,7 +55,6 @@ do_configure () {
 	export CPPFLAGS_FOR_TARGET="${TARGET_CPPFLAGS}"
 	export CXXFLAGS_FOR_TARGET="${TARGET_CXXFLAGS}"
 	export LDFLAGS_FOR_TARGET="${TARGET_LDFLAGS}"
-	(cd ${S} && gnu-configize) || die "failure running gnu-configize"
 	oe_runconf
 }
 
@@ -63,12 +62,10 @@ do_compile () {
 	oe_runmake all-host configure-target-libgcc
 }
 
-INHIBIT_PACKAGE_STRIP = "1"
-
 # Having anything auto depending on gcc-cross-sdk is a really bad idea...
 EXCLUDE_FROM_SHLIBS = "1"
 
-PACKAGES = "${PN} ${PN}-doc"
+PACKAGES = "${PN}-dbg ${PN} ${PN}-doc"
 
 FILES_${PN} = "\
     ${exec_prefix}/bin/* \
@@ -86,6 +83,11 @@ FILES_${PN} = "\
     ${prefix}/${TARGET_SYS}/usr/include/* \
 "
 INSANE_SKIP_${PN} += "dev-so"
+
+FILES_${PN}-dbg += " \
+    ${libexecdir}/gcc/${TARGET_SYS}/${BINV}/.debug \
+    ${libexecdir}/gcc/${TARGET_SYS}/${BINV}/plugin/.debug \
+"
 
 FILES_${PN}-doc = "\
     ${infodir} \

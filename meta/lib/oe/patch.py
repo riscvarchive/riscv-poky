@@ -199,10 +199,108 @@ class PatchTree(PatchSet):
         self.Pop(all=True)
 
 class GitApplyTree(PatchTree):
+    patch_line_prefix = '%% original patch'
+
     def __init__(self, dir, d):
         PatchTree.__init__(self, dir, d)
 
+    @staticmethod
+    def extractPatchHeader(patchfile):
+        """
+        Extract just the header lines from the top of a patch file
+        """
+        lines = []
+        with open(patchfile, 'r') as f:
+            for line in f.readlines():
+                if line.startswith('Index: ') or line.startswith('diff -') or line.startswith('---'):
+                    break
+                lines.append(line)
+        return lines
+
+    @staticmethod
+    def prepareCommit(patchfile):
+        """
+        Prepare a git commit command line based on the header from a patch file
+        (typically this is useful for patches that cannot be applied with "git am" due to formatting)
+        """
+        import tempfile
+        import re
+        author_re = re.compile('[\S ]+ <\S+@\S+\.\S+>')
+        # Process patch header and extract useful information
+        lines = GitApplyTree.extractPatchHeader(patchfile)
+        outlines = []
+        author = None
+        date = None
+        for line in lines:
+            if line.startswith('Subject: '):
+                subject = line.split(':', 1)[1]
+                # Remove any [PATCH][oe-core] etc.
+                subject = re.sub(r'\[.+?\]\s*', '', subject)
+                outlines.insert(0, '%s\n\n' % subject.strip())
+                continue
+            if line.startswith('From: ') or line.startswith('Author: '):
+                authorval = line.split(':', 1)[1].strip().replace('"', '')
+                # git is fussy about author formatting i.e. it must be Name <email@domain>
+                if author_re.match(authorval):
+                    author = authorval
+                    continue
+            if line.startswith('Date: '):
+                if date is None:
+                    dateval = line.split(':', 1)[1].strip()
+                    # Very crude check for date format, since git will blow up if it's not in the right
+                    # format. Without e.g. a python-dateutils dependency we can't do a whole lot more
+                    if len(dateval) > 12:
+                        date = dateval
+                continue
+            if line.startswith('Signed-off-by: '):
+                authorval = line.split(':', 1)[1].strip().replace('"', '')
+                # git is fussy about author formatting i.e. it must be Name <email@domain>
+                if author_re.match(authorval):
+                    author = authorval
+            outlines.append(line)
+        # Write out commit message to a file
+        with tempfile.NamedTemporaryFile('w', delete=False) as tf:
+            tmpfile = tf.name
+            for line in outlines:
+                tf.write(line)
+        # Prepare git command
+        cmd = ["git", "commit", "-F", tmpfile]
+        # git doesn't like plain email addresses as authors
+        if author and '<' in author:
+            cmd.append('--author="%s"' % author)
+        if date:
+            cmd.append('--date="%s"' % date)
+        return (tmpfile, cmd)
+
+    @staticmethod
+    def extractPatches(tree, startcommit, outdir):
+        import tempfile
+        import shutil
+        tempdir = tempfile.mkdtemp(prefix='oepatch')
+        try:
+            shellcmd = ["git", "format-patch", startcommit, "-o", tempdir]
+            out = runcmd(["sh", "-c", " ".join(shellcmd)], tree)
+            if out:
+                for srcfile in out.split():
+                    patchlines = []
+                    outfile = None
+                    with open(srcfile, 'r') as f:
+                        for line in f:
+                            if line.startswith(GitApplyTree.patch_line_prefix):
+                                outfile = line.split()[-1].strip()
+                                continue
+                            patchlines.append(line)
+                    if not outfile:
+                        outfile = os.path.basename(srcfile)
+                    with open(os.path.join(outdir, outfile), 'w') as of:
+                        for line in patchlines:
+                            of.write(line)
+        finally:
+            shutil.rmtree(tempdir)
+
     def _applypatch(self, patch, force = False, reverse = False, run = True):
+        import shutil
+
         def _applypatchhelper(shellcmd, patch, force = False, reverse = False, run = True):
             if reverse:
                 shellcmd.append('-R')
@@ -214,12 +312,65 @@ class GitApplyTree(PatchTree):
 
             return runcmd(["sh", "-c", " ".join(shellcmd)], self.dir)
 
+        # Add hooks which add a pointer to the original patch file name in the commit message
+        reporoot = (runcmd("git rev-parse --show-toplevel".split(), self.dir) or '').strip()
+        if not reporoot:
+            raise Exception("Cannot get repository root for directory %s" % self.dir)
+        commithook = os.path.join(reporoot, '.git', 'hooks', 'commit-msg')
+        commithook_backup = commithook + '.devtool-orig'
+        applyhook = os.path.join(reporoot, '.git', 'hooks', 'applypatch-msg')
+        applyhook_backup = applyhook + '.devtool-orig'
+        if os.path.exists(commithook):
+            shutil.move(commithook, commithook_backup)
+        if os.path.exists(applyhook):
+            shutil.move(applyhook, applyhook_backup)
+        with open(commithook, 'w') as f:
+            # NOTE: the formatting here is significant; if you change it you'll also need to
+            # change other places which read it back
+            f.write('echo >> $1\n')
+            f.write('echo "%s: $PATCHFILE" >> $1\n' % GitApplyTree.patch_line_prefix)
+        os.chmod(commithook, 0755)
+        shutil.copy2(commithook, applyhook)
         try:
-            shellcmd = ["git", "--work-tree=.", "am", "-3", "-p%s" % patch['strippath']]
-            return _applypatchhelper(shellcmd, patch, force, reverse, run)
-        except CmdError:
-            shellcmd = ["git", "--git-dir=.", "apply", "-p%s" % patch['strippath']]
-            return _applypatchhelper(shellcmd, patch, force, reverse, run)
+            patchfilevar = 'PATCHFILE="%s"' % os.path.basename(patch['file'])
+            try:
+                shellcmd = [patchfilevar, "git", "--work-tree=.", "am", "-3", "--keep-cr", "-p%s" % patch['strippath']]
+                return _applypatchhelper(shellcmd, patch, force, reverse, run)
+            except CmdError:
+                # Need to abort the git am, or we'll still be within it at the end
+                try:
+                    shellcmd = ["git", "--work-tree=.", "am", "--abort"]
+                    runcmd(["sh", "-c", " ".join(shellcmd)], self.dir)
+                except CmdError:
+                    pass
+                # Fall back to git apply
+                shellcmd = ["git", "--git-dir=.", "apply", "-p%s" % patch['strippath']]
+                try:
+                    output = _applypatchhelper(shellcmd, patch, force, reverse, run)
+                except CmdError:
+                    # Fall back to patch
+                    output = PatchTree._applypatch(self, patch, force, reverse, run)
+                # Add all files
+                shellcmd = ["git", "add", "-f", "."]
+                output += runcmd(["sh", "-c", " ".join(shellcmd)], self.dir)
+                # Exclude the patches directory
+                shellcmd = ["git", "reset", "HEAD", self.patchdir]
+                output += runcmd(["sh", "-c", " ".join(shellcmd)], self.dir)
+                # Commit the result
+                (tmpfile, shellcmd) = self.prepareCommit(patch['file'])
+                try:
+                    shellcmd.insert(0, patchfilevar)
+                    output += runcmd(["sh", "-c", " ".join(shellcmd)], self.dir)
+                finally:
+                    os.remove(tmpfile)
+                return output
+        finally:
+            os.remove(commithook)
+            os.remove(applyhook)
+            if os.path.exists(commithook_backup):
+                shutil.move(commithook_backup, commithook)
+            if os.path.exists(applyhook_backup):
+                shutil.move(applyhook_backup, applyhook)
 
 
 class QuiltTree(PatchSet):

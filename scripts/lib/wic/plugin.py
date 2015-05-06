@@ -1,4 +1,4 @@
-#!/usr/bin/python -tt
+#!/usr/bin/env python -tt
 #
 # Copyright (c) 2011 Intel, Inc.
 #
@@ -20,7 +20,7 @@ import os, sys
 from wic import msger
 from wic import pluginbase
 from wic.utils import errors
-from wic.utils.oe.misc import *
+from wic.utils.oe.misc import get_bitbake_var
 
 __ALL__ = ['PluginMgr', 'pluginmgr']
 

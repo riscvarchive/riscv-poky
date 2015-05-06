@@ -94,9 +94,26 @@ def extra_path_elements(d):
 
 PATH_prepend = "${@extra_path_elements(d)}"
 
+def get_lic_checksum_file_list(d):
+    filelist = []
+    lic_files = d.getVar("LIC_FILES_CHKSUM", True) or ''
+
+    urls = lic_files.split()
+    for url in urls:
+        # We only care about items that are absolute paths since
+        # any others should be covered by SRC_URI.
+        try:
+            path = bb.fetch.decodeurl(url)[2]
+            if path[0] == '/':
+                filelist.append(path + ":" + str(os.path.exists(path)))
+        except bb.fetch.MalformedUrl:
+            raise bb.build.FuncFailed(d.getVar('PN', True) + ": LIC_FILES_CHKSUM contains an invalid URL: " + url)
+    return " ".join(filelist)
+
 addtask fetch
 do_fetch[dirs] = "${DL_DIR}"
 do_fetch[file-checksums] = "${@bb.fetch.get_checksum_file_list(d)}"
+do_fetch[file-checksums] += " ${@get_lic_checksum_file_list(d)}"
 do_fetch[vardeps] += "SRCREV"
 python base_do_fetch() {
 
@@ -113,7 +130,6 @@ python base_do_fetch() {
 
 addtask unpack after do_fetch
 do_unpack[dirs] = "${WORKDIR}"
-do_unpack[cleandirs] = "${S}/patches"
 python base_do_unpack() {
     src_uri = (d.getVar('SRC_URI', True) or "").split()
     if len(src_uri) == 0:
@@ -121,11 +137,21 @@ python base_do_unpack() {
 
     rootdir = d.getVar('WORKDIR', True)
 
+    # Ensure that we cleanup ${S}/patches
+    # TODO: Investigate if we can remove
+    # the entire ${S} in this case.
+    s_dir = d.getVar('S', True)
+    p_dir = os.path.join(s_dir, 'patches')
+    bb.utils.remove(p_dir, True)
+
     try:
         fetcher = bb.fetch2.Fetch(src_uri, d)
         fetcher.unpack(rootdir)
     except bb.fetch2.BBFetchException as e:
         raise bb.build.FuncFailed(e)
+
+    if not os.path.exists(s_dir):
+        bb.warn('%s: the directory %s (%s) pointed to by the S variable doesn\'t exist - please set S within the recipe to point to where the source has been unpacked to' % (d.getVar('PN', True), d.getVar('S', False), s_dir))
 }
 
 def pkgarch_mapping(d):
@@ -216,15 +242,29 @@ python base_eventhandler() {
 
 }
 
+CONFIGURESTAMPFILE = "${WORKDIR}/configure.sstate"
+CLEANBROKEN = "0"
+
 addtask configure after do_patch
-do_configure[dirs] = "${S} ${B}"
+do_configure[dirs] = "${B}"
 do_configure[deptask] = "do_populate_sysroot"
 base_do_configure() {
-	:
+	if [ -n "${CONFIGURESTAMPFILE}" -a -e "${CONFIGURESTAMPFILE}" ]; then
+		if [ "`cat ${CONFIGURESTAMPFILE}`" != "${BB_TASKHASH}" ]; then
+			cd ${B}
+			if [ "${CLEANBROKEN}" != "1" -a \( -e Makefile -o -e makefile -o -e GNUmakefile \) ]; then
+				oe_runmake clean
+			fi
+			find ${B} -name \*.la -delete
+		fi
+	fi
+	if [ -n "${CONFIGURESTAMPFILE}" ]; then
+		echo ${BB_TASKHASH} > ${CONFIGURESTAMPFILE}
+	fi
 }
 
 addtask compile after do_configure
-do_compile[dirs] = "${S} ${B}"
+do_compile[dirs] = "${B}"
 base_do_compile() {
 	if [ -e Makefile -o -e makefile -o -e GNUmakefile ]; then
 		oe_runmake || die "make failed"
@@ -234,7 +274,7 @@ base_do_compile() {
 }
 
 addtask install after do_compile
-do_install[dirs] = "${D} ${S} ${B}"
+do_install[dirs] = "${D} ${B}"
 # Remove and re-create ${D} so that is it guaranteed to be empty
 do_install[cleandirs] = "${D}"
 
@@ -333,8 +373,6 @@ python () {
         extrardeps = []
         extraconf = []
         for flag, flagval in sorted(pkgconfigflags.items()):
-            if flag == "defaultval":
-                continue
             items = flagval.split(",")
             num = len(items)
             if num > 4:
@@ -356,28 +394,13 @@ python () {
         else:
             appendVar('EXTRA_OECONF', extraconf)
 
-    # If PRINC is set, try and increase the PR value by the amount specified
-    # The PR server is now the preferred way to handle PR changes based on
-    # the checksum of the recipe (including bbappend).  The PRINC is now
-    # obsolete.  Return a warning to the user.
-    princ = d.getVar('PRINC', True)
-    if princ and princ != "0":
-        bb.warn("Use of PRINC %s was detected in the recipe %s (or one of its .bbappends)\nUse of PRINC is deprecated.  The PR server should be used to automatically increment the PR.  See: https://wiki.yoctoproject.org/wiki/PR_Service." % (princ, d.getVar("FILE", True)))
-        pr = d.getVar('PR', True)
-        pr_prefix = re.search("\D+",pr)
-        prval = re.search("\d+",pr)
-        if pr_prefix is None or prval is None:
-            bb.error("Unable to analyse format of PR variable: %s" % pr)
-        nval = int(prval.group(0)) + int(princ)
-        pr = pr_prefix.group(0) + str(nval) + pr[prval.end():]
-        d.setVar('PR', pr)
-
     pn = d.getVar('PN', True)
     license = d.getVar('LICENSE', True)
     if license == "INVALID":
         bb.fatal('This recipe does not have the LICENSE field set (%s)' % pn)
 
     if bb.data.inherits_class('license', d):
+        check_license_format(d)
         unmatched_license_flag = check_license_flags(d)
         if unmatched_license_flag:
             bb.debug(1, "Skipping %s because it has a restricted license not"
@@ -429,9 +452,11 @@ python () {
               "-cross-canadian-${TRANSLATED_TARGET_ARCH}"]:
             if pn.endswith(d.expand(t)):
                 check_license = False
+        if pn.startswith("gcc-source-"):
+            check_license = False
 
         if check_license and bad_licenses:
-            bad_licenses = map(lambda l: canonical_license(d, l), bad_licenses)
+            bad_licenses = expand_wildcard_licenses(d, bad_licenses)
 
             whitelist = []
             for lic in bad_licenses:

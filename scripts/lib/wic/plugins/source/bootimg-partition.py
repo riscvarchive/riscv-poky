@@ -28,7 +28,8 @@ import re
 
 from wic import msger
 from wic.pluginbase import SourcePlugin
-from wic.utils.oe.misc import *
+from wic.utils.oe.misc import exec_cmd, get_bitbake_var
+from glob import glob
 
 class BootimgPartitionPlugin(SourcePlugin):
     name = 'bootimg-partition'
@@ -65,14 +66,19 @@ class BootimgPartitionPlugin(SourcePlugin):
         - copies all files listed in IMAGE_BOOT_FILES variable
         """
         hdddir = "%s/boot" % cr_workdir
-        rm_cmd = "rm -rf %s" % cr_workdir
+        rm_cmd = "rm -rf %s/boot" % cr_workdir
         exec_cmd(rm_cmd)
 
         install_cmd = "install -d %s" % hdddir
         exec_cmd(install_cmd)
 
+        if not bootimg_dir:
+            bootimg_dir = get_bitbake_var("DEPLOY_DIR_IMAGE")
+            if not bootimg_dir:
+                msger.error("Couldn't find DEPLOY_DIR_IMAGE, exiting\n")
+
         msger.debug('Bootimg dir: %s' % bootimg_dir)
-        img_deploy_dir = get_bitbake_var("DEPLOY_DIR_IMAGE")
+
         boot_files = get_bitbake_var("IMAGE_BOOT_FILES")
 
         if not boot_files:
@@ -82,9 +88,11 @@ class BootimgPartitionPlugin(SourcePlugin):
 
         # list of tuples (src_name, dst_name)
         deploy_files = []
-        for src_entry in re.findall(r'[\w;\-\./]+', boot_files):
+        for src_entry in re.findall(r'[\w;\-\./\*]+', boot_files):
             if ';' in src_entry:
                 dst_entry = tuple(src_entry.split(';'))
+                if not dst_entry[0] or not dst_entry[1]:
+                    msger.error('Malformed boot file entry: %s' % (src_entry))
             else:
                 dst_entry = (src_entry, src_entry)
 
@@ -93,14 +101,36 @@ class BootimgPartitionPlugin(SourcePlugin):
 
         for deploy_entry in deploy_files:
             src, dst = deploy_entry
-            src_path = os.path.join(img_deploy_dir, src)
-            dst_path = os.path.join(hdddir, dst)
+            install_task = []
+            if '*' in src:
+                # by default install files under their basename
+                entry_name_fn = os.path.basename
+                if dst != src:
+                    # unless a target name was given, then treat name
+                    # as a directory and append a basename
+                    entry_name_fn = lambda name: \
+                                    os.path.join(dst,
+                                                 os.path.basename(name))
 
-            msger.debug('Install %s as %s' % (os.path.basename(src_path),
-                                              dst_path))
-            install_cmd = "install -m 0644 -D %s %s" \
-                          % (src_path, dst_path)
-            exec_cmd(install_cmd)
+                srcs = glob(os.path.join(bootimg_dir, src))
+
+                msger.debug('Globbed sources: %s' % (', '.join(srcs)))
+                for entry in srcs:
+                    entry_dst_name = entry_name_fn(entry)
+                    install_task.append((entry,
+                                         os.path.join(hdddir,
+                                                      entry_dst_name)))
+            else:
+                install_task = [(os.path.join(bootimg_dir, src),
+                                 os.path.join(hdddir, dst))]
+
+            for task in install_task:
+                src_path, dst_path = task
+                msger.debug('Install %s as %s' % (os.path.basename(src_path),
+                                                  dst_path))
+                install_cmd = "install -m 0644 -D %s %s" \
+                              % (src_path, dst_path)
+                exec_cmd(install_cmd)
 
         msger.debug('Prepare boot partition using rootfs in %s' % (hdddir))
         part.prepare_rootfs(cr_workdir, oe_builddir, hdddir,

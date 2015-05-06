@@ -2,8 +2,6 @@ require autoconf.inc
 
 PR = "r11"
 
-PARALLEL_MAKE = ""
-
 LICENSE = "GPLv2 & GPLv3"
 LIC_FILES_CHKSUM = "file://COPYING;md5=751419260aa954499f7abaabaa882bbe \
 		    file://COPYINGv3;md5=d32239bcb673463ab874e80d47fae504"
@@ -22,6 +20,6 @@ SRC_URI[sha256sum] = "954bd69b391edc12d6a4a51a2dd1476543da5c6bbf05a95b59dc0dd6fd
 
 SRC_URI_append_class-native = " file://fix_path_xtra.patch"
 
-EXTRA_OECONF += "ac_cv_path_M4=m4"
+EXTRA_OECONF += "ac_cv_path_M4=m4 ac_cv_prog_TEST_EMACS=no"
 
 BBCLASSEXTEND = "native nativesdk"

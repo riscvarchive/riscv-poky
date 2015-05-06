@@ -13,6 +13,7 @@ def setUpModule():
 
 class RpmBasicTest(oeRuntimeTest):
 
+    @testcase(960)
     @skipUnlessPassed('test_ssh')
     def test_rpm_help(self):
         (status, output) = self.target.run('rpm --help')
@@ -46,6 +47,16 @@ class RpmInstallRemoveTest(oeRuntimeTest):
     def test_rpm_remove(self):
         (status,output) = self.target.run('rpm -e rpm-doc')
         self.assertEqual(status, 0, msg="Failed to remove rpm-doc package: %s" % output)
+
+    @testcase(1096)
+    @skipUnlessPassed('test_ssh')
+    def test_rpm_query_nonroot(self):
+        (status, output) = self.target.run('useradd test1')
+        self.assertTrue(status == 0, msg="Failed to create new user")
+        (status, output) = self.target.run('sudo -u test1 id')
+        self.assertTrue('(test1)' in output, msg="Failed to execute as new user")
+        (status, output) = self.target.run('sudo -u test1 rpm -qa')
+        self.assertEqual(status, 0, msg="status: %s. Cannot run rpm -qa" % status)
 
     @classmethod
     def tearDownClass(self):

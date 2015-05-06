@@ -30,11 +30,12 @@ WARN_QA ?= "ldflags useless-rpaths rpaths staticdev libdir xorg-driver-abi \
             textrel already-stripped incompatible-license files-invalid \
             installed-vs-shipped compile-host-path install-host-path \
             pn-overrides infodir build-deps file-rdeps \
+            unknown-configure-option symlink-to-sysroot \
             "
 ERROR_QA ?= "dev-so debug-deps dev-deps debug-files arch pkgconfig la \
             perms dep-cmp pkgvarcheck perm-config perm-line perm-link \
             split-strip packages-list pkgv-undefined var-undefined \
-            version-going-backwards \
+            version-going-backwards expanded-d \
             "
 
 ALL_QA = "${WARN_QA} ${ERROR_QA}"
@@ -51,6 +52,14 @@ def package_qa_get_machine_dict():
     return {
             "darwin9" : { 
                         "arm" :       (40,     0,    0,          True,          32),
+                      },
+            "eabi" : {
+                        "arm" :       (40,     0,    0,          True,          32),
+                      },
+            "elf" : {
+                        "i586" :      (3,      0,    0,          True,          32),
+                        "x86_64":     (62,     0,    0,          True,          64),
+                        "epiphany":   (4643,   0,    0,          True,          32),
                       },
             "linux" : { 
                         "aarch64" :   (183,    0,    0,          True,          64),
@@ -77,6 +86,7 @@ def package_qa_get_machine_dict():
                         "sh4":        (42,     0,    0,          True,          32),
                         "sparc":      ( 2,     0,    0,          False,         32),
                         "microblaze":  (189,   0,    0,          False,         32),
+                        "microblazeeb":(189,   0,    0,          False,         32),
                         "microblazeel":(189,   0,    0,          True,          32),
                       },
             "linux-uclibc" : { 
@@ -605,7 +615,6 @@ def package_qa_check_symlink_to_sysroot(path, name, d, elf, messages):
             if target.startswith(tmpdir):
                 trimmed = path.replace(os.path.join (d.getVar("PKGDEST", True), name), "")
                 messages["symlink-to-sysroot"] = "Symlink %s in %s points to TMPDIR" % (trimmed, name)
-
 def package_qa_check_license(workdir, d):
     """
     Check for changes in the license files 
@@ -772,44 +781,46 @@ def package_qa_check_rdepends(pkg, pkgdest, skip, taskdeps, packages, d):
         rdepends = bb.utils.explode_deps(localdata.getVar('RDEPENDS', True) or "")
 
         # Now do the sanity check!!!
-        for rdepend in rdepends:
-            if "-dbg" in rdepend and "debug-deps" not in skip:
-                error_msg = "%s rdepends on %s" % (pkg,rdepend)
-                sane = package_qa_handle_error("debug-deps", error_msg, d)
-            if (not "-dev" in pkg and not "-staticdev" in pkg) and rdepend.endswith("-dev") and "dev-deps" not in skip:
-                error_msg = "%s rdepends on %s" % (pkg, rdepend)
-                sane = package_qa_handle_error("dev-deps", error_msg, d)
-            if rdepend not in packages:
-                rdep_data = oe.packagedata.read_subpkgdata(rdepend, d)
-                if rdep_data and 'PN' in rdep_data and rdep_data['PN'] in taskdeps:
-                    continue
-                if not rdep_data or not 'PN' in rdep_data:
-                    pkgdata_dir = d.getVar("PKGDATA_DIR", True)
-                    try:
-                        possibles = os.listdir("%s/runtime-rprovides/%s/" % (pkgdata_dir, rdepend))
-                    except OSError:
-                        possibles = []
-                    for p in possibles:
-                        rdep_data = oe.packagedata.read_subpkgdata(p, d)
-                        if rdep_data and 'PN' in rdep_data and rdep_data['PN'] in taskdeps:
-                            break
-                if rdep_data and 'PN' in rdep_data and rdep_data['PN'] in taskdeps:
-                    continue
-                error_msg = "%s rdepends on %s, but it isn't a build dependency?" % (pkg, rdepend)
-                sane = package_qa_handle_error("build-deps", error_msg, d)
+        if "build-deps" not in skip:
+            for rdepend in rdepends:
+                if "-dbg" in rdepend and "debug-deps" not in skip:
+                    error_msg = "%s rdepends on %s" % (pkg,rdepend)
+                    sane = package_qa_handle_error("debug-deps", error_msg, d)
+                if (not "-dev" in pkg and not "-staticdev" in pkg) and rdepend.endswith("-dev") and "dev-deps" not in skip:
+                    error_msg = "%s rdepends on %s" % (pkg, rdepend)
+                    sane = package_qa_handle_error("dev-deps", error_msg, d)
+                if rdepend not in packages:
+                    rdep_data = oe.packagedata.read_subpkgdata(rdepend, d)
+                    if rdep_data and 'PN' in rdep_data and rdep_data['PN'] in taskdeps:
+                        continue
+                    if not rdep_data or not 'PN' in rdep_data:
+                        pkgdata_dir = d.getVar("PKGDATA_DIR", True)
+                        try:
+                            possibles = os.listdir("%s/runtime-rprovides/%s/" % (pkgdata_dir, rdepend))
+                        except OSError:
+                            possibles = []
+                        for p in possibles:
+                            rdep_data = oe.packagedata.read_subpkgdata(p, d)
+                            if rdep_data and 'PN' in rdep_data and rdep_data['PN'] in taskdeps:
+                                break
+                    if rdep_data and 'PN' in rdep_data and rdep_data['PN'] in taskdeps:
+                        continue
+                    error_msg = "%s rdepends on %s, but it isn't a build dependency?" % (pkg, rdepend)
+                    sane = package_qa_handle_error("build-deps", error_msg, d)
 
         if "file-rdeps" not in skip:
             ignored_file_rdeps = set(['/bin/sh', '/usr/bin/env', 'rtld(GNU_HASH)'])
             if bb.data.inherits_class('nativesdk', d):
                 ignored_file_rdeps |= set(['/bin/bash', '/usr/bin/perl'])
             # For Saving the FILERDEPENDS
-            filerdepends = set()
+            filerdepends = {}
             rdep_data = oe.packagedata.read_subpkgdata(pkg, d)
             for key in rdep_data:
                 if key.startswith("FILERDEPENDS_"):
                     for subkey in rdep_data[key].split():
-                        filerdepends.add(subkey)
-            filerdepends -= ignored_file_rdeps
+                        if subkey not in ignored_file_rdeps:
+                            # We already know it starts with FILERDEPENDS_
+                            filerdepends[subkey] = key[13:]
 
             if filerdepends:
                 next = rdepends
@@ -841,31 +852,27 @@ def package_qa_check_rdepends(pkg, pkgdest, skip, taskdeps, packages, d):
                 # case there is a RDEPENDS_pkg = "python" in the recipe.
                 for py in [ d.getVar('MLPREFIX', True) + "python", "python" ]:
                     if py in done:
-                        filerdepends.discard("/usr/bin/python")
+                        filerdepends.pop("/usr/bin/python",None)
                         done.remove(py)
                 for rdep in done:
                     # For Saving the FILERPROVIDES, RPROVIDES and FILES_INFO
-                    rdep_rprovides = set()
                     rdep_data = oe.packagedata.read_subpkgdata(rdep, d)
                     for key in rdep_data:
                         if key.startswith("FILERPROVIDES_") or key.startswith("RPROVIDES_"):
                             for subkey in rdep_data[key].split():
-                                rdep_rprovides.add(subkey)
+                                filerdepends.pop(subkey,None)
                         # Add the files list to the rprovides
                         if key == "FILES_INFO":
                             # Use eval() to make it as a dict
                             for subkey in eval(rdep_data[key]):
-                                rdep_rprovides.add(subkey)
-                    filerdepends -= rdep_rprovides
+                                filerdepends.pop(subkey,None)
                     if not filerdepends:
                         # Break if all the file rdepends are met
                         break
-                    else:
-                        # Clear it for the next loop
-                        rdep_rprovides.clear()
             if filerdepends:
-                error_msg = "%s requires %s, but no providers in its RDEPENDS" % \
-                            (pkg, ', '.join(str(e) for e in filerdepends))
+                for key in filerdepends:
+                    error_msg = "%s contained in package %s requires %s, but no providers found in its RDEPENDS" % \
+                            (filerdepends[key],pkg, key)
                 sane = package_qa_handle_error("file-rdeps", error_msg, d)
 
     return sane
@@ -904,6 +911,33 @@ def package_qa_check_deps(pkg, pkgdest, skip, d):
     if not check_valid_deps('RCONFLICTS'):
         sane = False
 
+    return sane
+
+QAPATHTEST[expanded-d] = "package_qa_check_expanded_d"
+def package_qa_check_expanded_d(path,name,d,elf,messages):
+    """
+    Check for the expanded D (${D}) value in pkg_* and FILES
+    variables, warn the user to use it correctly.
+    """
+
+    sane = True
+    expanded_d = d.getVar('D',True)
+
+    # Get packages for current recipe and iterate
+    packages = d.getVar('PACKAGES', True).split(" ")
+    for pak in packages:
+    # Go through all variables and check if expanded D is found, warn the user accordingly
+        for var in 'FILES','pkg_preinst', 'pkg_postinst', 'pkg_prerm', 'pkg_postrm':
+            bbvar = d.getVar(var + "_" + pak)
+            if bbvar:
+                # Bitbake expands ${D} within bbvar during the previous step, so we check for its expanded value
+                if expanded_d in bbvar:
+                    if var == 'FILES':
+                        messages["expanded-d"] = "FILES in %s recipe should not contain the ${D} variable as it references the local build directory not the target filesystem, best solution is to remove the ${D} reference" % pak
+                        sane = False
+                    else:
+                        messages["expanded-d"] = "%s in %s recipe contains ${D}, it should be replaced by $D instead" % (var, pak)
+                        sane = False
     return sane
 
 # The PACKAGE FUNC to scan each package
@@ -1112,7 +1146,7 @@ do_configure[postfuncs] += "do_qa_configure "
 python () {
     tests = d.getVar('ALL_QA', True).split()
     if "desktop" in tests:
-        d.appendVar("PACKAGE_DEPENDS", "desktop-file-utils-native")
+        d.appendVar("PACKAGE_DEPENDS", " desktop-file-utils-native")
 
     ###########################################################################
     # Check various variables

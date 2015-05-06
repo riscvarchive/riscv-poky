@@ -33,19 +33,11 @@ do_install_append () {
 
         # install depmod.d file for search/ dir
         install -Dm644 "${WORKDIR}/depmod-search.conf" "${D}${base_libdir}/depmod.d/search.conf"
-
 }
 
 do_compile_prepend() {
             sed -i 's/ac_pwd=/#ac_pwd=/' config.status ; sed -i "/#ac_pwd=/a\ac_pwd='.'" config.status
 }
-
-do_compile_ptest () {
-        oe_runmake buildtest-TESTS rootfs
-}
-
-INHIBIT_PACKAGE_STRIP = "${@bb.utils.contains("DISTRO_FEATURES", "ptest", "1", "0", d)}"
-INSANE_SKIP_${PN}-ptest = "arch"
 
 inherit update-alternatives
 

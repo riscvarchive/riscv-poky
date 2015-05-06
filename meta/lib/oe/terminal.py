@@ -2,6 +2,7 @@ import logging
 import oe.classutils
 import shlex
 from bb.process import Popen, ExecutionError
+from distutils.version import LooseVersion
 
 logger = logging.getLogger('BitBake.OE.Terminal')
 
@@ -52,8 +53,16 @@ class XTerminal(Terminal):
             raise UnsupportedTerminal(self.name)
 
 class Gnome(XTerminal):
-    command = 'gnome-terminal -t "{title}" -x {command}'
+    command = 'gnome-terminal -t "{title}" --disable-factory -x {command}'
     priority = 2
+
+    def __init__(self, sh_cmd, title=None, env=None, d=None):
+        # Check version
+        vernum = check_terminal_version("gnome-terminal")
+        if vernum and LooseVersion(vernum) >= '3.10':
+            logger.debug(1, 'Gnome-Terminal 3.10 or later does not support --disable-factory')
+            self.command = 'gnome-terminal -t "{title}" -x {command}'
+        XTerminal.__init__(self, sh_cmd, title, env, d)
 
 class Mate(XTerminal):
     command = 'mate-terminal -t "{title}" -x {command}'
@@ -63,17 +72,20 @@ class Xfce(XTerminal):
     command = 'xfce4-terminal -T "{title}" -e "{command}"'
     priority = 2
 
+class Terminology(XTerminal):
+    command = 'terminology -T="{title}" -e {command}'
+    priority = 2
+
 class Konsole(XTerminal):
-    command = 'konsole -T "{title}" -e {command}'
+    command = 'konsole --nofork -p tabtitle="{title}" -e {command}'
     priority = 2
 
     def __init__(self, sh_cmd, title=None, env=None, d=None):
         # Check version
-        vernum = check_konsole_version("konsole")
-        if vernum:
-            if vernum.split('.')[0] == "2":
-                logger.debug(1, 'Konsole from KDE 4.x will not work as devshell, skipping')
-                raise UnsupportedTerminal(self.name)
+        vernum = check_terminal_version("konsole")
+        if vernum and LooseVersion(vernum) < '2.0.0':
+            # Konsole from KDE 3.x
+            self.command = 'konsole -T "{title}" -e {command}'
         XTerminal.__init__(self, sh_cmd, title, env, d)
 
 class XTerm(XTerminal):
@@ -104,6 +116,24 @@ class TmuxRunning(Terminal):
     name = 'tmux-running'
     command = 'tmux split-window "{command}"'
     priority = 2.75
+
+    def __init__(self, sh_cmd, title=None, env=None, d=None):
+        if not bb.utils.which(os.getenv('PATH'), 'tmux'):
+            raise UnsupportedTerminal('tmux is not installed')
+
+        if not os.getenv('TMUX'):
+            raise UnsupportedTerminal('tmux is not running')
+
+        if not check_tmux_pane_size('tmux'):
+            raise UnsupportedTerminal('tmux pane too small')
+
+        Terminal.__init__(self, sh_cmd, title, env, d)
+
+class TmuxNewWindow(Terminal):
+    """Open a new window in the current running tmux session"""
+    name = 'tmux-new-window'
+    command = 'tmux new-window -n "{title}" "{command}"'
+    priority = 2.70
 
     def __init__(self, sh_cmd, title=None, env=None, d=None):
         if not bb.utils.which(os.getenv('PATH'), 'tmux'):
@@ -180,10 +210,27 @@ def spawn(name, sh_cmd, title=None, env=None, d=None):
     if pipe.returncode != 0:
         raise ExecutionError(sh_cmd, pipe.returncode, output)
 
-def check_konsole_version(konsole):
+def check_tmux_pane_size(tmux):
     import subprocess as sub
     try:
-        p = sub.Popen(['sh', '-c', '%s --version' % konsole],stdout=sub.PIPE,stderr=sub.PIPE)
+        p = sub.Popen('%s list-panes -F "#{?pane_active,#{pane_height},}"' % tmux,
+                shell=True,stdout=sub.PIPE,stderr=sub.PIPE)
+        out, err = p.communicate()
+        size = int(out.strip())
+    except OSError as exc:
+        import errno
+        if exc.errno == errno.ENOENT:
+            return None
+        else:
+            raise
+    if size/2 >= 19:
+        return True
+    return False
+
+def check_terminal_version(terminalName):
+    import subprocess as sub
+    try:
+        p = sub.Popen(['sh', '-c', '%s --version' % terminalName],stdout=sub.PIPE,stderr=sub.PIPE)
         out, err = p.communicate()
         ver_info = out.rstrip().split('\n')
     except OSError as exc:
@@ -195,6 +242,8 @@ def check_konsole_version(konsole):
     vernum = None
     for ver in ver_info:
         if ver.startswith('Konsole'):
+            vernum = ver.split(' ')[-1]
+        if ver.startswith('GNOME Terminal'):
             vernum = ver.split(' ')[-1]
     return vernum
 

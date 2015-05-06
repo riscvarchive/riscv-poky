@@ -86,7 +86,7 @@ class PtestRunnerTest(oeRuntimeTest):
             installed_pkgs.write(self.pkgs_list.list("arch"))
 
         cmd = [bb.utils.which(os.getenv('PATH'), "oe-pkgdata-util"),
-               "glob", oeRuntimeTest.tc.d.getVar('PKGDATA_DIR', True), installed_pkgs_file,
+               "-p", oeRuntimeTest.tc.d.getVar('PKGDATA_DIR', True), "glob", installed_pkgs_file,
                globs]
         try:
             bb.note("Installing complementary packages ...")
@@ -99,26 +99,27 @@ class PtestRunnerTest(oeRuntimeTest):
         return complementary_pkgs.split()
 
     def setUp(self):
-        self.buildhist_dir = oeRuntimeTest.tc.d.getVar("BUILDHISTORY_DIR_IMAGE", True)
-        self.assertTrue(os.path.exists(self.buildhist_dir))
         self.ptest_log = os.path.join(oeRuntimeTest.tc.d.getVar("TEST_LOG_DIR",True), "ptest-%s.log" % oeRuntimeTest.tc.d.getVar('DATETIME', True))
 
     @skipUnlessPassed('test_ssh')
     def test_ptestrunner(self):
         self.add_smart_channel()
-        cond = oeRuntimeTest.hasPackage("ptest-runner") and oeRuntimeTest.hasFeature("ptest") and oeRuntimeTest.hasPackage("-ptest")
-        if not cond:
+        (runnerstatus, result) = self.target.run('which ptest-runner', 0)
+        cond = oeRuntimeTest.hasPackage("ptest-runner") and oeRuntimeTest.hasFeature("ptest") and oeRuntimeTest.hasPackage("-ptest") and (runnerstatus != 0)
+        if cond:
             self.install_packages(self.install_complementary("*-ptest"))
             self.install_packages(['ptest-runner'])
 
-        self.target.run('/usr/bin/ptest-runner > /tmp/ptest.log 2>&1', 0)
+        (runnerstatus, result) = self.target.run('/usr/bin/ptest-runner > /tmp/ptest.log 2>&1', 0)
+        #exit code is !=0 even if ptest-runner executes because some ptest tests fail.
+        self.assertTrue(runnerstatus != 127, msg="Cannot execute ptest-runner!")
         self.target.copy_from('/tmp/ptest.log', self.ptest_log)
-        shutil.copyfile(self.ptest_log, os.path.join(self.buildhist_dir, "ptest.log"))
+        shutil.copyfile(self.ptest_log, "ptest.log")
 
-        result = self.parse_ptest(os.path.join(self.buildhist_dir, "ptest.log"))
+        result = self.parse_ptest("ptest.log")
         log_results_to_location = "./results"
         if os.path.exists(log_results_to_location):
             shutil.rmtree(log_results_to_location)
         os.makedirs(log_results_to_location)
 
-        result.log_as_files(log_results_to_location, test_status = ['fail'])
+        result.log_as_files(log_results_to_location, test_status = ['pass','fail'])

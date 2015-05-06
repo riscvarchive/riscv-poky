@@ -1,4 +1,4 @@
-#!/usr/bin/python -tt
+#!/usr/bin/env python -tt
 #
 # Copyright (c) 2010, 2011 Intel Inc.
 #
@@ -16,10 +16,9 @@
 # Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 import os
-import sys
 import time
 
-def build_name(kscfg, release=None, prefix = None, suffix = None):
+def build_name(kscfg, release=None, prefix=None, suffix=None):
     """Construct and return an image name string.
 
     This is a utility function to help create sensible name and fslabel

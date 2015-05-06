@@ -29,7 +29,7 @@ def map_kernel_arch(a, d):
     elif re.match('p(pc|owerpc)(|64)', a):      return 'powerpc'
     elif re.match('sh(3|4)$', a):               return 'sh'
     elif re.match('bfin', a):                   return 'blackfin'
-    elif re.match('microblazeel', a):           return 'microblaze'
+    elif re.match('microblazee[bl]', a):        return 'microblaze'
     elif re.match('riscv', a):                  return 'riscv'
     elif a in valid_archs:                      return a
     else:
@@ -42,7 +42,6 @@ def map_uboot_arch(a, d):
 
     if   re.match('p(pc|owerpc)(|64)', a): return 'ppc'
     elif re.match('i.86$', a): return 'x86'
-    elif re.match('arm64$', a): return 'arm'
     return a
 
 export UBOOT_ARCH = "${@map_uboot_arch(d.getVar('ARCH', True), d)}"

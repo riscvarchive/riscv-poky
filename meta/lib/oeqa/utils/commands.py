@@ -110,11 +110,11 @@ def runCmd(command, ignore_status=False, timeout=None, assert_error=True, **opti
 def bitbake(command, ignore_status=False, timeout=None, postconfig=None, **options):
 
     if postconfig:
-	postconfig_file = os.path.join(os.environ.get('BUILDDIR'), 'oeqa-post.conf')
-	ftools.write_file(postconfig_file, postconfig)
-	extra_args = "-R %s" % postconfig_file
+        postconfig_file = os.path.join(os.environ.get('BUILDDIR'), 'oeqa-post.conf')
+        ftools.write_file(postconfig_file, postconfig)
+        extra_args = "-R %s" % postconfig_file
     else:
-	extra_args = ""
+        extra_args = ""
 
     if isinstance(command, basestring):
         cmd = "bitbake " + extra_args + " " + command
@@ -122,7 +122,7 @@ def bitbake(command, ignore_status=False, timeout=None, postconfig=None, **optio
         cmd = [ "bitbake" ] + [a for a in (command + extra_args.split(" ")) if a not in [""]]
 
     try:
-	return runCmd(cmd, ignore_status, timeout, **options)
+        return runCmd(cmd, ignore_status, timeout, **options)
     finally:
         if postconfig:
             os.remove(postconfig_file)
@@ -137,17 +137,26 @@ def get_bb_env(target=None, postconfig=None):
 def get_bb_var(var, target=None, postconfig=None):
     val = None
     bbenv = get_bb_env(target, postconfig=postconfig)
+    lastline = None
     for line in bbenv.splitlines():
-        if line.startswith(var + "="):
+        if line.startswith(var + "=") or line.startswith("export " + var + "="):
             val = line.split('=')[1]
-            val = val.replace('\"','')
+            val = val.strip('\"')
             break
+        elif line.startswith("unset " + var):
+            # Handle [unexport] variables
+            if lastline.startswith('#   "'):
+                val = lastline.split('\"')[1]
+                break
+        lastline = line
     return val
 
 def get_test_layer():
     layers = get_bb_var("BBLAYERS").split()
     testlayer = None
     for l in layers:
+        if '~' in l:
+            l = os.path.expanduser(l)
         if "/meta-selftest" in l and os.path.isdir(l):
             testlayer = l
             break

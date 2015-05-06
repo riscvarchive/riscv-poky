@@ -35,12 +35,20 @@
                 Collectively, you can think of the base directory, its file structure,
                 and the contents as a BSP Layer.
                 Although not a strict requirement, layers in the Yocto Project use the
-                following well established naming convention:
+                following well-established naming convention:
                 <literallayout class='monospaced'>
      meta-<replaceable>bsp_name</replaceable>
                 </literallayout>
                 The string "meta-" is prepended to the machine or platform name, which is
-                "bsp_name" in the above form.
+                <replaceable>bsp_name</replaceable> in the above form.
+                <note><title>Tip</title>
+                    Because the BSP layer naming convention is well-established,
+                    it is advisable to follow it when creating layers.
+                    Technically speaking, a BSP layer name does not need to
+                    start with <filename>meta-</filename>.
+                    However, you might run into situations where obscure
+                    scripts assume this convention.
+                </note>
             </para>
 
             <para>
@@ -58,7 +66,7 @@
                 Each of these layers is a repository unto itself and clicking on a
                 layer reveals information that includes two links from which you can choose
                 to set up a clone of the layer's repository on your local host system.
-                Here is an example that clones the Minnow Board BSP layer:
+                Here is an example that clones the MinnowBoard BSP layer:
                 <literallayout class='monospaced'>
      $ git clone git://git.yoctoproject.org/meta-minnow
                 </literallayout>
@@ -93,11 +101,6 @@
        /usr/local/src/yocto/meta-yocto-bsp \
        /usr/local/src/yocto/meta-mylayer \
        "
-
-     BBLAYERS_NON_REMOVABLE ?= " \
-       /usr/local/src/yocto/meta \
-       /usr/local/src/yocto/meta-yocto \
-       "
                 </literallayout>
             </para>
 
@@ -115,8 +118,9 @@
 
             <para>
                 Some layers function as a layer to hold other BSP layers.
-                An example of this type of layer is the <filename>meta-intel</filename> layer.
-                The <filename>meta-intel</filename> layer contains many individual BSP layers.
+                An example of this type of layer is the <filename>meta-intel</filename> layer,
+                which contains a number of individual BSP sub-layers, as well as a directory
+                named <filename>common/</filename> full of common content across those layers.
             </para>
 
             <para>
@@ -131,8 +135,8 @@
             <title>Example Filesystem Layout</title>
 
             <para>
-                Providing a common form allows end-users to understand and become familiar
-                with the layout.
+                Defining a common BSP directory structure allows end-users to understand and
+                become familiar with that structure.
                 A common format also encourages standardization of software support of hardware.
             </para>
 
@@ -190,37 +194,33 @@
             </para>
 
             <para>
-                Below is an example of the Crown Bay BSP:
+                Below is an example of the eMenlow BSP:
 
                 <literallayout class='monospaced'>
-     meta-crownbay/COPYING.MIT
-     meta-crownbay/README
-     meta-crownbay/README.sources
-     meta-crownbay/binary/
-     meta-crownbay/conf/
-     meta-crownbay/conf/layer.conf
-     meta-crownbay/conf/machine/
-     meta-crownbay/conf/machine/crownbay.conf
-     meta-crownbay/conf/machine/crownbay-noemgd.conf
-     meta-crownbay/recipes-bsp/
-     meta-crownbay/recipes-bsp/formfactor/
-     meta-crownbay/recipes-bsp/formfactor/formfactor_0.0.bbappend
-     meta-crownbay/recipes-bsp/formfactor/formfactor/
-     meta-crownbay/recipes-bsp/formfactor/formfactor/crownbay/
-     meta-crownbay/recipes-bsp/formfactor/formfactor/crownbay/machconfig
-     meta-crownbay/recipes-bsp/formfactor/formfactor/crownbay-noemgd/
-     meta-crownbay/recipes-bsp/formfactor/formfactor/crownbay-noemgd/machconfig
-     meta-crownbay/recipes-graphics/
-     meta-crownbay/recipes-graphics/xorg-xserver/
-     meta-crownbay/recipes-graphics/xorg-xserver/xserver-xf86-config_0.1.bbappend
-     meta-crownbay/recipes-graphics/xorg-xserver/xserver-xf86-config/
-     meta-crownbay/recipes-graphics/xorg-xserver/xserver-xf86-config/crownbay/
-     meta-crownbay/recipes-graphics/xorg-xserver/xserver-xf86-config/crownbay/xorg.conf
-     meta-crownbay/recipes-kernel/
-     meta-crownbay/recipes-kernel/linux/
-     meta-crownbay/recipes-kernel/linux/linux-yocto-dev.bbappend
-     meta-crownbay/recipes-kernel/linux/linux-yocto-rt_3.10.bbappend
-     meta-crownbay/recipes-kernel/linux/linux-yocto_3.10.bbappend
+     meta-emenlow/COPYING.MIT
+     meta-emenlow/README
+     meta-emenlow/README.sources
+     meta-emenlow/binary/
+     meta-emenlow/conf/
+     meta-emenlow/conf/layer.conf
+     meta-emenlow/conf/machine/
+     meta-emenlow/conf/machine/emenlow-noemgd.conf
+     meta-emenlow/recipes-bsp/
+     meta-emenlow/recipes-bsp/formfactor/
+     meta-emenlow/recipes-bsp/formfactor/formfactor/
+     meta-emenlow/recipes-bsp/formfactor/formfactor_0.0.bbappend
+     meta-emenlow/recipes-bsp/formfactor/formfactor/emenlow-noemgd/
+     meta-emenlow/recipes-bsp/formfactor/formfactor/emenlow-noemgd/machconfig
+     meta-emenlow/recipes-graphics/
+     meta-emenlow/recipes-graphics/xorg-xserver
+     meta-emenlow/recipes-graphics/xorg-xserver/xserver-xf86-config
+     meta-emenlow/recipes-graphics/xorg-xserver/xserver-xf86-config_0.1.bbappend
+     meta-emenlow/recipes-graphics/xorg-xserver/xserver-xf86-config/emenlow-noemgd
+     meta-emenlow/recipes-graphics/xorg-xserver/xserver-xf86-config/emenlow-noemgd/xorg.config
+     meta-emenlow/recipes-kernel/
+     meta-emenlow/recipes-kernel/linux/
+     meta-emenlow/recipes-kernel/linux/linux-yocto-dev.bbappend
+     meta-emenlow/recipes-kernel/linux/linux-yocto_3.14.bbappend
                 </literallayout>
             </para>
 
@@ -241,7 +241,7 @@
             <para>
                 These optional files satisfy licensing requirements for the BSP.
                 The type or types of files here can vary depending on the licensing requirements.
-                For example, in the Crown Bay BSP all licensing requirements are handled with the
+                For example, in the eMenlow BSP all licensing requirements are handled with the
                 <filename>COPYING.MIT</filename> file.
             </para>
 
@@ -285,12 +285,21 @@
             </para>
 
             <para>
-                This file provides information on where to locate the BSP source files.
-                For example, information provides where to find the sources that comprise
-                the images shipped with the BSP.
-                Information is also included to help you find the
+                This file provides information on where to locate the BSP
+                source files used to build the images (if any) that reside in
+                <filename>meta-<replaceable>bsp_name</replaceable>/binary</filename>.
+                Images in the <filename>binary</filename> would be images
+                released with the BSP.
+                The information in the <filename>README.sources</filename>
+                file also helps you find the
                 <ulink url='&YOCTO_DOCS_DEV_URL;#metadata'>Metadata</ulink>
                 used to generate the images that ship with the BSP.
+                <note>
+                    If the BSP's <filename>binary</filename> directory is
+                    missing or the directory has no images, an existing
+                    <filename>README.sources</filename> file is
+                    meaningless.
+                </note>
             </para>
             </section>
 
@@ -304,21 +313,26 @@
             </para>
 
             <para>
-                This optional area contains useful pre-built kernels and user-space filesystem
-                images appropriate to the target system.
-                This directory typically contains graphical (e.g. Sato) and minimal live images
-                when the BSP tarball has been created and made available in the
+                This optional area contains useful pre-built kernels and
+                user-space filesystem images released with the BSP that are
+                appropriate to the target system.
+                This directory typically contains graphical (e.g. Sato) and
+                minimal live images when the BSP tarball has been created and
+                made available in the
                 <ulink url='&YOCTO_HOME_URL;'>Yocto Project</ulink> website.
-                You can use these kernels and images to get a system running and quickly get started
-                on development tasks.
+                You can use these kernels and images to get a system running
+                and quickly get started on development tasks.
             </para>
 
             <para>
-                The exact types of binaries present are highly hardware-dependent.
-                However, a <filename>README</filename> file should be present in the BSP Layer that explains how to use
-                the kernels and images with the target hardware.
-                If pre-built binaries are present, source code to meet licensing requirements must also
-                exist in some form.
+                The exact types of binaries present are highly
+                hardware-dependent.
+                The <filename>README</filename> file should be present in the
+                BSP Layer and it will explain how to use the images with the
+                target hardware.
+                Additionally, the <filename>README.sources</filename> file
+                should be present to locate the sources used to build the
+                images and provide information on the Metadata.
             </para>
             </section>
 
@@ -351,19 +365,30 @@
      BBFILES += "${LAYERDIR}/recipes-*/*/*.bb \
              ${LAYERDIR}/recipes-*/*/*.bbappend"
 
-     BBFILE_COLLECTIONS += "bsp"
-     BBFILE_PATTERN_bsp = "^${LAYERDIR}/"
-     BBFILE_PRIORITY_bsp = "6"
+     BBFILE_COLLECTIONS += "<replaceable>bsp</replaceable>"
+     BBFILE_PATTERN_<replaceable>bsp</replaceable> = "^${LAYERDIR}/"
+     BBFILE_PRIORITY_<replaceable>bsp</replaceable> = "6"
+
+     LAYERDEPENDS_<replaceable>bsp</replaceable> = "intel"
                 </literallayout>
             </para>
 
             <para>
                 To illustrate the string substitutions, here are the corresponding statements
-                from the Crown Bay <filename>conf/layer.conf</filename> file:
+                from the eEmenlow <filename>conf/layer.conf</filename> file:
                <literallayout class='monospaced'>
-     BBFILE_COLLECTIONS += "crownbay"
-     BBFILE_PATTERN_crownbay = "^${LAYERDIR}/"
-     BBFILE_PRIORITY_crownbay = "6"
+     # We have a conf and classes directory, add to BBPATH
+     BBPATH .= ":${LAYERDIR}"
+
+     # We have recipes-* directories, add to BBFILES
+     BBFILES += "${LAYERDIR}/recipes-*/*/*.bb \
+	     ${LAYERDIR}/recipes-*/*/*.bbappend"
+
+     BBFILE_COLLECTIONS += "emenlow"
+     BBFILE_PATTERN_emenlow := "^${LAYERDIR}/"
+     BBFILE_PRIORITY_emenlow = "6"
+
+     LAYERDEPENDS_emenlow = "intel"
                 </literallayout>
             </para>
 
@@ -408,11 +433,10 @@
             </para>
 
             <para>
-                This <filename>crownbay.conf</filename> file could also include
-                a hardware "tuning" file that is commonly used to
-                define the package architecture and specify
-                optimization flags, which are carefully chosen to give best
-                performance on a given processor.
+                This configuration file could also include a hardware "tuning"
+                file that is commonly used to define the package architecture
+                and specify optimization flags, which are carefully chosen
+                to give best performance on a given processor.
             </para>
 
             <para>
@@ -424,13 +448,15 @@
             </para>
 
             <para>
-                To use an include file, you simply include them in the machine configuration file.
-                For example, the Crown Bay BSP <filename>crownbay.conf</filename> contains the
+                To use an include file, you simply include them in the
+                machine configuration file.
+                For example, the eEmenlow BSP
+                <filename>emenlow-noemgd.conf</filename> contains the
                 following statements:
                 <literallayout class='monospaced'>
      require conf/machine/include/intel-core2-32-common.inc
+     require conf/machine/include/intel-common-pkgarch.inc
      require conf/machine/include/meta-intel.inc
-     require conf/machine/include/meta-intel-emgd.inc
                 </literallayout>
             </para>
             </section>
@@ -445,20 +471,23 @@
             </para>
 
             <para>
-                This optional directory contains miscellaneous recipe files for the BSP.
+                This optional directory contains miscellaneous recipe files for
+                the BSP.
                 Most notably would be the formfactor files.
-                For example, in the Crown Bay BSP there is the
+                For example, in the eMenlow BSP there is the
                 <filename>formfactor_0.0.bbappend</filename> file, which is an
                 append file used to augment the recipe that starts the build.
-                Furthermore, there are machine-specific settings used during the
-                build that are defined by the <filename>machconfig</filename> file.
-                In the Crown Bay example, two <filename>machconfig</filename> files
-                exist: one that supports the Intel® Embedded Media and Graphics
-                Driver (Intel® EMGD) and one that does not:
+                Furthermore, there are machine-specific settings used during
+                the build that are defined by the
+                <filename>machconfig</filename> file further down in the
+                directory.
+                In the eMenlow example, the <filename>machconfig</filename>
+                file supports the Video Electronics Standards Association
+                (VESA) graphics driver:
                 <literallayout class='monospaced'>
-     meta-crownbay/recipes-bsp/formfactor/formfactor/crownbay/machconfig
-     meta-crownbay/recipes-bsp/formfactor/formfactor/crownbay-noemgd/machconfig
-     meta-crownbay/recipes-bsp/formfactor/formfactor_0.0.bbappend
+     # Assume a USB mouse and keyboard are connected
+     HAVE_TOUCHSCREEN=0
+     HAVE_KEYBOARD=1
                 </literallayout>
             </para>
 
@@ -484,14 +513,19 @@
             <para>
                 This optional directory contains recipes for the BSP if it has
                 special requirements for graphics support.
-                All files that are needed for the BSP to support a display are kept here.
-                For example, the Crown Bay BSP's <filename>xorg.conf</filename> file
-                detects the graphics support needed (i.e. the Intel® Embedded Media
-                Graphics Driver (EMGD) or the Video Electronics Standards Association
-                (VESA) graphics):
+                All files that are needed for the BSP to support a display are
+                kept here.
+                For example, the <filename>meta-emenlow</filename> layer,
+                which supports the eMenlow platform consisting of the
+                <trademark class='registered'>Intel</trademark>
+                <trademark class='trade'>Atom</trademark>
+                Z5xx processor with the
+                <trademark class='registered'>Intel</trademark>
+                System Controller Hub US15W, uses these files for supporting
+                the Video Electronics Standards Association (VESA) graphics:
                 <literallayout class='monospaced'>
-     meta-crownbay/recipes-graphics/xorg-xserver/xserver-xf86-config_0.1.bbappend
-     meta-crownbay/recipes-graphics/xorg-xserver/xserver-xf86-config/crownbay/xorg.conf
+     meta-emenlow/recipes-graphics/xorg-xserver/xserver-xf86-config_0.1.bbappend
+     meta-emenlow/recipes-graphics/xorg-xserver/xserver-xf86-config/emenlow-noemgd/xorg.conf
                 </literallayout>
             </para>
             </section>
@@ -501,7 +535,7 @@
             <para>
                 You can find these files in the BSP Layer at:
                 <literallayout class='monospaced'>
-     meta-<replaceable>bsp_name</replaceable>/recipes-kernel/linux/linux-yocto_*.bbappend
+     meta-<replaceable>bsp_name</replaceable>/recipes-kernel/linux/linux-yocto*.bbappend
                 </literallayout>
             </para>
 
@@ -517,28 +551,28 @@
                 the <filename>meta-<replaceable>bsp_name</replaceable>/recipes-kernel/linux</filename> directory).
             </para>
             <para>
-                Suppose you are using the <filename>linux-yocto_3.10.bb</filename> recipe to build
+                Suppose you are using the <filename>linux-yocto_3.14.bb</filename> recipe to build
                 the kernel.
                 In other words, you have selected the kernel in your
                 <replaceable>bsp_name</replaceable><filename>.conf</filename> file by adding these types
                 of statements:
                 <literallayout class='monospaced'>
      PREFERRED_PROVIDER_virtual/kernel ?= "linux-yocto"
-     PREFERRED_VERSION_linux-yocto ?= "3.10%"
+     PREFERRED_VERSION_linux-yocto ?= "3.14%"
                 </literallayout>
                 <note>
                     When the preferred provider is assumed by default, the
                     <filename>PREFERRED_PROVIDER</filename> statement does not appear in the
                     <replaceable>bsp_name</replaceable><filename>.conf</filename> file.
                 </note>
-                You would use the <filename>linux-yocto_3.10.bbappend</filename> file to append
+                You would use the <filename>linux-yocto_3.14.bbappend</filename> file to append
                 specific BSP settings to the kernel, thus configuring the kernel for your particular BSP.
             </para>
             <para>
-                As an example, look at the existing Crown Bay BSP.
+                As an example, look at the existing eMenlow BSP.
                 The append file used is:
                 <literallayout class='monospaced'>
-     meta-crownbay/recipes-kernel/linux/linux-yocto_3.10.bbappend
+     meta-emenlow/recipes-kernel/linux/linux-yocto_3.14.bbappend
                 </literallayout>
                 The following listing shows the file.
                 Be aware that the actual commit ID strings in this example listing might be different
@@ -547,50 +581,37 @@
                 <literallayout class='monospaced'>
      FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 
+     COMPATIBLE_MACHINE_emenlow-noemgd = "emenlow-noemgd"
+     KMACHINE_emenlow-noemgd = "emenlow"
+     KBRANCH_emenlow-noemgd = "standard/base"
+     KERNEL_FEATURES_append_emenlow-noemgd = " features/drm-gma500/drm-gma500.scc"
 
-     COMPATIBLE_MACHINE_crownbay = "crownbay"
-     KMACHINE_crownbay = "crownbay"
-     KBRANCH_crownbay = "standard/crownbay"
-     KERNEL_FEATURES_append_crownbay = " features/drm-emgd/drm-emgd-1.18 cfg/vesafb"
-
-     COMPATIBLE_MACHINE_crownbay-noemgd = "crownbay-noemgd"
-     KMACHINE_crownbay-noemgd = "crownbay"
-     KBRANCH_crownbay-noemgd = "standard/crownbay"
-     KERNEL_FEATURES_append_crownbay-noemgd = " cfg/vesafb"
-
-     LINUX_VERSION_crownbay = "3.10.35"
-     SRCREV_meta_crownbay = "b6e58b33dd427fe471f8827c83e311acdf4558a4"
-     SRCREV_machine_crownbay = "cee957655fe67826b2e827e2db41f156fa8f0cc4"
-     SRCREV_emgd_crownbay = "42d5e4548e8e79e094fa8697949eed4cf6af00a3"
-
-     LINUX_VERSION_crownbay-noemgd = "3.10.35"
-     SRCREV_meta_crownbay-noemgd = "b6e58b33dd427fe471f8827c83e311acdf4558a4"
-     SRCREV_machine_crownbay-noemgd = "cee957655fe67826b2e827e2db41f156fa8f0cc4"
-
-     SRC_URI_crownbay = "git://git.yoctoproject.org/linux-yocto-3.10.git;protocol=git;nocheckout=1;branch=${KBRANCH},${KMETA},emgd-1.18;name=machine,meta,emgd"
+     LINUX_VERSION_emenlow-noemgd = "3.14.19"
+     SRCREV_machine_emenlow-noemgd = "902f34d36102a4b2008b776ecae686f80d307e12"
+     SRCREV_meta_emenlow-noemgd = "28e39741b8b3018334021d981369d3fd61f18f5b"
                 </literallayout>
-                This append file contains statements used to support the Crown Bay BSP.
+                This append file contains statements used to support the
+                eMenlow BSP.
                 The file defines machines using the
                 <ulink url='&YOCTO_DOCS_REF_URL;#var-COMPATIBLE_MACHINE'><filename>COMPATIBLE_MACHINE</filename></ulink>
                 variable and uses the
-                <ulink url='&YOCTO_DOCS_REF_URL;#var-KMACHINE'><filename>KMACHINE</filename></ulink> variable to
-                ensure the machine name used by the OpenEmbedded build system maps to the
-                machine name used by the Linux Yocto kernel.
+                <ulink url='&YOCTO_DOCS_REF_URL;#var-KMACHINE'><filename>KMACHINE</filename></ulink>
+                variable to ensure the machine name used by the OpenEmbedded
+                build system maps to the machine name used by the Linux Yocto
+                kernel.
                 The file also uses the optional
-                <ulink url='&YOCTO_DOCS_REF_URL;#var-KBRANCH'><filename>KBRANCH</filename></ulink> variable
-                to ensure the build process uses the <filename>standard/crownbay</filename>
-                kernel branch.
+                <ulink url='&YOCTO_DOCS_REF_URL;#var-KBRANCH'><filename>KBRANCH</filename></ulink>
+                variable to ensure the build process uses the
+                <filename>standard/emenlow</filename> kernel branch.
                 The
                 <ulink url='&YOCTO_DOCS_REF_URL;#var-KERNEL_FEATURES'><filename>KERNEL_FEATURES</filename></ulink>
                 variable enables features specific to the kernel
-                (e.g. graphics support in this case).
+                (e.g. Intel GMA-500 DRM Driver in this case).
                 The append file points to specific commits in the
-                <ulink url='&YOCTO_DOCS_DEV_URL;#source-directory'>Source Directory</ulink> Git
-                repository and the <filename>meta</filename> Git repository branches to identify the
-                exact kernel needed to build the Crown Bay BSP.
-                Finally, the file includes the
-                <ulink url='&YOCTO_DOCS_REF_URL;#var-SRC_URI'><filename>SRC_URI</filename></ulink>
-                statement to locate the source files.
+                <ulink url='&YOCTO_DOCS_DEV_URL;#source-directory'>Source Directory</ulink>
+                Git repository and the <filename>meta</filename> Git repository
+                branches to identify the exact kernel needed to build the
+                eMenlow BSP.
             </para>
 
             <para>
@@ -747,7 +768,7 @@
                             recipes.
                             The recipes themselves should follow the general guidelines
                             for recipes used in the Yocto Project found in the
-                            "<ulink url='https://wiki.yoctoproject.org/wiki/Recipe_%26_Patch_Style_Guide'>Yocto Recipe and Patch Style Guide</ulink>".
+                            "<ulink url='http://openembedded.org/wiki/Styleguide'>OpenEmbedded Style Guide</ulink>".
                             </para></listitem>
                         <listitem><para><emphasis>License File:</emphasis>
                             You must include a license file in the
@@ -910,8 +931,15 @@
                        <filename>recipes-bsp</filename>, <filename>recipes-graphics</filename>,
                        <filename>recipes-core</filename>, and so forth).
                        </para></listitem>
-                   <listitem><para>Place the BSP-specific files in the directory named for
-                       your machine inside the BSP layer.
+                   <listitem><para>Place the BSP-specific files in the proper directory
+                       inside the BSP layer.
+                       How expansive the layer is affects where you must place these files.
+                       For example, if your layer supports several different machine types,
+                       you need to be sure your layer's directory structure includes hierarchy
+                       that separates the files out according to machine.
+                       If your layer does not support multiple machines, the layer would not
+                       have that additional hierarchy and the files would obviously not be
+                       able to reside in a machine-specific directory.
                        </para></listitem>
                </itemizedlist>
            </para>
@@ -920,7 +948,8 @@
                Following is a specific example to help you better understand the process.
                Consider an example that customizes a recipe by adding
                a BSP-specific configuration file named <filename>interfaces</filename> to the
-               <filename>init-ifupdown_1.0.bb</filename> recipe for machine "xyz".
+               <filename>init-ifupdown_1.0.bb</filename> recipe for machine "xyz" where the
+               BSP layer also supports several other machines.
                Do the following:
                <orderedlist>
                    <listitem><para>Edit the <filename>init-ifupdown_1.0.bbappend</filename> file so that it
@@ -934,8 +963,17 @@
                    <listitem><para>Create and place the new <filename>interfaces</filename>
                        configuration file in the BSP's layer here:
                        <literallayout class='monospaced'>
-     meta-xyz/recipes-core/init-ifupdown/files/xyz/interfaces
+     meta-xyz/recipes-core/init-ifupdown/files/xyz-machine-one/interfaces
                        </literallayout>
+                       <note>
+                           If the <filename>meta-xyz</filename> layer did not support
+                           multiple machines, you would place the
+                           <filename>interfaces</filename> configuration file in the
+                           layer here:
+                           <literallayout class='monospaced'>
+     meta-xyz/recipes-core/init-ifupdown/files/interfaces
+                           </literallayout>
+                       </note>
                        The
                        <ulink url='&YOCTO_DOCS_REF_URL;#var-FILESEXTRAPATHS'><filename>FILESEXTRAPATHS</filename></ulink>
                        variable in the append files extends the search path
@@ -1242,12 +1280,13 @@
                     <literallayout class='monospaced'>
      $ yocto-bsp list karch
      Architectures available:
+         qemu
+         mips64
          powerpc
-         i386
          x86_64
          arm
-         qemu
          mips
+         i386
                     </literallayout>
                 </para>
 
@@ -1281,38 +1320,35 @@
      $ yocto-bsp create myarm qemu
      Checking basic git connectivity...
      Done.
-
      Which qemu architecture would you like to use? [default: i386]
-     	     1) i386    (32-bit)
-	     2) x86_64  (64-bit)
-	     3) ARM     (32-bit)
-	     4) PowerPC (32-bit)
-	     5) MIPS    (32-bit)
+         1) i386    (32-bit)
+         2) x86_64  (64-bit)
+         3) ARM     (32-bit)
+         4) PowerPC (32-bit)
+         5) MIPS    (32-bit)
+         6) MIPS64  (64-bit)
      3
-     Would you like to use the default (3.10) kernel? (y/n) [default: y] y
+     Would you like to use the default (3.19) kernel? (y/n) [default: y] y
      Do you need a new machine branch for this BSP (the alternative is to re-use an existing branch)? [y/n] [default: y]
-     Getting branches from remote repo git://git.yoctoproject.org/linux-yocto-3.10.git...
+     Getting branches from remote repo git://git.yoctoproject.org/linux-yocto-3.19.git...
      Please choose a machine branch to base your new BSP branch on: [default: standard/base]
-	     1) standard/arm-versatile-926ejs
-	     2) standard/base
-	     3) standard/beagleboard
-	     4) standard/beaglebone
-	     5) standard/ck
-	     6) standard/crownbay
-	     7) standard/edgerouter
-             8) standard/emenlow
-	     9) standard/fri2
-	     10) standard/fsl-mpc8315e-rdb
-	     11) standard/mti-malta32
-	     12) standard/mti-malta64
-	     13) standard/qemuppc
-	     14) standard/routerstationpro
-	     15) standard/sys940x
+         1) standard/arm-versatile-926ejs
+         2) standard/base
+         3) standard/beagleboard
+         4) standard/beaglebone
+         5) standard/ck
+         6) standard/common-pc
+         7) standard/crownbay
+         8) standard/edgerouter
+         9) standard/fsl-mpc8315e-rdb
+         10) standard/mti-malta32
+         11) standard/mti-malta64
+         12) standard/qemuarm64
+         13) standard/qemuppc
      1
      Would you like SMP support? (y/n) [default: y]
      Does your BSP have a touchscreen? (y/n) [default: n]
      Does your BSP have a keyboard? (y/n) [default: y]
-
      New qemu BSP created in meta-myarm
                     </literallayout>
                     Take a closer look at the example now:
@@ -1322,7 +1358,7 @@
                             In the example, we use the ARM architecture.
                             </para></listitem>
                         <listitem><para>The script then prompts you for the kernel.
-                            The default 3.14 kernel is acceptable.
+                            The default 3.19 kernel is acceptable.
                             So, the example accepts the default.
                             If you enter 'n', the script prompts you to further enter the kernel
                             you do want to use.</para></listitem>
@@ -1351,7 +1387,7 @@
                         <listitem><para>By default, the script creates the new BSP Layer in the
                             current working directory of the
                             <ulink url='&YOCTO_DOCS_DEV_URL;#source-directory'>Source Directory</ulink>,
-                            which is <filename>poky</filename> in this case.
+                            (i.e. <filename>poky/build</filename>).
                             </para></listitem>
                     </orderedlist>
                 </para>
@@ -1400,13 +1436,10 @@
                     Recall that the easiest way to see exactly what sub-commands are available
                     is to use the <filename>yocto-kernel</filename> built-in help as follows:
                     <literallayout class='monospaced'>
-     $ yocto-kernel
+     $ yocto-kernel --help
      Usage:
-
       Modify and list Yocto BSP kernel config items and patches.
-
       usage: yocto-kernel [--version] [--help] COMMAND [ARGS]
-
       Current 'yocto-kernel' commands are:
         config list       List the modifiable set of bare kernel config options for a BSP
         config add        Add or modify bare kernel config options for a BSP
@@ -1421,11 +1454,7 @@
         feature describe  Describe a particular feature
         feature create    Create a new BSP-local feature
         feature destroy   Remove a BSP-local feature
-
       See 'yocto-kernel help COMMAND' for more information on a specific command.
-
-
-
      Options:
        --version    show program's version number and exit
        -h, --help   show this help message and exit
@@ -1440,11 +1469,11 @@
                     <literallayout class='monospaced'>
      $ yocto-kernel patch add myarm ~/test.patch
      Added patches:
-             test.patch
+       test.patch
 
      $ yocto-kernel patch add myarm ~/yocto-testmod.patch
      Added patches:
-             yocto-testmod.patch
+       yocto-testmod.patch
                     </literallayout>
                     <note>Although the previous example adds patches one at a time, it is possible
                     to add multiple patches at the same time.</note>
@@ -1457,8 +1486,8 @@
                     <literallayout class='monospaced'>
      $ yocto-kernel patch list myarm
      The current set of machine-specific patches for myarm is:
-             1) test.patch
-             2) yocto-testmod.patch
+       1) test.patch
+       2) yocto-testmod.patch
                     </literallayout>
                 </para>
 
@@ -1469,11 +1498,11 @@
                     <literallayout class='monospaced'>
      $ yocto-kernel patch rm myarm
      Specify the patches to remove:
-             1) test.patch
-             2) yocto-testmod.patch
+       1) test.patch
+       2) yocto-testmod.patch
      1
      Removed patches:
-             test.patch
+       test.patch
                     </literallayout>
                 </para>
 
@@ -1483,7 +1512,7 @@
                     <literallayout class='monospaced'>
      $ yocto-kernel patch list myarm
      The current set of machine-specific patches for myarm is:
-             1) yocto-testmod.patch
+       1) yocto-testmod.patch
                     </literallayout>
                 </para>
 
@@ -1494,15 +1523,17 @@
                     <filename>myarm</filename> BSP:
                     <literallayout class='monospaced'>
      $ yocto-kernel config add myarm CONFIG_MISC_DEVICES=y
-     Added items:
-             CONFIG_MISC_DEVICES=y
+     Added item:
+       CONFIG_MISC_DEVICES=y
 
      $ yocto-kernel config add myarm CONFIG_YOCTO_TESTMOD=y
-     Added items:
-             CONFIG_YOCTO_TESTMOD=y
+     Added item:
+       CONFIG_YOCTO_TESTMOD=y
                     </literallayout>
-                    <note>Although the previous example adds config items one at a time, it is possible
-                    to add multiple config items at the same time.</note>
+                    <note>
+                        Although the previous example adds config items one at a time, it is possible
+                        to add multiple config items at the same time.
+                    </note>
                 </para>
 
                 <para>

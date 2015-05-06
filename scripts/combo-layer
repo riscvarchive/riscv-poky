@@ -20,12 +20,15 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import fnmatch
 import os, sys
 import optparse
 import logging
 import subprocess
+import tempfile
 import ConfigParser
 import re
+from collections import OrderedDict
 
 __version__ = "0.2.1"
 
@@ -67,6 +70,11 @@ class Configuration(object):
                 if value.startswith("@"):
                     self.repos[repo][name] = eval(value.strip("@"))
                 else:
+                    # Apply special type transformations for some properties.
+                    # Type matches the RawConfigParser.get*() methods.
+                    types = {'signoff': 'boolean'}
+                    if name in types:
+                        value = getattr(parser, 'get' + types[name])(section, name)
                     self.repos[repo][name] = value
 
         logger.debug("Loading config file %s" % self.conffile)
@@ -108,7 +116,9 @@ class Configuration(object):
                         readsection(self.localparser, section, repo)
 
     def update(self, repo, option, value, initmode=False):
-        if self.localparser:
+        # If the main config has the option already, that is what we
+        # are expected to modify.
+        if self.localparser and not self.parser.has_option(repo, option):
             parser = self.localparser
             section = "%s|%s" % (repo, self.combobranch)
             conffile = self.localconffile
@@ -121,6 +131,7 @@ class Configuration(object):
         parser.set(section, option, value)
         with open(conffile, "w") as f:
             parser.write(f)
+        self.repos[repo][option] = value
 
     def sanity_check(self, initmode=False):
         required_options=["src_uri", "local_repo_dir", "dest_dir", "last_revision"]
@@ -133,6 +144,10 @@ class Configuration(object):
                 if option not in self.repos[name]:
                     msg = "%s\nOption %s is not defined for component %s" %(msg, option, name)
                     missing_options.append(option)
+            # Sanitize dest_dir so that we do not have to deal with edge cases
+            # (empty string, double slashes) in the rest of the code.
+            dest_dir = os.path.normpath(self.repos[name]["dest_dir"])
+            self.repos[name]["dest_dir"] = "." if not dest_dir else dest_dir
         if msg != "":
             logger.error("configuration file %s has the following error: %s" % (self.conffile,msg))
             if self.localconffile and 'last_revision' in missing_options:
@@ -144,23 +159,27 @@ class Configuration(object):
             logger.error("ERROR: patchutils package is missing, please install it (e.g. # apt-get install patchutils)")
             sys.exit(1)
 
-def runcmd(cmd,destdir=None,printerr=True):
+def runcmd(cmd,destdir=None,printerr=True,out=None):
     """
         execute command, raise CalledProcessError if fail
         return output if succeed
     """
     logger.debug("run cmd '%s' in %s" % (cmd, os.getcwd() if destdir is None else destdir))
-    out = os.tmpfile()
+    if not out:
+        out = os.tmpfile()
+        err = out
+    else:
+        err = os.tmpfile()
     try:
-        subprocess.check_call(cmd, stdout=out, stderr=out, cwd=destdir, shell=True)
+        subprocess.check_call(cmd, stdout=out, stderr=err, cwd=destdir, shell=isinstance(cmd, str))
     except subprocess.CalledProcessError,e:
-        out.seek(0)
+        err.seek(0)
         if printerr:
-            logger.error("%s" % out.read())
+            logger.error("%s" % err.read())
         raise e
 
-    out.seek(0)
-    output = out.read()
+    err.seek(0)
+    output = err.read()
     logger.debug("output: %s" % output )
     return output
 
@@ -176,6 +195,11 @@ def action_init(conf, args):
             subprocess.check_call("git clone %s %s" % (conf.repos[name]['src_uri'], ldir), shell=True)
     if not os.path.exists(".git"):
         runcmd("git init")
+        if conf.history:
+            # Need a common ref for all trees.
+            runcmd('git commit -m "initial empty commit" --allow-empty')
+            startrev = runcmd('git rev-parse master').strip()
+
         for name in conf.repos:
             repo = conf.repos[name]
             ldir = repo['local_repo_dir']
@@ -191,19 +215,225 @@ def action_init(conf, args):
                 lastrev = None
                 initialrev = branch
                 logger.info("Copying data from %s..." % name)
+            # Sanity check initialrev and turn it into hash (required for copying history,
+            # because resolving a name ref only works in the component repo).
+            rev = runcmd('git rev-parse %s' % initialrev, ldir).strip()
+            if rev != initialrev:
+                try:
+                    refs = runcmd('git show-ref -s %s' % initialrev, ldir).split('\n')
+                    if len(set(refs)) > 1:
+                        # Happens for example when configured to track
+                        # "master" and there is a refs/heads/master. The
+                        # traditional behavior from "git archive" (preserved
+                        # here) it to choose the first one. This might not be
+                        # intended, so at least warn about it.
+                        logger.warn("%s: initial revision '%s' not unique, picking result of rev-parse = %s" %
+                                    (name, initialrev, refs[0]))
+                        initialrev = rev
+                except:
+                    # show-ref fails for hashes. Skip the sanity warning in that case.
+                    pass
+                initialrev = rev
             dest_dir = repo['dest_dir']
-            if dest_dir and dest_dir != ".":
+            if dest_dir != ".":
                 extract_dir = os.path.join(os.getcwd(), dest_dir)
                 if not os.path.exists(extract_dir):
                     os.makedirs(extract_dir)
             else:
                 extract_dir = os.getcwd()
             file_filter = repo.get('file_filter', "")
-            runcmd("git archive %s | tar -x -C %s %s" % (initialrev, extract_dir, file_filter), ldir)
+            exclude_patterns = repo.get('file_exclude', '').split()
+            def copy_selected_files(initialrev, extract_dir, file_filter, exclude_patterns, ldir,
+                                    subdir=""):
+                # When working inside a filtered branch which had the
+                # files already moved, we need to prepend the
+                # subdirectory to all filters, otherwise they would
+                # not match.
+                if subdir == '.':
+                    subdir = ''
+                elif subdir:
+                    subdir = os.path.normpath(subdir)
+                    file_filter = ' '.join([subdir + '/' + x for x in file_filter.split()])
+                    exclude_patterns = [subdir + '/' + x for x in exclude_patterns]
+                # To handle both cases, we cd into the target
+                # directory and optionally tell tar to strip the path
+                # prefix when the files were already moved.
+                subdir_components = len(subdir.split(os.path.sep)) if subdir else 0
+                strip=('--strip-components=%d' % subdir_components) if subdir else ''
+                # TODO: file_filter wild cards do not work (and haven't worked before either), because
+                # a) GNU tar requires a --wildcards parameter before turning on wild card matching.
+                # b) The semantic is not as intendend (src/*.c also matches src/foo/bar.c,
+                #    in contrast to the other use of file_filter as parameter of "git archive"
+                #    where it only matches .c files directly in src).
+                files = runcmd("git archive %s %s | tar -x -v %s -C %s %s" %
+                               (initialrev, subdir,
+                                strip, extract_dir, file_filter),
+                               ldir)
+                if exclude_patterns:
+                    # Implement file removal by letting tar create the
+                    # file and then deleting it in the file system
+                    # again. Uses the list of files created by tar (easier
+                    # than walking the tree).
+                    for file in files.split('\n'):
+                        for pattern in exclude_patterns:
+                            if fnmatch.fnmatch(file, pattern):
+                                os.unlink(os.path.join(*([extract_dir] + ['..'] * subdir_components + [file])))
+                                break
+
+            if not conf.history:
+                copy_selected_files(initialrev, extract_dir, file_filter, exclude_patterns, ldir)
+            else:
+                # First fetch remote history into local repository.
+                # We need a ref for that, so ensure that there is one.
+                refname = "combo-layer-init-%s" % name
+                runcmd("git branch -f %s %s" % (refname, initialrev), ldir)
+                runcmd("git fetch %s %s" % (ldir, refname))
+                runcmd("git branch -D %s" % refname, ldir)
+                # Make that the head revision.
+                runcmd("git checkout -b %s %s" % (name, initialrev))
+                # Optional: cut the history by replacing the given
+                # start point(s) with commits providing the same
+                # content (aka tree), but with commit information that
+                # makes it clear that this is an artifically created
+                # commit and nothing the original authors had anything
+                # to do with.
+                since_rev = repo.get('since_revision', '')
+                if since_rev:
+                    committer = runcmd('git var GIT_AUTHOR_IDENT').strip()
+                    # Same time stamp, no name.
+                    author = re.sub('.* (\d+ [+-]\d+)', r'unknown <unknown> \1', committer)
+                    logger.info('author %s' % author)
+                    for rev in since_rev.split():
+                        # Resolve in component repo...
+                        rev = runcmd('git log --oneline --no-abbrev-commit -n1 %s' % rev, ldir).split()[0]
+                        # ... and then get the tree in current
+                        # one. The commit should be in both repos with
+                        # the same tree, but better check here.
+                        tree = runcmd('git show -s --pretty=format:%%T %s' % rev).strip()
+                        with tempfile.NamedTemporaryFile() as editor:
+                            editor.write('''cat >$1 <<EOF
+tree %s
+author %s
+committer %s
+
+%s: squashed import of component
+
+This commit copies the entire set of files as found in
+%s %s
+
+For more information about previous commits, see the
+upstream repository.
+
+Commit created by combo-layer.
+EOF
+''' % (tree, author, committer, name, name, since_rev))
+                            editor.flush()
+                            os.environ['GIT_EDITOR'] = 'sh %s' % editor.name
+                            runcmd('git replace --edit %s' % rev)
+
+                # Optional: rewrite history to change commit messages or to move files.
+                if 'hook' in repo or dest_dir != ".":
+                    filter_branch = ['git', 'filter-branch', '--force']
+                    with tempfile.NamedTemporaryFile() as hookwrapper:
+                        if 'hook' in repo:
+                            # Create a shell script wrapper around the original hook that
+                            # can be used by git filter-branch. Hook may or may not have
+                            # an absolute path.
+                            hook = repo['hook']
+                            hook = os.path.join(os.path.dirname(conf.conffile), '..', hook)
+                            # The wrappers turns the commit message
+                            # from stdin into a fake patch header.
+                            # This is good enough for changing Subject
+                            # and commit msg body with normal
+                            # combo-layer hooks.
+                            hookwrapper.write('''set -e
+tmpname=$(mktemp)
+trap "rm $tmpname" EXIT
+echo -n 'Subject: [PATCH] ' >>$tmpname
+cat >>$tmpname
+if ! [ $(tail -c 1 $tmpname | od -A n -t x1) == '0a' ]; then
+    echo >>$tmpname
+fi
+echo '---' >>$tmpname
+%s $tmpname $GIT_COMMIT %s
+tail -c +18 $tmpname | head -c -4
+''' % (hook, name))
+                            hookwrapper.flush()
+                            filter_branch.extend(['--msg-filter', 'bash %s' % hookwrapper.name])
+                        if dest_dir != ".":
+                            parent = os.path.dirname(dest_dir)
+                            if not parent:
+                                parent = '.'
+                            # May run outside of the current directory, so do not assume that .git exists.
+                            filter_branch.extend(['--tree-filter', 'mkdir -p .git/tmptree && mv $(ls -1 -a | grep -v -e ^.git$ -e ^.$ -e ^..$) .git/tmptree && mkdir -p %s && mv .git/tmptree %s' % (parent, dest_dir)])
+                        filter_branch.append('HEAD')
+                        runcmd(filter_branch)
+                        runcmd('git update-ref -d refs/original/refs/heads/%s' % name)
+                repo['rewritten_revision'] = runcmd('git rev-parse HEAD').strip()
+                repo['stripped_revision'] = repo['rewritten_revision']
+                # Optional filter files: remove everything and re-populate using the normal filtering code.
+                # Override any potential .gitignore.
+                if file_filter or exclude_patterns:
+                    runcmd('git rm -rf .')
+                    if not os.path.exists(extract_dir):
+                        os.makedirs(extract_dir)
+                    copy_selected_files('HEAD', extract_dir, file_filter, exclude_patterns, '.',
+                                        subdir=dest_dir)
+                    runcmd('git add --all --force .')
+                    if runcmd('git status --porcelain'):
+                        # Something to commit.
+                        runcmd(['git', 'commit', '-m',
+                                '''%s: select file subset
+
+Files from the component repository were chosen based on
+the following filters:
+file_filter = %s
+file_exclude = %s''' % (name, file_filter or '<empty>', repo.get('file_exclude', '<empty>'))])
+                        repo['stripped_revision'] = runcmd('git rev-parse HEAD').strip()
+
             if not lastrev:
-                lastrev = runcmd("git rev-parse %s" % initialrev, ldir).strip()
+                lastrev = runcmd('git rev-parse %s' % initialrev, ldir).strip()
                 conf.update(name, "last_revision", lastrev, initmode=True)
-        runcmd("git add .")
+
+        if not conf.history:
+            runcmd("git add .")
+        else:
+            # Create Octopus merge commit according to http://stackoverflow.com/questions/10874149/git-octopus-merge-with-unrelated-repositoies
+            runcmd('git checkout master')
+            merge = ['git', 'merge', '--no-commit']
+            for name in conf.repos:
+                repo = conf.repos[name]
+                # Use branch created earlier.
+                merge.append(name)
+                # Root all commits which have no parent in the common
+                # ancestor in the new repository.
+                for start in runcmd('git log --pretty=format:%%H --max-parents=0 %s' % name).split('\n'):
+                    runcmd('git replace --graft %s %s' % (start, startrev))
+            try:
+                runcmd(merge)
+            except Exception, error:
+                logger.info('''Merging component repository history failed, perhaps because of merge conflicts.
+It may be possible to commit anyway after resolving these conflicts.
+
+%s''' % error)
+            # Create MERGE_HEAD and MERGE_MSG. "git merge" itself
+            # does not create MERGE_HEAD in case of a (harmless) failure,
+            # and we want certain auto-generated information in the
+            # commit message for future reference and/or automation.
+            with open('.git/MERGE_HEAD', 'w') as head:
+                with open('.git/MERGE_MSG', 'w') as msg:
+                    msg.write('repo: initial import of components\n\n')
+                    # head.write('%s\n' % startrev)
+                    for name in conf.repos:
+                        repo = conf.repos[name]
+                        # <upstream ref> <rewritten ref> <rewritten + files removed>
+                        msg.write('combo-layer-%s: %s %s %s\n' % (name,
+                                                                  repo['last_revision'],
+                                                                  repo['rewritten_revision'],
+                                                                  repo['stripped_revision']))
+                        rev = runcmd('git rev-parse %s' % name).strip()
+                        head.write('%s\n' % rev)
+
         if conf.localconffile:
             localadded = True
             try:
@@ -305,18 +535,17 @@ def check_rev_branch(component, repodir, rev, branch):
         return False
     return True
 
-def get_repos(conf, args):
+def get_repos(conf, repo_names):
     repos = []
-    if len(args) > 1:
-        for arg in args[1:]:
-            if arg.startswith('-'):
-                break
-            else:
-                repos.append(arg)
-        for repo in repos:
-            if not repo in conf.repos:
-                logger.error("Specified component '%s' not found in configuration" % repo)
-                sys.exit(0)
+    for name in repo_names:
+        if name.startswith('-'):
+            break
+        else:
+            repos.append(name)
+    for repo in repos:
+        if not repo in conf.repos:
+            logger.error("Specified component '%s' not found in configuration" % repo)
+            sys.exit(0)
 
     if not repos:
         repos = conf.repos
@@ -327,7 +556,7 @@ def action_pull(conf, args):
     """
         update the component repos only
     """
-    repos = get_repos(conf, args)
+    repos = get_repos(conf, args[1:])
 
     # make sure all repos are clean
     for name in repos:
@@ -348,7 +577,13 @@ def action_update(conf, args):
         generate the patch list
         apply the generated patches
     """
-    repos = get_repos(conf, args)
+    components = [arg.split(':')[0] for arg in args[1:]]
+    revisions = {}
+    for arg in args[1:]:
+        if ':' in arg:
+            a = arg.split(':', 1)
+            revisions[a[0]] = a[1]
+    repos = get_repos(conf, components)
 
     # make sure combo repo is clean
     check_repo_clean(os.getcwd())
@@ -362,9 +597,10 @@ def action_update(conf, args):
     if conf.nopull:
         logger.info("Skipping pull (-n)")
     else:
-        action_pull(conf, args)
+        action_pull(conf, ['arg0'] + components)
 
     for name in repos:
+        revision = revisions.get(name, None)
         repo = conf.repos[name]
         ldir = repo['local_repo_dir']
         dest_dir = repo['dest_dir']
@@ -373,18 +609,21 @@ def action_update(conf, args):
 
         # Step 2: generate the patch list and store to patch dir
         logger.info("Generating patches from %s..." % name)
+        top_revision = revision or branch
+        if not check_rev_branch(name, ldir, top_revision, branch):
+            sys.exit(1)
         if dest_dir != ".":
             prefix = "--src-prefix=a/%s/ --dst-prefix=b/%s/" % (dest_dir, dest_dir)
         else:
             prefix = ""
         if repo['last_revision'] == "":
             logger.info("Warning: last_revision of component %s is not set, starting from the first commit" % name)
-            patch_cmd_range = "--root %s" % branch
-            rev_cmd_range = branch
+            patch_cmd_range = "--root %s" % top_revision
+            rev_cmd_range = top_revision
         else:
             if not check_rev_branch(name, ldir, repo['last_revision'], branch):
                 sys.exit(1)
-            patch_cmd_range = "%s..%s" % (repo['last_revision'], branch)
+            patch_cmd_range = "%s..%s" % (repo['last_revision'], top_revision)
             rev_cmd_range = patch_cmd_range
 
         file_filter = repo.get('file_filter',"")
@@ -405,6 +644,38 @@ def action_update(conf, args):
             for patch in patchlist:
                 runcmd("%s %s %s %s" % (repo['hook'], patch, revlist[count], name))
                 count=count-1
+
+        # Step 3a: Filter out unwanted files and patches.
+        exclude = repo.get('file_exclude', '')
+        if exclude:
+            filter = ['filterdiff', '-p1']
+            for path in exclude.split():
+                filter.append('-x')
+                filter.append('%s/%s' % (dest_dir, path) if dest_dir != '.' else path)
+            for patch in patchlist[:]:
+                filtered = patch + '.tmp'
+                with open(filtered, 'w') as f:
+                    runcmd(filter + [patch], out=f)
+                # Now check for empty patches.
+                if runcmd(['filterdiff', '--list', filtered]):
+                    # Possibly modified.
+                    os.unlink(patch)
+                    os.rename(filtered, patch)
+                else:
+                    # Empty, ignore it. Must also remove from revlist.
+                    with open(patch, 'r') as f:
+                        fromline = f.readline()
+                    if not fromline:
+                        # Patch must have been empty to start with. No need
+                        # to remove it.
+                        continue
+                    m = re.match(r'''^From ([0-9a-fA-F]+) .*\n''', fromline)
+                    rev = m.group(1)
+                    logger.debug('skipping empty patch %s = %s' % (patch, rev))
+                    os.unlink(patch)
+                    os.unlink(filtered)
+                    patchlist.remove(patch)
+                    revlist.remove(rev)
 
         # Step 4: write patch list and revision list to file, for user to edit later
         patchlist_file = os.path.join(os.getcwd(), patch_dir, "patchlist-%s" % name)
@@ -471,7 +742,7 @@ def apply_patchlist(conf, repos):
                 if os.path.getsize(patchfile) == 0:
                     logger.info("(skipping %d/%d %s - no changes)" % (i, linecount, patchdisp))
                 else:
-                    cmd = "git am --keep-cr -s -p1 %s" % patchfile
+                    cmd = "git am --keep-cr %s-p1 %s" % ('-s ' if repo.get('signoff', True) else '', patchfile)
                     logger.info("Applying %d/%d: %s" % (i, linecount, patchdisp))
                     try:
                         runcmd(cmd)
@@ -569,6 +840,9 @@ Action:
 
     parser.add_option("-n", "--no-pull", help = "skip pulling component repos during update",
                action = "store_true", dest = "nopull", default = False)
+
+    parser.add_option("-H", "--history", help = "import full history of components during init",
+                      action = "store_true", default = False)
 
     options, args = parser.parse_args(sys.argv)
 

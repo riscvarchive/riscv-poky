@@ -25,16 +25,12 @@ EXTRA_OECONF += "\
 "
 
 EXTRA_OECONF_PATHS = "\
-    --with-gxx-include-dir=${STAGING_DIR_TARGET}${target_includedir}/c++/${BINV} \
-    --with-sysroot=${STAGING_DIR_TARGET} \
+    --with-gxx-include-dir=/not/exist${target_includedir}/c++/${BINV} \
+    --with-sysroot=/not/exist \
     --with-build-sysroot=${STAGING_DIR_TARGET} \
 "
 
 ARCH_FLAGS_FOR_TARGET += "-isystem${STAGING_DIR_TARGET}${target_includedir}"
-
-do_configure_prepend () {
-	sed -i 's/BUILD_INFO=info/BUILD_INFO=/' ${S}/gcc/configure
-}
 
 do_compile () {
 	export CC="${BUILD_CC}"

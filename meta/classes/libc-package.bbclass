@@ -268,6 +268,7 @@ python package_do_split_gconvs () {
             locale_arch_options = { \
                 "arm":     " --uint32-align=4 --little-endian ", \
                 "armeb":   " --uint32-align=4 --big-endian ",    \
+                "aarch64": " --uint32-align=4 --little-endian ",    \
                 "aarch64_be": " --uint32-align=4 --big-endian ",    \
                 "sh4":     " --uint32-align=4 --big-endian ",    \
                 "powerpc": " --uint32-align=4 --big-endian ",    \
@@ -298,9 +299,7 @@ python package_do_split_gconvs () {
                 --inputfile=%s/i18n/locales/%s --charmap=%s %s" \
                 % (treedir, datadir, locale, encoding, name)
 
-            qemu_options = d.getVar("QEMU_OPTIONS_%s" % d.getVar('PACKAGE_ARCH', True), True)
-            if not qemu_options:
-                qemu_options = d.getVar('QEMU_OPTIONS', True)
+            qemu_options = d.getVar('QEMU_OPTIONS', True)
 
             cmd = "PSEUDO_RELOADED=YES PATH=\"%s\" I18NPATH=\"%s\" %s -L %s \
                 -E LD_LIBRARY_PATH=%s %s %s/bin/localedef %s" % \

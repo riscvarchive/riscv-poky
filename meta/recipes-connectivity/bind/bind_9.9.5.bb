@@ -17,6 +17,10 @@ SRC_URI = "ftp://ftp.isc.org/isc/bind9/${PV}/${BPN}-${PV}.tar.gz \
            file://named.service \
            file://bind9 \
            file://init.d-add-support-for-read-only-rootfs.patch \
+           file://bind9_9_5-CVE-2014-8500.patch \
+           file://bind-add-crosscripts-search-path-for-xml2-config.patch \
+           file://bind-subdirs-run-serially.patch \
+           file://bind-confgen-build-unix.o-once.patch \
 	   "
 
 SRC_URI[md5sum] = "e676c65cad5234617ee22f48e328c24e"
@@ -28,10 +32,14 @@ EXTRA_OECONF = " ${ENABLE_IPV6} --with-randomdev=/dev/random --disable-threads \
                  --disable-devpoll --disable-epoll --with-gost=no \
                  --with-gssapi=no --with-ecdsa=yes \
                  --sysconfdir=${sysconfdir}/bind \
-                 --with-openssl=${STAGING_LIBDIR}/.. --with-libxml2=${STAGING_LIBDIR}/.. \
+                 --with-openssl=${STAGING_LIBDIR}/.. \
                  --enable-exportlib --with-export-includedir=${includedir} --with-export-libdir=${libdir} \
                "
-inherit autotools-brokensep update-rc.d systemd useradd
+inherit autotools-brokensep update-rc.d systemd useradd pkgconfig
+
+PACKAGECONFIG ?= "libxml2"
+
+PACKAGECONFIG[libxml2] = "--with-libxml2=${STAGING_LIBDIR}/..,--with-libxml2=no,libxml2"
 
 USERADD_PACKAGES = "${PN}"
 USERADD_PARAM_${PN} = "--system --home /var/cache/bind --no-create-home \
@@ -46,10 +54,17 @@ PARALLEL_MAKE = ""
 
 RDEPENDS_${PN} = "python-core"
 
-PACKAGES_prepend = " ${PN}-utils "
+PACKAGE_BEFORE_PN += "${PN}-utils"
 FILES_${PN}-utils = "${bindir}/host ${bindir}/dig"
 FILES_${PN}-dev += "${bindir}/isc-config.h"
 FILES_${PN} += "${sbindir}/generate-rndc-key.sh"
+
+do_install_prepend() {
+	# clean host path in isc-config.sh before the hardlink created
+	# by "make install":
+	#   bind9-config -> isc-config.sh
+	sed -i -e "s,${STAGING_LIBDIR},${libdir}," ${S}/isc-config.sh
+}
 
 do_install_append() {
 	rm "${D}${bindir}/nslookup"

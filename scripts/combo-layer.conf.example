@@ -1,7 +1,17 @@
 # combo-layer example configuration file
 
+# Default values for all sections.
+[DEFAULT]
+
+# Add 'Signed-off-by' to all commits that get imported automatically.
+signoff = True
+
 # component name
 [bitbake]
+
+# Override signedoff default above (not very useful, but possible).
+signoff = False
+
 # mandatory options
 # git upstream uri
 src_uri = git://git.openembedded.org/bitbake
@@ -32,6 +42,20 @@ last_revision =
 #   file_filter = src/*.c : only include the src *.c file
 #   file_filter = src/main.c src/Makefile.am : only include these two files
 
+# file_exclude: filter out these file(s)
+# file_exclude = [path] [path] ...
+#
+# Each entry must match a file name. In contrast do file_filter, matching
+# a directory has no effect. To achieve that, use append a * wildcard
+# at the end.
+#
+# Wildcards are applied to the complete path and also match slashes.
+#
+# example:
+#   file_exclude = src/foobar/*  : exclude everything under src/foobar
+#   file_exclude = src/main.c : filter out main.c after including it with file_filter = src/*.c
+#   file_exclude = *~ : exclude backup files
+
 # hook: if provided, the tool will call the hook to process the generated
 #     patch from upstream, and then apply the modified patch to the combo
 #     repo.
@@ -39,11 +63,24 @@ last_revision =
 # example:
 #     hook = combo-layer-hook-default.sh
 
+# since_revision:
+#   since_revision = release-1-2
+#   since_revision = 12345 abcdf
+#
+# If provided, truncate imported history during "combo-layer --history
+# init" at the specified revision(s).  More than one can be specified
+# to cut off multiple component branches.
+#
+# The specified commits themselves do not get imported. Instead, an
+# artificial commit with "unknown" author is created with a content
+# that matches the original commit.
+
 [oe-core]
 src_uri = git://git.openembedded.org/openembedded-core
 local_repo_dir = /home/kyu3/src/test/oecore
 dest_dir = .
 last_revision =
+since_revision = some-tag-or-commit-on-master-branch
 
 # It is also possible to embed python code in the config values. Similar
 # to bitbake it considers every value starting with @ to be a python

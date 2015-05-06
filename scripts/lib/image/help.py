@@ -109,8 +109,9 @@ wic_create_usage = """
 
  usage: wic create <wks file or image name> [-o <DIRNAME> | --outdir <DIRNAME>]
             [-i <JSON PROPERTY FILE> | --infile <JSON PROPERTY_FILE>]
-            [-e | --image-name] [-r, --rootfs-dir] [-b, --bootimg-dir]
-            [-k, --kernel-dir] [-n, --native-sysroot] [-s, --skip-build-check]
+            [-e | --image-name] [-s, --skip-build-check] [-D, --debug]
+            [-r, --rootfs-dir] [-b, --bootimg-dir]
+            [-k, --kernel-dir] [-n, --native-sysroot] [-f, --build-rootfs]
 
  This command creates an OpenEmbedded image based on the 'OE kickstart
  commands' found in the <wks file>.
@@ -129,8 +130,9 @@ NAME
 SYNOPSIS
     wic create <wks file or image name> [-o <DIRNAME> | --outdir <DIRNAME>]
         [-i <JSON PROPERTY FILE> | --infile <JSON PROPERTY_FILE>]
-        [-e | --image-name] [-r, --rootfs-dir] [-b, --bootimg-dir]
-        [-k, --kernel-dir] [-n, --native-sysroot] [-s, --skip-build-check]
+        [-e | --image-name] [-s, --skip-build-check] [-D, --debug]
+        [-r, --rootfs-dir] [-b, --bootimg-dir]
+        [-k, --kernel-dir] [-n, --native-sysroot] [-f, --build-rootfs]
 
 DESCRIPTION
     This command creates an OpenEmbedded image based on the 'OE
@@ -165,12 +167,20 @@ DESCRIPTION
     The -n option is used to specify the path to the native sysroot
     containing the tools to use to build the image.
 
+    The -f option is used to build rootfs by running "bitbake <image>"
+
     The -s option is used to skip the build check.  The build check is
     a simple sanity check used to determine whether the user has
     sourced the build environment so that the -e option can operate
     correctly.  If the user has specified the build artifact locations
     explicitly, 'wic' assumes the user knows what he or she is doing
     and skips the build check.
+
+    The -D option is used to display debug information detailing
+    exactly what happens behind the scenes when a create request is
+    fulfilled (or not, as the case may be).  It enumerates and
+    displays the command sequence used, and should be included in any
+    bug report describing unexpected results.
 
     When 'wic -e' is used, the locations for the build artifacts
     values are determined by 'wic -e' from the output of the 'bitbake
@@ -181,7 +191,7 @@ DESCRIPTION
     -r:        IMAGE_ROOTFS
     -k:        STAGING_KERNEL_DIR
     -n:        STAGING_DIR_NATIVE
-    -b:        HDDDIR and STAGING_DATA_DIR (handlers decide which to use)
+    -b:        empty (plugin-specific handlers must determine this)
 
     If 'wic -e' is not used, the user needs to select the appropriate
     value for -b (as well as -r, -k, and -n).
@@ -519,8 +529,9 @@ DESCRIPTION
 
        usage: wic create <wks file or image name> [-o <DIRNAME> | ...]
             [-i <JSON PROPERTY FILE> | --infile <JSON PROPERTY_FILE>]
-            [-e | --image-name] [-r, --rootfs-dir] [-b, --bootimg-dir]
-            [-k, --kernel-dir] [-n, --native-sysroot] [-s, --skip-build-check]
+            [-e | --image-name] [-s, --skip-build-check] [-D, --debug]
+            [-r, --rootfs-dir] [-b, --bootimg-dir] [-k, --kernel-dir]
+            [-n, --native-sysroot] [-f, --build-rootfs]
 
        This command creates an OpenEmbedded image based on the 'OE
        kickstart commands' found in the <wks file>.
@@ -664,10 +675,10 @@ DESCRIPTION
 
        The following are supported 'part' options:
 
-         --size: The minimum partition size in MBytes. Specify an
-                 integer value such as 500. Do not append the number
-                 with "MB". You do not need this option if you use
-                 --source.
+         --size: The minimum partition size. Specify an integer value
+                 such as 500. Multipliers k, M ang G can be used. If
+                 not specified, the size is in MB.
+                 You do not need this option if you use --source.
 
          --source: This option is a wic-specific option that names the
                    source of the data that will populate the
@@ -727,6 +738,24 @@ DESCRIPTION
          --align (in KBytes): This option is specific to wic and says
                               to start a partition on an x KBytes
                               boundary.
+
+         --no-table: This option is specific to wic. Space will be
+                     reserved for the partition and it will be
+                     populated but it will not be added to the
+                     partition table. It may be useful for
+                     bootloaders.
+
+         --extra-space: This option is specific to wic. It adds extra
+                        space after the space filled by the content
+                        of the partition. The final size can go
+                        beyond the size specified by --size.
+                        By default, 10MB.
+
+         --overhead-factor: This option is specific to wic. The
+                            size of the partition is multiplied by
+                            this factor. It has to be greater than or
+                            equal to 1.
+                            The default value is 1.3.
 
     * bootloader
 

@@ -43,8 +43,8 @@
        <link linkend='var-DEFAULT_PREFERENCE'>D</link>
        <link linkend='var-EXCLUDE_FROM_WORLD'>E</link>
        <link linkend='var-FAKEROOT'>F</link>
-<!--       <link linkend='var-GROUPADD_PARAM'>G</link> -->
-       <link linkend='var-HOMEPAGE'>H</link>
+       <link linkend='var-GITDIR'>G</link>
+       <link linkend='var-HGDIR'>H</link>
 <!--       <link linkend='var-ICECC_DISABLED'>I</link> -->
 <!--               <link linkend='var-glossary-j'>J</link> -->
 <!--       <link linkend='var-KARCH'>K</link> -->
@@ -872,7 +872,7 @@
                     that run on the target <filename>MACHINE</filename>;
                     "nativesdk", which targets the SDK machine instead of
                     <filename>MACHINE</filename>; and "mulitlibs" in the form
-                    "<filename>multilib:&lt;multilib_name&gt;</filename>".
+                    "<filename>multilib:</filename><replaceable>multilib_name</replaceable>".
                 </para>
 
                 <para>
@@ -884,7 +884,7 @@
                     metadata:
                     <literallayout class='monospaced'>
      BBCLASSEXTEND =+ "native nativesdk"
-     BBCLASSEXTEND =+ "multilib:&lt;multilib_name&gt;"
+     BBCLASSEXTEND =+ "multilib:<replaceable>multilib_name</replaceable>"
                     </literallayout>
                 </para>
              </glossdef>
@@ -1091,9 +1091,9 @@
                     Set the variable as you would any environment variable
                     and then run BitBake:
                     <literallayout class='monospaced'>
-     $ BBPATH="&lt;build_directory&gt;"
+     $ BBPATH="<replaceable>build_directory</replaceable>"
      $ export BBPATH
-     $ bitbake &lt;target&gt;
+     $ bitbake <replaceable>target</replaceable>
                     </literallayout>
                 </para>
             </glossdef>
@@ -1154,6 +1154,15 @@
             </glossdef>
         </glossentry>
 
+        <glossentry id='var-BZRDIR'><glossterm>BZRDIR</glossterm>
+            <glossdef>
+                <para>
+                    The directory in which files checked out of a Bazaar
+                    system are stored.
+                </para>
+            </glossdef>
+        </glossentry>
+
     </glossdiv>
 
     <glossdiv id='var-glossary-c'><title>C</title>
@@ -1164,6 +1173,15 @@
                     Specifies the directory BitBake uses to store a cache
                     of the metadata so it does not need to be parsed every
                     time BitBake is started.
+                </para>
+            </glossdef>
+        </glossentry>
+
+        <glossentry id='var-CVSDIR'><glossterm>CVSDIR</glossterm>
+            <glossdef>
+                <para>
+                    The directory in which files checked out under the
+                    CVS system are stored.
                 </para>
             </glossdef>
         </glossentry>
@@ -1412,12 +1430,31 @@
 
     </glossdiv>
 
-<!--
+
     <glossdiv id='var-glossary-g'><title>G</title>
+
+        <glossentry id='var-GITDIR'><glossterm>GITDIR</glossterm>
+            <glossdef>
+                <para>
+                    The directory in which a local copy of a Git repository
+                    is stored when it is cloned.
+                </para>
+            </glossdef>
+        </glossentry>
+
     </glossdiv>
--->
+
 
     <glossdiv id='var-glossary-h'><title>H</title>
+
+        <glossentry id='var-HGDIR'><glossterm>HGDIR</glossterm>
+            <glossdef>
+                <para>
+                    The directory in which files checked out of a Mercurial
+                    system are stored.
+                </para>
+            </glossdef>
+        </glossentry>
 
         <glossentry id='var-HOMEPAGE'><glossterm>HOMEPAGE</glossterm>
             <glossdef>
@@ -1851,7 +1888,7 @@
                     Here is the general syntax to specify versions with
                     the <filename>RDEPENDS</filename> variable:
                     <literallayout class='monospaced'>
-     RDEPENDS_${PN} = "&lt;package&gt; (&lt;operator&gt; &lt;version&gt;)"
+     RDEPENDS_${PN} = "<replaceable>package</replaceable> (<replaceable>operator</replaceable> <replaceable>version</replaceable>)"
                     </literallayout>
                     For <filename>operator</filename>, you can specify the
                     following:
@@ -1917,7 +1954,7 @@
                     Here is the general syntax to specify versions with
                     the <filename>RRECOMMENDS</filename> variable:
                     <literallayout class='monospaced'>
-     RRECOMMENDS_${PN} = "&lt;package&gt; (&lt;operator&gt; &lt;version&gt;)"
+     RRECOMMENDS_${PN} = "<replaceable>package</replaceable> (<replaceable>operator</replaceable> <replaceable>version</replaceable>)"
                     </literallayout>
                     For <filename>operator</filename>, you can specify the
                     following:
@@ -2096,6 +2133,15 @@
             <glossdef>
                 <para>
                     A short summary for the recipe, which is 72 characters or less.
+                </para>
+            </glossdef>
+        </glossentry>
+
+        <glossentry id='var-SVNDIR'><glossterm>SVNDIR</glossterm>
+            <glossdef>
+                <para>
+                    The directory in which files checked out of a Subversion
+                    system are stored.
                 </para>
             </glossdef>
         </glossentry>

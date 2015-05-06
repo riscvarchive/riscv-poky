@@ -9,6 +9,7 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=4fbd65380cdd255951079008b364516c \
 DEPENDS = "gconf glib-2.0"
 
 SRC_URI = "http://libproxy.googlecode.com/files/libproxy-${PV}.zip \
+           file://0001-test-Include-sys-select.h-for-select.patch \
           "
 
 SRC_URI[md5sum] = "06be230b8b612e64997f8f15af6373aa"
@@ -29,7 +30,7 @@ do_configure_prepend() {
 }
 
 python() {
-    if bb.utils.contains("INCOMPATIBLE_LICENSE", "GPLv3", "x", "", d) == "x" or bb.utils.contains("DISTRO_FEATURES", "x11", "x", "", d) == "":
+    if incompatible_license_contains("GPLv3", "x", "", d) == "x" or bb.utils.contains("DISTRO_FEATURES", "x11", "x", "", d) == "":
         d.setVar("EXTRA_OECMAKE", d.getVar("EXTRA_OECMAKE").replace("-DWITH_GNOME=yes", "-DWITH_GNOME=no"))
         d.setVar("DEPENDS", " ".join(i for i in d.getVar("DEPENDS").split() if i != "gconf"))
 }

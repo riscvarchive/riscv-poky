@@ -43,7 +43,7 @@ except ImportError:
     logger.info("Importing cPickle failed. "
                 "Falling back to a very slow implementation.")
 
-__cache_version__ = "147"
+__cache_version__ = "148"
 
 def getCacheFile(path, filename, data_hash):
     return os.path.join(path, filename + "." + data_hash)
@@ -529,8 +529,11 @@ class Cache(object):
         if hasattr(info_array[0], 'file_checksums'):
             for _, fl in info_array[0].file_checksums.items():
                 for f in fl.split():
-                    if not ('*' in f or os.path.exists(f)):
-                        logger.debug(2, "Cache: %s's file checksum list file %s was removed",
+                    if "*" in f:
+                        continue
+                    f, exist = f.split(":")
+                    if (exist == "True" and not os.path.exists(f)) or (exist == "False" and os.path.exists(f)):
+                        logger.debug(2, "Cache: %s's file checksum list file %s changed",
                                         fn, f)
                         self.remove(fn)
                         return False
@@ -620,9 +623,12 @@ class Cache(object):
     def mtime(cachefile):
         return bb.parse.cached_mtime_noerror(cachefile)
 
-    def add_info(self, filename, info_array, cacheData, parsed=None):
+    def add_info(self, filename, info_array, cacheData, parsed=None, watcher=None):
         if isinstance(info_array[0], CoreRecipeInfo) and (not info_array[0].skipped):
             cacheData.add_from_recipeinfo(filename, info_array)
+
+            if watcher:
+                watcher(info_array[0].file_depends)
 
         if not self.has_cache:
             return

@@ -48,11 +48,13 @@ class ImageDepGraph(object):
         graph = dict()
 
         def add_node(node):
+            base_type = self._image_base_type(node)
             deps = (self.d.getVar('IMAGE_TYPEDEP_' + node, True) or "")
-            if deps != "":
+            base_deps = (self.d.getVar('IMAGE_TYPEDEP_' + base_type, True) or "")
+            if deps != "" or base_deps != "":
                 graph[node] = deps
 
-                for dep in deps.split():
+                for dep in deps.split() + base_deps.split():
                     if not dep in graph:
                         add_node(dep)
             else:
@@ -71,6 +73,18 @@ class ImageDepGraph(object):
 
         for item in remove_list:
             self.graph.pop(item, None)
+
+    def _image_base_type(self, type):
+        ctypes = self.d.getVar('COMPRESSIONTYPES', True).split()
+        if type in ["vmdk", "live", "iso", "hddimg"]:
+            type = "ext3"
+        basetype = type
+        for ctype in ctypes:
+            if type.endswith("." + ctype):
+                basetype = type[:-len("." + ctype)]
+                break
+
+        return basetype
 
     def _compute_dependencies(self):
         """
@@ -109,7 +123,7 @@ class ImageDepGraph(object):
         # remove added nodes from deps_array
         for item in group:
             for node in self.graph:
-                if item in self.graph[node]:
+                if item in self.graph[node].split():
                     self.deps_array[node][0] -= 1
 
             self.deps_array.pop(item, None)
@@ -282,7 +296,11 @@ class Image(ImageDepGraph):
                 bb.data.update_data(localdata)
                 localdata.setVar('type', type)
 
-                cmds.append("\t" + localdata.getVar("IMAGE_CMD", True))
+                image_cmd = localdata.getVar("IMAGE_CMD", True)
+                if image_cmd:
+                    cmds.append("\t" + image_cmd)
+                else:
+                    bb.fatal("No IMAGE_CMD defined for IMAGE_FSTYPES entry '%s' - possibly invalid type name or missing support class" % type)
                 cmds.append(localdata.expand("\tcd ${DEPLOY_DIR_IMAGE}"))
 
                 if type in cimages:

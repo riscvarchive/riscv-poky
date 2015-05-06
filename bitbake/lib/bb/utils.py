@@ -53,6 +53,9 @@ def set_context(ctx):
 # Context used in better_exec, eval
 _context = clean_context()
 
+class VersionStringException(Exception):
+    """Exception raised when an invalid version specification is found"""
+
 def explode_version(s):
     r = []
     alpha_regexp = re.compile('^([a-zA-Z]+)(.*)$')
@@ -128,6 +131,28 @@ def vercmp_string(a, b):
     tb = split_version(b)
     return vercmp(ta, tb)
 
+def vercmp_string_op(a, b, op):
+    """
+    Compare two versions and check if the specified comparison operator matches the result of the comparison.
+    This function is fairly liberal about what operators it will accept since there are a variety of styles
+    depending on the context.
+    """
+    res = vercmp_string(a, b)
+    if op in ('=', '=='):
+        return res == 0
+    elif op == '<=':
+        return res <= 0
+    elif op == '>=':
+        return res >= 0
+    elif op in ('>', '>>'):
+        return res > 0
+    elif op in ('<', '<<'):
+        return res < 0
+    elif op == '!=':
+        return res != 0
+    else:
+        raise VersionStringException('Unsupported comparison operator "%s"' % op)
+
 def explode_deps(s):
     """
     Take an RDEPENDS style string of format:
@@ -188,6 +213,7 @@ def explode_dep_versions2(s):
                 i = i[1:]
             else:
                 # This is an unsupported case!
+                raise VersionStringException('Invalid version specification in "(%s" - invalid or missing operator' % i)
                 lastcmp = (i or "")
                 i = ""
             i.strip()
@@ -522,7 +548,7 @@ def filter_environment(good_vars):
         os.unsetenv(key)
         del os.environ[key]
 
-    if len(removed_vars):
+    if removed_vars:
         logger.debug(1, "Removed the following variables from the environment: %s", ", ".join(removed_vars.keys()))
 
     return removed_vars
@@ -575,11 +601,30 @@ def build_environment(d):
         if export:
             os.environ[var] = d.getVar(var, True) or ""
 
+def _check_unsafe_delete_path(path):
+    """
+    Basic safeguard against recursively deleting something we shouldn't. If it returns True,
+    the caller should raise an exception with an appropriate message.
+    NOTE: This is NOT meant to be a security mechanism - just a guard against silly mistakes
+    with potentially disastrous results.
+    """
+    extra = ''
+    # HOME might not be /home/something, so in case we can get it, check against it
+    homedir = os.environ.get('HOME', '')
+    if homedir:
+        extra = '|%s' % homedir
+    if re.match('(/|//|/home|/home/[^/]*%s)$' % extra, os.path.abspath(path)):
+        return True
+    return False
+
 def remove(path, recurse=False):
     """Equivalent to rm -f or rm -rf"""
     if not path:
         return
     if recurse:
+        for name in glob.glob(path):
+            if _check_unsafe_delete_path(path):
+                raise Exception('bb.utils.remove: called with dangerous path "%s" and recurse=True, refusing to delete!' % path)
         # shutil.rmtree(name) would be ideal but its too slow
         subprocess.call(['rm', '-rf'] + glob.glob(path))
         return
@@ -593,6 +638,8 @@ def remove(path, recurse=False):
 def prunedir(topdir):
     # Delete everything reachable from the directory named in 'topdir'.
     # CAUTION:  This is dangerous!
+    if _check_unsafe_delete_path(topdir):
+        raise Exception('bb.utils.prunedir: called with dangerous path "%s", refusing to delete!' % topdir)
     for root, dirs, files in os.walk(topdir, topdown = False):
         for name in files:
             os.remove(os.path.join(root, name))
@@ -892,4 +939,161 @@ def multiprocessingpool(*args, **kwargs):
     multiprocessing.pool.IMapIterator.next = wrapper(multiprocessing.pool.IMapIterator.next)
 
     return multiprocessing.Pool(*args, **kwargs)
+
+def exec_flat_python_func(func, *args, **kwargs):
+    """Execute a flat python function (defined with def funcname(args):...)"""
+    # Prepare a small piece of python code which calls the requested function
+    # To do this we need to prepare two things - a set of variables we can use to pass
+    # the values of arguments into the calling function, and the list of arguments for
+    # the function being called
+    context = {}
+    funcargs = []
+    # Handle unnamed arguments
+    aidx = 1
+    for arg in args:
+        argname = 'arg_%s' % aidx
+        context[argname] = arg
+        funcargs.append(argname)
+        aidx += 1
+    # Handle keyword arguments
+    context.update(kwargs)
+    funcargs.extend(['%s=%s' % (arg, arg) for arg in kwargs.iterkeys()])
+    code = 'retval = %s(%s)' % (func, ', '.join(funcargs))
+    comp = bb.utils.better_compile(code, '<string>', '<string>')
+    bb.utils.better_exec(comp, context, code, '<string>')
+    return context['retval']
+
+def edit_metadata_file(meta_file, variables, func):
+    """Edit a recipe or config file and modify one or more specified
+    variable values set in the file using a specified callback function.
+    The file is only written to if the value(s) actually change.
+    """
+    var_res = {}
+    for var in variables:
+        var_res[var] = re.compile(r'^%s[ \t]*[?+]*=' % var)
+
+    updated = False
+    varset_start = ''
+    newlines = []
+    in_var = None
+    full_value = ''
+
+    def handle_var_end():
+        (newvalue, indent, minbreak) = func(in_var, full_value)
+        if newvalue != full_value:
+            if isinstance(newvalue, list):
+                intentspc = ' ' * indent
+                if minbreak:
+                    # First item on first line
+                    if len(newvalue) == 1:
+                        newlines.append('%s "%s"\n' % (varset_start, newvalue[0]))
+                    else:
+                        newlines.append('%s "%s\\\n' % (varset_start, newvalue[0]))
+                        for item in newvalue[1:]:
+                            newlines.append('%s%s \\\n' % (intentspc, item))
+                        newlines.append('%s"\n' % indentspc)
+                else:
+                    # No item on first line
+                    newlines.append('%s " \\\n' % varset_start)
+                    for item in newvalue:
+                        newlines.append('%s%s \\\n' % (intentspc, item))
+                    newlines.append('%s"\n' % intentspc)
+            else:
+                newlines.append('%s "%s"\n' % (varset_start, newvalue))
+            return True
+        return False
+
+    with open(meta_file, 'r') as f:
+        for line in f:
+            if in_var:
+                value = line.rstrip()
+                full_value += value[:-1]
+                if value.endswith('"') or value.endswith("'"):
+                    if handle_var_end():
+                        updated = True
+                    in_var = None
+            else:
+                matched = False
+                for (varname, var_re) in var_res.iteritems():
+                    if var_re.match(line):
+                        splitvalue = line.split('"', 1)
+                        varset_start = splitvalue[0].rstrip()
+                        value = splitvalue[1].rstrip()
+                        if value.endswith('\\'):
+                            value = value[:-1]
+                        full_value = value
+                        if value.endswith('"') or value.endswith("'"):
+                            if handle_var_end():
+                                updated = True
+                        else:
+                            in_var = varname
+                        matched = True
+                        break
+                if not matched:
+                    newlines.append(line)
+    if updated:
+        with open(meta_file, 'w') as f:
+            f.writelines(newlines)
+
+def edit_bblayers_conf(bblayers_conf, add, remove):
+    """Edit bblayers.conf, adding and/or removing layers"""
+
+    import fnmatch
+
+    def remove_trailing_sep(pth):
+        if pth and pth[-1] == os.sep:
+            pth = pth[:-1]
+        return pth
+
+    def layerlist_param(value):
+        if not value:
+            return []
+        elif isinstance(value, list):
+            return [remove_trailing_sep(x) for x in value]
+        else:
+            return [remove_trailing_sep(value)]
+
+    notadded = []
+    notremoved = []
+
+    addlayers = layerlist_param(add)
+    removelayers = layerlist_param(remove)
+
+    # Need to use a list here because we can't set non-local variables from a callback in python 2.x
+    bblayercalls = []
+
+    def handle_bblayers(varname, origvalue):
+        bblayercalls.append(varname)
+        updated = False
+        bblayers = [remove_trailing_sep(x) for x in origvalue.split()]
+        if removelayers:
+            for removelayer in removelayers:
+                matched = False
+                for layer in bblayers:
+                    if fnmatch.fnmatch(layer, removelayer):
+                        updated = True
+                        matched = True
+                        bblayers.remove(layer)
+                        break
+                if not matched:
+                    notremoved.append(removelayer)
+        if addlayers:
+            for addlayer in addlayers:
+                if addlayer not in bblayers:
+                    updated = True
+                    bblayers.append(addlayer)
+                else:
+                    notadded.append(addlayer)
+
+        if updated:
+            return (bblayers, 2, False)
+        else:
+            return (origvalue, 2, False)
+
+    edit_metadata_file(bblayers_conf, ['BBLAYERS'], handle_bblayers)
+
+    if not bblayercalls:
+        raise Exception('Unable to find BBLAYERS in %s' % bblayers_conf)
+
+    return (notadded, notremoved)
 

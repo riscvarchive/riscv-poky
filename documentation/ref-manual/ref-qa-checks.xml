@@ -467,6 +467,24 @@ can be found then it should be implemented.  I can't find one at the moment.
                 </para>
 
                 <para>
+                    Typically, the way to solve this performance issue is to
+                    add "-fPIC" or "-fpic" to the compiler command-line
+                    options.
+                    For example, given software that reads
+                    <link linkend='var-CFLAGS'><filename>CFLAGS</filename></link>
+                    when you build it, you could add the following to your
+                    recipe:
+                    <literallayout class='monospaced'>
+     CFLAGS_append = " -fPIC "
+                    </literallayout>
+                </para>
+
+                <para>
+                    For more information on text relocations at runtime, see
+                    <ulink url='http://www.akkadia.org/drepper/textrelocs.html'></ulink>.
+                </para>
+
+                <para>
                     &nbsp;
                 </para>
             </listitem>
@@ -894,7 +912,7 @@ can be found then it should be implemented.  I can't find one at the moment.
                     and there is another option that should be used instead.
                     If you are unsure, consult the upstream build
                     documentation, the
-                    <filename>./configure &dash;&dash;help</filename> output,
+                    <filename>./configure --help</filename> output,
                     and the upstream change log or release notes.
                     Once you have worked out what the appropriate
                     change is, you can update

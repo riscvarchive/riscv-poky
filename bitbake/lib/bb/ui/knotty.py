@@ -271,7 +271,7 @@ def main(server, eventHandler, params, tf = TerminalFilter):
         server.terminateServer()
         return
 
-    if consolelogfile and not params.options.show_environment:
+    if consolelogfile and not params.options.show_environment and not params.options.show_versions:
         bb.utils.mkdirhier(os.path.dirname(consolelogfile))
         conlogformat = bb.msg.BBLogFormatter(format_str)
         consolelog = logging.FileHandler(consolelogfile)
@@ -284,7 +284,7 @@ def main(server, eventHandler, params, tf = TerminalFilter):
 
     if not params.observe_only:
         params.updateFromServer(server)
-        params.updateToServer(server)
+        params.updateToServer(server, os.environ.copy())
         cmdline = params.parseActions()
         if not cmdline:
             print("Nothing to do.  Use 'bitbake world' to build everything, or run 'bitbake --help' for usage information.")
@@ -536,24 +536,29 @@ def main(server, eventHandler, params, tf = TerminalFilter):
             if not params.observe_only:
                 _, error = server.runCommand(["stateForceShutdown"])
             main.shutdown = 2
-    summary = ""
-    if taskfailures:
-        summary += pluralise("\nSummary: %s task failed:",
-                             "\nSummary: %s tasks failed:", len(taskfailures))
-        for failure in taskfailures:
-            summary += "\n  %s" % failure
-    if warnings:
-        summary += pluralise("\nSummary: There was %s WARNING message shown.",
-                             "\nSummary: There were %s WARNING messages shown.", warnings)
-    if return_value and errors:
-        summary += pluralise("\nSummary: There was %s ERROR message shown, returning a non-zero exit code.",
-                             "\nSummary: There were %s ERROR messages shown, returning a non-zero exit code.", errors)
-    if summary:
-        print(summary)
+    try:
+        summary = ""
+        if taskfailures:
+            summary += pluralise("\nSummary: %s task failed:",
+                                 "\nSummary: %s tasks failed:", len(taskfailures))
+            for failure in taskfailures:
+                summary += "\n  %s" % failure
+        if warnings:
+            summary += pluralise("\nSummary: There was %s WARNING message shown.",
+                                 "\nSummary: There were %s WARNING messages shown.", warnings)
+        if return_value and errors:
+            summary += pluralise("\nSummary: There was %s ERROR message shown, returning a non-zero exit code.",
+                                 "\nSummary: There were %s ERROR messages shown, returning a non-zero exit code.", errors)
+        if summary:
+            print(summary)
 
-    if interrupted:
-        print("Execution was interrupted, returning a non-zero exit code.")
-        if return_value == 0:
-            return_value = 1
+        if interrupted:
+            print("Execution was interrupted, returning a non-zero exit code.")
+            if return_value == 0:
+                return_value = 1
+    except IOError as e:
+        import errno
+        if e.errno == errno.EPIPE:
+            pass
 
     return return_value

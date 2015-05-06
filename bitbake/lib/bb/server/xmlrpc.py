@@ -235,12 +235,16 @@ class XMLRPCServer(SimpleXMLRPCServer, BaseImplServer):
             fds = [self]
             nextsleep = 0.1
             for function, data in self._idlefuns.items():
+                retval = None
                 try:
                     retval = function(self, data, False)
                     if retval is False:
                         del self._idlefuns[function]
                     elif retval is True:
                         nextsleep = 0
+                    elif isinstance(retval, float):
+                        if (retval < nextsleep):
+                            nextsleep = retval
                     else:
                         fds = fds + retval
                 except SystemExit:
@@ -248,6 +252,9 @@ class XMLRPCServer(SimpleXMLRPCServer, BaseImplServer):
                 except:
                     import traceback
                     traceback.print_exc()
+                    if retval == None:
+                        # the function execute failed; delete it
+                        del self._idlefuns[function]
                     pass
 
             socktimeout = self.socket.gettimeout() or nextsleep
@@ -299,6 +306,8 @@ class BitBakeXMLRPCServerConnection(BitBakeBaseServerConnection):
 
         _, error = self.connection.runCommand(["setFeatures", self.featureset])
         if error:
+            # disconnect the client, we can't make the setFeature work
+            self.connection.removeClient()
             # no need to log it here, the error shall be sent to the client
             raise BaseException(error)
 

@@ -16,23 +16,17 @@ SRC_URI = "\
     file://nss-fix-support-cross-compiling.patch \
     file://nss-no-rpath-for-cross-compiling.patch \
     file://nss-fix-incorrect-shebang-of-perl.patch \
-    file://nss-3.15.1-fix-CVE-2013-1741.patch \
-    file://nss-3.15.1-fix-CVE-2013-5605.patch \
-    file://nss-CVE-2014-1492.patch \
-    file://nss-CVE-2013-1740.patch \
-    file://nss-3.15.1-fix-CVE-2013-1739.patch \
-    file://nss-CVE-2013-5606.patch \
-    file://nss-CVE-2014-1544.patch \
+    file://nss-fix-nsinstall-build.patch \
 "
 SRC_URI_append = "\
     file://nss.pc.in \
     file://signlibs.sh \
 "
 inherit siteinfo
-PR = "r0"
+
 DEPENDS = "sqlite3 nspr zlib nss-native"
 DEPENDS_class-native = "sqlite3-native nspr-native zlib-native"
-RDEPENDS_${PN} = "perl"
+RDEPENDS_${PN}-smime = "perl"
 
 TD = "${S}/tentative-dist"
 TDS = "${S}/tentative-dist-staging"
@@ -78,10 +72,16 @@ do_compile() {
 
     if [ "${SITEINFO_BITS}" = "64" ]; then
         export USE_64=1
+    elif [ "${TARGET_ARCH}" = "x86_64" -a "${SITEINFO_BITS}" = "32" ]; then
+        export USE_X32=1
     fi
 
-    make -C ./nss CCC="${CXX}" \
-        OS_TEST=${OS_TEST} \
+    # We can modify CC in the environment, but if we set it via an
+    # argument to make, nsinstall, a host program, will also build with it!
+    #
+    export CC="${CC} -g"
+    make -C ./nss CCC="${CXX} -g" \
+        OS_TEST=${OS_TEST}
 }
 
 
@@ -117,6 +117,8 @@ do_install() {
     fi
     if [ "${SITEINFO_BITS}" = "64" ]; then
         export USE_64=1
+    elif [ "${TARGET_ARCH}" = "x86_64" -a "${SITEINFO_BITS}" = "32" ]; then
+        export USE_X32=1
     fi
 
     make -C ./nss \
@@ -195,6 +197,10 @@ pkg_postinst_${PN} () {
     signlibs.sh
 }
 
+PACKAGES =+ "${PN}-smime"
+FILES_${PN}-smime = "\
+    ${bindir}/smime \
+"
 FILES_${PN} = "\
     ${sysconfdir} \
     ${bindir} \
@@ -206,9 +212,6 @@ FILES_${PN}-dev = "\
     ${libdir}/pkgconfig/* \
     ${includedir}/* \
     "
-FILES_${PN}-dbg = "\
-    ${bindir}/.debug/* \
-    ${libdir}/.debug/* \
-    "
+# FILES_${PN}-dbg is populated automatically
 
 BBCLASSEXTEND = "native nativesdk"

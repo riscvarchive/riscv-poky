@@ -4,18 +4,20 @@ SECTION = "base/shell"
 
 DEPENDS = "ncurses bison-native"
 
-inherit autotools-brokensep gettext texinfo update-alternatives ptest
+inherit autotools gettext texinfo update-alternatives ptest
 
-PARALLEL_MAKE = ""
-
+EXTRA_AUTORECONF += "--exclude=autoheader"
 EXTRA_OECONF = "--enable-job-control"
+
+# If NON_INTERACTIVE_LOGIN_SHELLS is defined, all login shells read the
+# startup files, even if they are not interactive.
+# This is what other major distros do. And this is what we wanted. See bug#5359 and bug#7137.
+CFLAGS += "-DNON_INTERACTIVE_LOGIN_SHELLS"
 
 ALTERNATIVE_${PN} = "sh"
 ALTERNATIVE_LINK_NAME[sh] = "${base_bindir}/sh"
 ALTERNATIVE_TARGET[sh] = "${base_bindir}/bash"
 ALTERNATIVE_PRIORITY = "100"
-
-export AUTOHEADER = "true"
 
 RDEPENDS_${PN} += "base-files"
 RDEPENDS_${PN}_class-nativesdk = ""
@@ -37,6 +39,10 @@ do_install_append () {
 		mkdir -p ${D}${base_bindir}
 		mv ${D}${bindir}/bash ${D}${base_bindir}
 	fi
+}
+do_install_append_class-target () {
+	# Clean host path in bashbug
+	sed -i -e "s,${STAGING_DIR_TARGET},,g" ${D}${bindir}/bashbug
 }
 
 do_install_ptest () {

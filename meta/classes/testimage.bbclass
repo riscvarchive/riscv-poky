@@ -16,7 +16,11 @@
 # The test names are the module names in meta/lib/oeqa/runtime.
 # Each name in TEST_SUITES represents a required test for the image. (no skipping allowed)
 # Appending "auto" means that it will try to run all tests that are suitable for the image (each test decides that on it's own).
-# Note that order in TEST_SUITES is important (it's the order tests run) and it influences tests dependencies.
+# Note that order in TEST_SUITES is relevant: tests are run in an order such that
+# tests mentioned in @skipUnlessPassed run before the tests that depend on them,
+# but without such dependencies, tests run in the order in which they are listed
+# in TEST_SUITES.
+#
 # A layer can add its own tests in lib/oeqa/runtime, provided it extends BBPATH as normal in its layer.conf.
 
 # TEST_LOG_DIR contains a command ssh log and may contain infromation about what command is running, output and return codes and for qemu a boot log till login.
@@ -64,6 +68,8 @@ do_testsdk[lockfiles] += "${TESTIMAGELOCK}"
 
 def get_tests_list(d, type="runtime"):
     testsuites = d.getVar("TEST_SUITES", True).split()
+    if type == "sdk":
+        testsuites = (d.getVar("TEST_SUITES_SDK", True) or "auto").split()
     bbpath = d.getVar("BBPATH", True).split(':')
 
     # This relies on lib/ under each directory in BBPATH being added to sys.path
@@ -257,7 +263,7 @@ def testsdk_main(d):
     # they won't be skipped even if they aren't suitable.
     # testslist is what we'll actually pass to the unittest loader
     testslist = get_tests_list(d, "sdk")
-    testsrequired = [t for t in d.getVar("TEST_SUITES", True).split() if t != "auto"]
+    testsrequired = [t for t in (d.getVar("TEST_SUITES_SDK", True) or "auto").split() if t != "auto"]
 
     sdktestdir = d.expand("${WORKDIR}/testimage-sdk/")
     bb.utils.remove(sdktestdir, True)
@@ -283,12 +289,18 @@ def testsdk_main(d):
             self.sdkenv = sdkenv
             self.imagefeatures = d.getVar("IMAGE_FEATURES", True).split()
             self.distrofeatures = d.getVar("DISTRO_FEATURES", True).split()
-            manifest = os.path.join(d.getVar("SDK_MANIFEST", True))
+            manifest = d.getVar("SDK_TARGET_MANIFEST", True)
             try:
                 with open(manifest) as f:
                     self.pkgmanifest = f.read()
             except IOError as e:
                 bb.fatal("No package manifest file found. Did you build the sdk image?\n%s" % e)
+            hostmanifest = d.getVar("SDK_HOST_MANIFEST", True)
+            try:
+                with open(hostmanifest) as f:
+                    self.hostpkgmanifest = f.read()
+            except IOError as e:
+                bb.fatal("No host package manifest file found. Did you build the sdk image?\n%s" % e)
 
     # test context
     tc = TestContext()

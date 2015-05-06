@@ -952,7 +952,7 @@
                     <listitem><para>
                         The class needs to define the function as follows:
                         <literallayout class='monospaced'>
-     &lt;classname&gt;_&lt;functionname&gt;
+     <replaceable>classname</replaceable><filename>_</filename><replaceable>functionname</replaceable>
                         </literallayout>
                         For example, if you have a class file
                         <filename>bar.bbclass</filename> and a function named
@@ -966,7 +966,7 @@
                         The class needs to contain the <filename>EXPORT_FUNCTIONS</filename>
                         statement as follows:
                         <literallayout class='monospaced'>
-     EXPORT_FUNCTIONS &lt;functionname&gt;
+     EXPORT_FUNCTIONS <replaceable>functionname</replaceable>
                         </literallayout>
                         For example, continuing with the same example, the
                         statement in the <filename>bar.bbclass</filename> would be
@@ -1140,8 +1140,6 @@
                 <filename>DISPLAY</filename> variable.
                 Here is an example:
                 <literallayout class='monospaced'>
-     BB_ORIGENV - add example?
-
      origenv = d.getVar("BB_ORIGENV", False)
      bar = origenv.getVar("BAR", False)
                 </literallayout>
@@ -1166,7 +1164,7 @@
             BitBake reads and writes varflags to the datastore using the following
             command forms:
             <literallayout class='monospaced'>
-     &lt;variable&gt; = d.getVarFlags("&lt;variable&gt;")
+     <replaceable>variable</replaceable> = d.getVarFlags("<replaceable>variable</replaceable>")
      self.d.setVarFlags("FOO", {"func": True})
             </literallayout>
         </para>
@@ -1308,8 +1306,8 @@
             BitBake allows installation of event handlers within
             recipe and class files.
             Events are triggered at certain points during operation,
-            such as the beginning of operation against a given
-            <filename>.bb</filename>, the start of a given task,
+            such as the beginning of an operation against a given recipe
+            (<filename>*.bb</filename> file), the start of a given task,
             task failure, task success, and so forth.
             The intent is to make it easy to do things like email
             notification on build failure.
@@ -1335,6 +1333,27 @@
             "<filename>bb.data</filename>".
             With the <filename>getName(e)</filename> method, one can get
             the name of the triggered event.
+        </para>
+
+        <para>
+            Because you probably are only interested in a subset of events,
+            you would likely use the <filename>[eventmask]</filename> flag
+            for your event handler to be sure that only certain events
+            trigger the handler.
+            Given the previous example, suppose you only wanted the
+            <filename>bb.build.TaskFailed</filename> event to trigger that
+            event handler.
+            Use the flag as follows:
+            <literallayout class='monospaced'>
+     addhandler myclass_eventhandler
+     myclass_eventhandler[eventmask] = "bb.build.TaskFailed"
+     python myclass_eventhandler() {
+         from bb.event import getName
+         from bb import data
+         print("The name of the Event is %s" % getName(e))
+         print("The file we run for is %s" % data.getVar('FILE', e.data, True))
+     }
+            </literallayout>
         </para>
 
         <para>
@@ -1551,11 +1570,11 @@
                 item runtime dependency which must have completed before that
                 task can be executed.
                 <literallayout class='monospaced'>
-     do_package_write[rdeptask] = "do_package"
+     do_package_qa[rdeptask] = "do_packagedata"
                 </literallayout>
-                In the previous example, the <filename>do_package</filename>
+                In the previous example, the <filename>do_packagedata</filename>
                 task of each item in <filename>RDEPENDS</filename> must have
-                completed before <filename>do_package_write</filename> can execute.
+                completed before <filename>do_package_qa</filename> can execute.
             </para>
         </section>
 

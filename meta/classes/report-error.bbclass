@@ -44,11 +44,18 @@ python errorreport_handler () {
             task = e.task
             taskdata={}
             log = e.data.getVar('BB_LOGFILE', True)
-            logFile = open(log, 'r')
             taskdata['package'] = e.data.expand("${PF}")
             taskdata['task'] = task
-            taskdata['log'] = logFile.read()
-            logFile.close()
+            if log:
+                try:
+                    logFile = open(log, 'r')
+                    taskdata['log'] = logFile.read().decode('utf-8')
+                    logFile.close()
+                except:
+                    taskdata['log'] = "Unable to read log file"
+
+            else:
+                taskdata['log'] = "No Log"
             jsondata = json.loads(errorreport_getdata(e))
             jsondata['failures'].append(taskdata)
             errorreport_savedata(e, jsondata, "error-report.txt")
@@ -59,8 +66,8 @@ python errorreport_handler () {
             if(len(failures) > 0):
                 filename = "error_report_" + e.data.getVar("BUILDNAME")+".txt"
                 datafile = errorreport_savedata(e, jsondata, filename)
-                bb.note("The errors for this build are stored in %s\nYou can send the errors to an upstream server by running:\n  send-error-report %s [server]" % (datafile, datafile))
-                bb.note("The contents of these logs will be posted in public if you use the above command with the default server. If you need to do so, please ensure you remove any identifying or proprietary information before sending.")
+                bb.note("The errors for this build are stored in %s\nYou can send the errors to a reports server by running:\n  send-error-report %s [-s server]" % (datafile, datafile))
+                bb.note("The contents of these logs will be posted in public if you use the above command with the default server. Please ensure you remove any identifying or proprietary information when prompted before sending.")
 }
 
 addhandler errorreport_handler

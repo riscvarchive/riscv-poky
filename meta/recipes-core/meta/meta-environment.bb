@@ -6,9 +6,9 @@ PR = "r8"
 
 EXCLUDE_FROM_WORLD = "1"
 
-ORIGOS := "${TARGET_OS}"
+MODIFYTOS = "0"
 
-REAL_MULTIMACH_TARGET_SYS = "${TUNE_PKGARCH}${TARGET_VENDOR}-${ORIGOS}"
+REAL_MULTIMACH_TARGET_SYS = "${TUNE_PKGARCH}${TARGET_VENDOR}-${TARGET_OS}"
 
 inherit toolchain-scripts
 TOOLCHAIN_NEED_CONFIGSITE_CACHE += "zlib"
@@ -19,7 +19,6 @@ SDKTARGETSYSROOT = "${SDKPATH}/sysroots/${REAL_MULTIMACH_TARGET_SYS}"
 
 inherit cross-canadian
 
-do_generate_content[nostamp] = "1"
 do_generate_content[cleandirs] = "${SDK_OUTPUT}"
 do_generate_content[dirs] = "${SDK_OUTPUT}/${SDKPATH}"
 python do_generate_content() {
@@ -31,7 +30,6 @@ python do_generate_content() {
 
     # make sure we only use the SDKTARGETSYSROOT value from 'd'
     localdata.setVar('SDKTARGETSYSROOT', d.getVar('SDKTARGETSYSROOT', True))
-    localdata.setVar('TARGET_OS', d.getVar('ORIGOS', True))
     localdata.setVar('libdir', d.getVar('target_libdir', False))
 
     # Process DEFAULTTUNE
@@ -42,6 +40,7 @@ python do_generate_content() {
         # Load overrides from 'd' to avoid having to reset the value...
         overrides = d.getVar("OVERRIDES", False) + ":virtclass-multilib-" + item
         localdata.setVar("OVERRIDES", overrides)
+        localdata.setVar("MLPREFIX", item + "-")
         bb.data.update_data(localdata)
         bb.build.exec_func("create_sdk_files", localdata)
 }
@@ -57,7 +56,6 @@ create_sdk_files() {
 	toolchain_create_sdk_version ${SDK_OUTPUT}/${SDKPATH}/version-${REAL_MULTIMACH_TARGET_SYS}
 }
 
-do_install[nostamp] = "1"
 do_install() {
     install -d ${D}/${SDKPATH}
     install -m 0644 -t ${D}/${SDKPATH} ${SDK_OUTPUT}/${SDKPATH}/*
