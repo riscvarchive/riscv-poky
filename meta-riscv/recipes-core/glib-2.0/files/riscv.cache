@@ -1,0 +1,3 @@
+glib_cv_long_long_format=I64
+glib_cv_stack_grows=no
+glib_cv_uscore=no
