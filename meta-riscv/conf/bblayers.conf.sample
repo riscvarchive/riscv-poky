@@ -9,6 +9,8 @@ BBLAYERS ?= " \
   ${TOPDIR}/../meta \
   ${TOPDIR}/../meta-yocto \
   ${TOPDIR}/../meta-yocto-bsp \
+  ${TOPDIR}/../meta-openembedded/meta-oe \
+  ${TOPDIR}/../meta-java \
   ${TOPDIR}/../meta-riscv \
   "
 BBLAYERS_NON_REMOVABLE ?= " \
