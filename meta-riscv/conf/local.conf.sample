@@ -266,7 +266,7 @@ EXTERNAL_TOOLCHAIN = "$(TOOLCHAIN_PATH)"
 # This mainly prevents some warnings, and can be used to set the VM
 # to build with as Cacao or JamVM
 PREFERRED_PROVIDER_virtual/java-initial-native = "cacao-initial-native"
-PREFERRED_PROVIDER_virtual/java-native = "cacao-native"
+PREFERRED_PROVIDER_virtual/java-native = "jamvm-native"
 PREFERRED_PROVIDER_virtual/javac-native = "ecj-bootstrap-native"
 
 #For openjdk6:
