@@ -10,8 +10,8 @@ IMAGE_INSTALL += "dropbear apt libffi libffi-dev"
 # Python
 # IMAGE_INSTALL += "python-numpy"
 
-# OpenJDK
-IMAGE_INSTALL += "openjdk-7-jre"
+# OpenJDK HotSpot JVM (64-bit Zero)
+# IMAGE_INSTALL += "openjdk-7-jre"
 
 # Basic toolchain on target
 # IMAGE_INSTALL += "gcc binutils glibc glibc-dev libgcc libgcc-dev libstdc++ libstdc++-dev"
