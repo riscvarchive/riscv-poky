@@ -56,8 +56,8 @@ PARALLEL_MAKE ?= "-j ${@oe.utils.cpu_count()}"
 #
 # This sets the default machine to be qemux86 if no other machine is selected:
 
-#MACHINE = "riscv"
-MACHINE = "qemuriscv"
+#MACHINE = "riscv64"
+MACHINE = "qemuriscv64"
 
 #
 # Where to place downloads

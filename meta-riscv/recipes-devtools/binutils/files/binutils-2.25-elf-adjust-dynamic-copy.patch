@@ -1,0 +1,15 @@
+diff -rupN git/bfd/elfnn-riscv.c git-new/bfd/elfnn-riscv.c
+--- git/bfd/elfnn-riscv.c	2015-06-24 01:31:09.217608200 -0700
++++ git-new/bfd/elfnn-riscv.c	2015-06-24 01:56:16.252993306 -0700
+@@ -964,9 +964,9 @@ riscv_elf_adjust_dynamic_symbol (struct
+     }
+ 
+   if (eh->tls_type & ~GOT_NORMAL)
+-    return _bfd_elf_adjust_dynamic_copy (h, htab->sdyntdata);
++    return _bfd_elf_adjust_dynamic_copy (info, h, htab->sdyntdata);
+ 
+-  return _bfd_elf_adjust_dynamic_copy (h, htab->sdynbss);
++  return _bfd_elf_adjust_dynamic_copy (info, h, htab->sdynbss);
+ }
+ 
+ /* Allocate space in .plt, .got and associated reloc sections for

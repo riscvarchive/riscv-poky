@@ -43,6 +43,7 @@ def siteinfo_data(d):
         "ppc": "endian-big bit-32 powerpc-common",
         "ppc64": "endian-big bit-64 powerpc-common",
         "riscv": "endian-little bit-64 riscv-common",
+        "riscv64": "endian-little bit-64 riscv-common",
         "sh3": "endian-little bit-32 sh-common",
         "sh4": "endian-little bit-32 sh-common",
         "sparc": "endian-big bit-32",

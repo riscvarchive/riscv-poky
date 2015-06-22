@@ -30,7 +30,7 @@ def map_kernel_arch(a, d):
     elif re.match('sh(3|4)$', a):               return 'sh'
     elif re.match('bfin', a):                   return 'blackfin'
     elif re.match('microblazee[bl]', a):        return 'microblaze'
-    elif re.match('riscv', a):                  return 'riscv'
+    elif re.match('riscv(|64)', a):             return 'riscv'
     elif a in valid_archs:                      return a
     else:
         bb.error("cannot map '%s' to a linux kernel architecture" % a)

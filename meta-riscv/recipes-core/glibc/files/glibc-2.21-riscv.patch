@@ -1,3 +1,1436 @@
+--- original-glibc/intl/plural.c
++++ glibc/intl/plural.c
+@@ -1,8 +1,8 @@
+-/* A Bison parser, made by GNU Bison 2.7.  */
++/* A Bison parser, made by GNU Bison 3.0.2.  */
+ 
+ /* Bison implementation for Yacc-like parsers in C
+ 
+-      Copyright (C) 1984, 1989-1990, 2000-2012 Free Software Foundation, Inc.
++   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
+ 
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+@@ -44,7 +44,7 @@
+ #define YYBISON 1
+ 
+ /* Bison version.  */
+-#define YYBISON_VERSION "2.7"
++#define YYBISON_VERSION "3.0.2"
+ 
+ /* Skeleton name.  */
+ #define YYSKELETON_NAME "yacc.c"
+@@ -63,14 +63,12 @@
+ #define yyparse         __gettextparse
+ #define yylex           __gettextlex
+ #define yyerror         __gettexterror
+-#define yylval          __gettextlval
+-#define yychar          __gettextchar
+ #define yydebug         __gettextdebug
+ #define yynerrs         __gettextnerrs
+ 
++
+ /* Copy the first part of user declarations.  */
+-/* Line 371 of yacc.c  */
+-#line 1 "plural.y"
++#line 1 "plural.y" /* yacc.c:339  */
+ 
+ /* Expression parsing for plural form selection.
+    Copyright (C) 2000-2015 Free Software Foundation, Inc.
+@@ -114,14 +112,13 @@
+ #endif
+ 
+ 
+-/* Line 371 of yacc.c  */
+-#line 119 "plural.c"
++#line 116 "plural.c" /* yacc.c:339  */
+ 
+-# ifndef YY_NULL
++# ifndef YY_NULLPTR
+ #  if defined __cplusplus && 201103L <= __cplusplus
+-#   define YY_NULL nullptr
++#   define YY_NULLPTR nullptr
+ #  else
+-#   define YY_NULL 0
++#   define YY_NULLPTR 0
+ #  endif
+ # endif
+ 
+@@ -134,7 +131,7 @@
+ #endif
+ 
+ 
+-/* Enabling traces.  */
++/* Debug traces.  */
+ #ifndef YYDEBUG
+ # define YYDEBUG 0
+ #endif
+@@ -142,18 +139,17 @@
+ extern int __gettextdebug;
+ #endif
+ 
+-/* Tokens.  */
++/* Token type.  */
+ #ifndef YYTOKENTYPE
+ # define YYTOKENTYPE
+-   /* Put the tokens into the symbol table, so that GDB and other debuggers
+-      know about them.  */
+-   enum yytokentype {
+-     EQUOP2 = 258,
+-     CMPOP2 = 259,
+-     ADDOP2 = 260,
+-     MULOP2 = 261,
+-     NUMBER = 262
+-   };
++  enum yytokentype
++  {
++    EQUOP2 = 258,
++    CMPOP2 = 259,
++    ADDOP2 = 260,
++    MULOP2 = 261,
++    NUMBER = 262
++  };
+ #endif
+ /* Tokens.  */
+ #define EQUOP2 258
+@@ -162,47 +158,31 @@ extern int __gettextdebug;
+ #define MULOP2 261
+ #define NUMBER 262
+ 
+-
+-
++/* Value type.  */
+ #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
+-typedef union YYSTYPE
++typedef union YYSTYPE YYSTYPE;
++union YYSTYPE
+ {
+-/* Line 387 of yacc.c  */
+-#line 49 "plural.y"
++#line 49 "plural.y" /* yacc.c:355  */
+ 
+   unsigned long int num;
+   enum expression_operator op;
+   struct expression *exp;
+ 
+-
+-/* Line 387 of yacc.c  */
+-#line 180 "plural.c"
+-} YYSTYPE;
++#line 173 "plural.c" /* yacc.c:355  */
++};
+ # define YYSTYPE_IS_TRIVIAL 1
+-# define yystype YYSTYPE /* obsolescent; will be withdrawn */
+ # define YYSTYPE_IS_DECLARED 1
+ #endif
+ 
+ 
+-#ifdef YYPARSE_PARAM
+-#if defined __STDC__ || defined __cplusplus
+-int __gettextparse (void *YYPARSE_PARAM);
+-#else
+-int __gettextparse ();
+-#endif
+-#else /* ! YYPARSE_PARAM */
+-#if defined __STDC__ || defined __cplusplus
++
+ int __gettextparse (struct parse_args *arg);
+-#else
+-int __gettextparse ();
+-#endif
+-#endif /* ! YYPARSE_PARAM */
+ 
+ 
+ 
+ /* Copy the second part of user declarations.  */
+-/* Line 390 of yacc.c  */
+-#line 55 "plural.y"
++#line 55 "plural.y" /* yacc.c:358  */
+ 
+ /* Prototypes for local functions.  */
+ static int yylex (YYSTYPE *lval, struct parse_args *arg);
+@@ -279,8 +259,7 @@ new_exp_3 (enum expression_operator op,
+ }
+ 
+ 
+-/* Line 390 of yacc.c  */
+-#line 284 "plural.c"
++#line 263 "plural.c" /* yacc.c:358  */
+ 
+ #ifdef short
+ # undef short
+@@ -294,11 +273,8 @@ typedef unsigned char yytype_uint8;
+ 
+ #ifdef YYTYPE_INT8
+ typedef YYTYPE_INT8 yytype_int8;
+-#elif (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-typedef signed char yytype_int8;
+ #else
+-typedef short int yytype_int8;
++typedef signed char yytype_int8;
+ #endif
+ 
+ #ifdef YYTYPE_UINT16
+@@ -318,8 +294,7 @@ typedef short int yytype_int16;
+ #  define YYSIZE_T __SIZE_TYPE__
+ # elif defined size_t
+ #  define YYSIZE_T size_t
+-# elif ! defined YYSIZE_T && (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
++# elif ! defined YYSIZE_T
+ #  include <stddef.h> /* INFRINGES ON USER NAME SPACE */
+ #  define YYSIZE_T size_t
+ # else
+@@ -341,6 +316,33 @@ typedef short int yytype_int16;
+ # endif
+ #endif
+ 
++#ifndef YY_ATTRIBUTE
++# if (defined __GNUC__                                               \
++      && (2 < __GNUC__ || (__GNUC__ == 2 && 96 <= __GNUC_MINOR__)))  \
++     || defined __SUNPRO_C && 0x5110 <= __SUNPRO_C
++#  define YY_ATTRIBUTE(Spec) __attribute__(Spec)
++# else
++#  define YY_ATTRIBUTE(Spec) /* empty */
++# endif
++#endif
++
++#ifndef YY_ATTRIBUTE_PURE
++# define YY_ATTRIBUTE_PURE   YY_ATTRIBUTE ((__pure__))
++#endif
++
++#ifndef YY_ATTRIBUTE_UNUSED
++# define YY_ATTRIBUTE_UNUSED YY_ATTRIBUTE ((__unused__))
++#endif
++
++#if !defined _Noreturn \
++     && (!defined __STDC_VERSION__ || __STDC_VERSION__ < 201112)
++# if defined _MSC_VER && 1200 <= _MSC_VER
++#  define _Noreturn __declspec (noreturn)
++# else
++#  define _Noreturn YY_ATTRIBUTE ((__noreturn__))
++# endif
++#endif
++
+ /* Suppress unused-variable warnings by "using" E.  */
+ #if ! defined lint || defined __GNUC__
+ # define YYUSE(E) ((void) (E))
+@@ -348,23 +350,25 @@ typedef short int yytype_int16;
+ # define YYUSE(E) /* empty */
+ #endif
+ 
+-/* Identity function, used to suppress warnings about constant conditions.  */
+-#ifndef lint
+-# define YYID(N) (N)
+-#else
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-static int
+-YYID (int yyi)
++#if defined __GNUC__ && 407 <= __GNUC__ * 100 + __GNUC_MINOR__
++/* Suppress an incorrect diagnostic about yylval being uninitialized.  */
++# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN \
++    _Pragma ("GCC diagnostic push") \
++    _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")\
++    _Pragma ("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
++# define YY_IGNORE_MAYBE_UNINITIALIZED_END \
++    _Pragma ("GCC diagnostic pop")
+ #else
+-static int
+-YYID (yyi)
+-    int yyi;
++# define YY_INITIAL_VALUE(Value) Value
+ #endif
+-{
+-  return yyi;
+-}
++#ifndef YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
++# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
++# define YY_IGNORE_MAYBE_UNINITIALIZED_END
+ #endif
++#ifndef YY_INITIAL_VALUE
++# define YY_INITIAL_VALUE(Value) /* Nothing. */
++#endif
++
+ 
+ #if ! defined yyoverflow || YYERROR_VERBOSE
+ 
+@@ -383,8 +387,7 @@ YYID (yyi)
+ #    define alloca _alloca
+ #   else
+ #    define YYSTACK_ALLOC alloca
+-#    if ! defined _ALLOCA_H && ! defined EXIT_SUCCESS && (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
++#    if ! defined _ALLOCA_H && ! defined EXIT_SUCCESS
+ #     include <stdlib.h> /* INFRINGES ON USER NAME SPACE */
+       /* Use EXIT_SUCCESS as a witness for stdlib.h.  */
+ #     ifndef EXIT_SUCCESS
+@@ -396,8 +399,8 @@ YYID (yyi)
+ # endif
+ 
+ # ifdef YYSTACK_ALLOC
+-   /* Pacify GCC's `empty if-body' warning.  */
+-#  define YYSTACK_FREE(Ptr) do { /* empty */; } while (YYID (0))
++   /* Pacify GCC's 'empty if-body' warning.  */
++#  define YYSTACK_FREE(Ptr) do { /* empty */; } while (0)
+ #  ifndef YYSTACK_ALLOC_MAXIMUM
+     /* The OS might guarantee only one guard page at the bottom of the stack,
+        and a page size can be as small as 4096 bytes.  So we cannot safely
+@@ -413,7 +416,7 @@ YYID (yyi)
+ #  endif
+ #  if (defined __cplusplus && ! defined EXIT_SUCCESS \
+        && ! ((defined YYMALLOC || defined malloc) \
+-	     && (defined YYFREE || defined free)))
++             && (defined YYFREE || defined free)))
+ #   include <stdlib.h> /* INFRINGES ON USER NAME SPACE */
+ #   ifndef EXIT_SUCCESS
+ #    define EXIT_SUCCESS 0
+@@ -421,15 +424,13 @@ YYID (yyi)
+ #  endif
+ #  ifndef YYMALLOC
+ #   define YYMALLOC malloc
+-#   if ! defined malloc && ! defined EXIT_SUCCESS && (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
++#   if ! defined malloc && ! defined EXIT_SUCCESS
+ void *malloc (YYSIZE_T); /* INFRINGES ON USER NAME SPACE */
+ #   endif
+ #  endif
+ #  ifndef YYFREE
+ #   define YYFREE free
+-#   if ! defined free && ! defined EXIT_SUCCESS && (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
++#   if ! defined free && ! defined EXIT_SUCCESS
+ void free (void *); /* INFRINGES ON USER NAME SPACE */
+ #   endif
+ #  endif
+@@ -439,7 +440,7 @@ void free (void *); /* INFRINGES ON USER
+ 
+ #if (! defined yyoverflow \
+      && (! defined __cplusplus \
+-	 || (defined YYSTYPE_IS_TRIVIAL && YYSTYPE_IS_TRIVIAL)))
++         || (defined YYSTYPE_IS_TRIVIAL && YYSTYPE_IS_TRIVIAL)))
+ 
+ /* A type that is properly aligned for any stack member.  */
+ union yyalloc
+@@ -464,16 +465,16 @@ union yyalloc
+    elements in the stack, and YYPTR gives the new location of the
+    stack.  Advance YYPTR to a properly aligned location for the next
+    stack.  */
+-# define YYSTACK_RELOCATE(Stack_alloc, Stack)				\
+-    do									\
+-      {									\
+-	YYSIZE_T yynewbytes;						\
+-	YYCOPY (&yyptr->Stack_alloc, Stack, yysize);			\
+-	Stack = &yyptr->Stack_alloc;					\
+-	yynewbytes = yystacksize * sizeof (*Stack) + YYSTACK_GAP_MAXIMUM; \
+-	yyptr += yynewbytes / sizeof (*yyptr);				\
+-      }									\
+-    while (YYID (0))
++# define YYSTACK_RELOCATE(Stack_alloc, Stack)                           \
++    do                                                                  \
++      {                                                                 \
++        YYSIZE_T yynewbytes;                                            \
++        YYCOPY (&yyptr->Stack_alloc, Stack, yysize);                    \
++        Stack = &yyptr->Stack_alloc;                                    \
++        yynewbytes = yystacksize * sizeof (*Stack) + YYSTACK_GAP_MAXIMUM; \
++        yyptr += yynewbytes / sizeof (*yyptr);                          \
++      }                                                                 \
++    while (0)
+ 
+ #endif
+ 
+@@ -492,7 +493,7 @@ union yyalloc
+           for (yyi = 0; yyi < (Count); yyi++)   \
+             (Dst)[yyi] = (Src)[yyi];            \
+         }                                       \
+-      while (YYID (0))
++      while (0)
+ #  endif
+ # endif
+ #endif /* !YYCOPY_NEEDED */
+@@ -508,17 +509,19 @@ union yyalloc
+ #define YYNNTS  3
+ /* YYNRULES -- Number of rules.  */
+ #define YYNRULES  13
+-/* YYNRULES -- Number of states.  */
++/* YYNSTATES -- Number of states.  */
+ #define YYNSTATES  27
+ 
+-/* YYTRANSLATE(YYLEX) -- Bison symbol number corresponding to YYLEX.  */
++/* YYTRANSLATE[YYX] -- Symbol number corresponding to YYX as returned
++   by yylex, with out-of-bounds checking.  */
+ #define YYUNDEFTOK  2
+ #define YYMAXUTOK   262
+ 
+-#define YYTRANSLATE(YYX)						\
++#define YYTRANSLATE(YYX)                                                \
+   ((unsigned int) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
+ 
+-/* YYTRANSLATE[YYLEX] -- Bison symbol number corresponding to YYLEX.  */
++/* YYTRANSLATE[TOKEN-NUM] -- Symbol number corresponding to TOKEN-NUM
++   as returned by yylex, without out-of-bounds checking.  */
+ static const yytype_uint8 yytranslate[] =
+ {
+        0,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+@@ -551,25 +554,7 @@ static const yytype_uint8 yytranslate[]
+ };
+ 
+ #if YYDEBUG
+-/* YYPRHS[YYN] -- Index of the first RHS symbol of rule number YYN in
+-   YYRHS.  */
+-static const yytype_uint8 yyprhs[] =
+-{
+-       0,     0,     3,     5,    11,    15,    19,    23,    27,    31,
+-      35,    38,    40,    42
+-};
+-
+-/* YYRHS -- A `-1'-separated list of the rules' RHS.  */
+-static const yytype_int8 yyrhs[] =
+-{
+-      17,     0,    -1,    18,    -1,    18,     3,    18,    12,    18,
+-      -1,    18,     4,    18,    -1,    18,     5,    18,    -1,    18,
+-       6,    18,    -1,    18,     7,    18,    -1,    18,     8,    18,
+-      -1,    18,     9,    18,    -1,    10,    18,    -1,    13,    -1,
+-      11,    -1,    14,    18,    15,    -1
+-};
+-
+-/* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
++  /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
+ static const yytype_uint8 yyrline[] =
+ {
+        0,   152,   152,   160,   164,   168,   172,   176,   180,   184,
+@@ -584,13 +569,13 @@ static const char *const yytname[] =
+ {
+   "$end", "error", "$undefined", "'?'", "'|'", "'&'", "EQUOP2", "CMPOP2",
+   "ADDOP2", "MULOP2", "'!'", "NUMBER", "':'", "'n'", "'('", "')'",
+-  "$accept", "start", "exp", YY_NULL
++  "$accept", "start", "exp", YY_NULLPTR
+ };
+ #endif
+ 
+ # ifdef YYPRINT
+-/* YYTOKNUM[YYLEX-NUM] -- Internal token number corresponding to
+-   token YYLEX-NUM.  */
++/* YYTOKNUM[NUM] -- (External) token number corresponding to the
++   (internal) symbol number NUM (which must be that of a token).  */
+ static const yytype_uint16 yytoknum[] =
+ {
+        0,   256,   257,    63,   124,    38,   258,   259,   260,   261,
+@@ -598,23 +583,28 @@ static const yytype_uint16 yytoknum[] =
+ };
+ # endif
+ 
+-/* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
+-static const yytype_uint8 yyr1[] =
+-{
+-       0,    16,    17,    18,    18,    18,    18,    18,    18,    18,
+-      18,    18,    18,    18
+-};
++#define YYPACT_NINF -10
+ 
+-/* YYR2[YYN] -- Number of symbols composing right hand side of rule YYN.  */
+-static const yytype_uint8 yyr2[] =
++#define yypact_value_is_default(Yystate) \
++  (!!((Yystate) == (-10)))
++
++#define YYTABLE_NINF -1
++
++#define yytable_value_is_error(Yytable_value) \
++  0
++
++  /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
++     STATE-NUM.  */
++static const yytype_int8 yypact[] =
+ {
+-       0,     2,     1,     5,     3,     3,     3,     3,     3,     3,
+-       2,     1,     1,     3
++      -9,    -9,   -10,   -10,    -9,     8,    36,   -10,    13,   -10,
++      -9,    -9,    -9,    -9,    -9,    -9,    -9,   -10,    26,    41,
++      45,    18,    -2,    14,   -10,    -9,    36
+ };
+ 
+-/* YYDEFACT[STATE-NAME] -- Default reduction number in state STATE-NUM.
+-   Performed when YYTABLE doesn't specify something else to do.  Zero
+-   means the default is an error.  */
++  /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
++     Performed when YYTABLE does not specify something else to do.  Zero
++     means the default is an error.  */
+ static const yytype_uint8 yydefact[] =
+ {
+        0,     0,    12,    11,     0,     0,     2,    10,     0,     1,
+@@ -622,32 +612,21 @@ static const yytype_uint8 yydefact[] =
+        5,     6,     7,     8,     9,     0,     3
+ };
+ 
+-/* YYDEFGOTO[NTERM-NUM].  */
+-static const yytype_int8 yydefgoto[] =
+-{
+-      -1,     5,     6
+-};
+-
+-/* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
+-   STATE-NUM.  */
+-#define YYPACT_NINF -10
+-static const yytype_int8 yypact[] =
++  /* YYPGOTO[NTERM-NUM].  */
++static const yytype_int8 yypgoto[] =
+ {
+-      -9,    -9,   -10,   -10,    -9,     8,    36,   -10,    13,   -10,
+-      -9,    -9,    -9,    -9,    -9,    -9,    -9,   -10,    26,    41,
+-      45,    18,    -2,    14,   -10,    -9,    36
++     -10,   -10,    -1
+ };
+ 
+-/* YYPGOTO[NTERM-NUM].  */
+-static const yytype_int8 yypgoto[] =
++  /* YYDEFGOTO[NTERM-NUM].  */
++static const yytype_int8 yydefgoto[] =
+ {
+-     -10,   -10,    -1
++      -1,     5,     6
+ };
+ 
+-/* YYTABLE[YYPACT[STATE-NUM]].  What to do in state STATE-NUM.  If
+-   positive, shift that token.  If negative, reduce the rule which
+-   number is the opposite.  If YYTABLE_NINF, syntax error.  */
+-#define YYTABLE_NINF -1
++  /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
++     positive, shift that token.  If negative, reduce the rule whose
++     number is the opposite.  If YYTABLE_NINF, syntax error.  */
+ static const yytype_uint8 yytable[] =
+ {
+        7,     1,     2,     8,     3,     4,    15,    16,     9,    18,
+@@ -658,12 +637,6 @@ static const yytype_uint8 yytable[] =
+       16,    13,    14,    15,    16
+ };
+ 
+-#define yypact_value_is_default(Yystate) \
+-  (!!((Yystate) == (-10)))
+-
+-#define yytable_value_is_error(Yytable_value) \
+-  YYID (0)
+-
+ static const yytype_int8 yycheck[] =
+ {
+        1,    10,    11,     4,    13,    14,     8,     9,     0,    10,
+@@ -674,8 +647,8 @@ static const yytype_int8 yycheck[] =
+        9,     6,     7,     8,     9
+ };
+ 
+-/* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
+-   symbol of state STATE-NUM.  */
++  /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
++     symbol of state STATE-NUM.  */
+ static const yytype_uint8 yystos[] =
+ {
+        0,    10,    11,    13,    14,    17,    18,    18,    18,     0,
+@@ -683,30 +656,30 @@ static const yytype_uint8 yystos[] =
+       18,    18,    18,    18,    18,    12,    18
+ };
+ 
+-#define yyerrok		(yyerrstatus = 0)
+-#define yyclearin	(yychar = YYEMPTY)
+-#define YYEMPTY		(-2)
+-#define YYEOF		0
+-
+-#define YYACCEPT	goto yyacceptlab
+-#define YYABORT		goto yyabortlab
+-#define YYERROR		goto yyerrorlab
+-
+-
+-/* Like YYERROR except do call yyerror.  This remains here temporarily
+-   to ease the transition to the new meaning of YYERROR, for GCC.
+-   Once GCC version 2 has supplanted version 1, this can go.  However,
+-   YYFAIL appears to be in use.  Nevertheless, it is formally deprecated
+-   in Bison 2.4.2's NEWS entry, where a plan to phase it out is
+-   discussed.  */
+-
+-#define YYFAIL		goto yyerrlab
+-#if defined YYFAIL
+-  /* This is here to suppress warnings from the GCC cpp's
+-     -Wunused-macros.  Normally we don't worry about that warning, but
+-     some users do, and we want to make it easy for users to remove
+-     YYFAIL uses, which will produce warnings from Bison 2.5.  */
+-#endif
++  /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
++static const yytype_uint8 yyr1[] =
++{
++       0,    16,    17,    18,    18,    18,    18,    18,    18,    18,
++      18,    18,    18,    18
++};
++
++  /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
++static const yytype_uint8 yyr2[] =
++{
++       0,     2,     1,     5,     3,     3,     3,     3,     3,     3,
++       2,     1,     1,     3
++};
++
++
++#define yyerrok         (yyerrstatus = 0)
++#define yyclearin       (yychar = YYEMPTY)
++#define YYEMPTY         (-2)
++#define YYEOF           0
++
++#define YYACCEPT        goto yyacceptlab
++#define YYABORT         goto yyabortlab
++#define YYERROR         goto yyerrorlab
++
+ 
+ #define YYRECOVERING()  (!!yyerrstatus)
+ 
+@@ -723,27 +696,15 @@ do
+   else                                                          \
+     {                                                           \
+       yyerror (arg, YY_("syntax error: cannot back up")); \
+-      YYERROR;							\
+-    }								\
+-while (YYID (0))
++      YYERROR;                                                  \
++    }                                                           \
++while (0)
+ 
+ /* Error token number */
+-#define YYTERROR	1
+-#define YYERRCODE	256
+-
+-
+-/* This macro is provided for backward compatibility. */
+-#ifndef YY_LOCATION_PRINT
+-# define YY_LOCATION_PRINT(File, Loc) ((void) 0)
+-#endif
++#define YYTERROR        1
++#define YYERRCODE       256
+ 
+ 
+-/* YYLEX -- calling `yylex' with the right arguments.  */
+-#ifdef YYLEX_PARAM
+-# define YYLEX yylex (&yylval, YYLEX_PARAM)
+-#else
+-# define YYLEX yylex (&yylval, arg)
+-#endif
+ 
+ /* Enable debugging if requested.  */
+ #if YYDEBUG
+@@ -753,58 +714,47 @@ while (YYID (0))
+ #  define YYFPRINTF fprintf
+ # endif
+ 
+-# define YYDPRINTF(Args)			\
+-do {						\
+-  if (yydebug)					\
+-    YYFPRINTF Args;				\
+-} while (YYID (0))
+-
+-# define YY_SYMBOL_PRINT(Title, Type, Value, Location)			  \
+-do {									  \
+-  if (yydebug)								  \
+-    {									  \
+-      YYFPRINTF (stderr, "%s ", Title);					  \
+-      yy_symbol_print (stderr,						  \
+-		  Type, Value, arg); \
+-      YYFPRINTF (stderr, "\n");						  \
+-    }									  \
+-} while (YYID (0))
++# define YYDPRINTF(Args)                        \
++do {                                            \
++  if (yydebug)                                  \
++    YYFPRINTF Args;                             \
++} while (0)
+ 
++/* This macro is provided for backward compatibility. */
++#ifndef YY_LOCATION_PRINT
++# define YY_LOCATION_PRINT(File, Loc) ((void) 0)
++#endif
+ 
+-/*--------------------------------.
+-| Print this symbol on YYOUTPUT.  |
+-`--------------------------------*/
+ 
+-/*ARGSUSED*/
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
++# define YY_SYMBOL_PRINT(Title, Type, Value, Location)                    \
++do {                                                                      \
++  if (yydebug)                                                            \
++    {                                                                     \
++      YYFPRINTF (stderr, "%s ", Title);                                   \
++      yy_symbol_print (stderr,                                            \
++                  Type, Value, arg); \
++      YYFPRINTF (stderr, "\n");                                           \
++    }                                                                     \
++} while (0)
++
++
++/*----------------------------------------.
++| Print this symbol's value on YYOUTPUT.  |
++`----------------------------------------*/
++
+ static void
+ yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, struct parse_args *arg)
+-#else
+-static void
+-yy_symbol_value_print (yyoutput, yytype, yyvaluep, arg)
+-    FILE *yyoutput;
+-    int yytype;
+-    YYSTYPE const * const yyvaluep;
+-    struct parse_args *arg;
+-#endif
+ {
+   FILE *yyo = yyoutput;
+   YYUSE (yyo);
++  YYUSE (arg);
+   if (!yyvaluep)
+     return;
+-  YYUSE (arg);
+ # ifdef YYPRINT
+   if (yytype < YYNTOKENS)
+     YYPRINT (yyoutput, yytoknum[yytype], *yyvaluep);
+-# else
+-  YYUSE (yyoutput);
+ # endif
+-  switch (yytype)
+-    {
+-      default:
+-        break;
+-    }
++  YYUSE (yytype);
+ }
+ 
+ 
+@@ -812,23 +762,11 @@ yy_symbol_value_print (yyoutput, yytype,
+ | Print this symbol on YYOUTPUT.  |
+ `--------------------------------*/
+ 
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+ static void
+ yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, struct parse_args *arg)
+-#else
+-static void
+-yy_symbol_print (yyoutput, yytype, yyvaluep, arg)
+-    FILE *yyoutput;
+-    int yytype;
+-    YYSTYPE const * const yyvaluep;
+-    struct parse_args *arg;
+-#endif
+ {
+-  if (yytype < YYNTOKENS)
+-    YYFPRINTF (yyoutput, "token %s (", yytname[yytype]);
+-  else
+-    YYFPRINTF (yyoutput, "nterm %s (", yytname[yytype]);
++  YYFPRINTF (yyoutput, "%s %s (",
++             yytype < YYNTOKENS ? "token" : "nterm", yytname[yytype]);
+ 
+   yy_symbol_value_print (yyoutput, yytype, yyvaluep, arg);
+   YYFPRINTF (yyoutput, ")");
+@@ -839,16 +777,8 @@ yy_symbol_print (yyoutput, yytype, yyval
+ | TOP (included).                                                   |
+ `------------------------------------------------------------------*/
+ 
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+ static void
+ yy_stack_print (yytype_int16 *yybottom, yytype_int16 *yytop)
+-#else
+-static void
+-yy_stack_print (yybottom, yytop)
+-    yytype_int16 *yybottom;
+-    yytype_int16 *yytop;
+-#endif
+ {
+   YYFPRINTF (stderr, "Stack now");
+   for (; yybottom <= yytop; yybottom++)
+@@ -859,50 +789,42 @@ yy_stack_print (yybottom, yytop)
+   YYFPRINTF (stderr, "\n");
+ }
+ 
+-# define YY_STACK_PRINT(Bottom, Top)				\
+-do {								\
+-  if (yydebug)							\
+-    yy_stack_print ((Bottom), (Top));				\
+-} while (YYID (0))
++# define YY_STACK_PRINT(Bottom, Top)                            \
++do {                                                            \
++  if (yydebug)                                                  \
++    yy_stack_print ((Bottom), (Top));                           \
++} while (0)
+ 
+ 
+ /*------------------------------------------------.
+ | Report that the YYRULE is going to be reduced.  |
+ `------------------------------------------------*/
+ 
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-static void
+-yy_reduce_print (YYSTYPE *yyvsp, int yyrule, struct parse_args *arg)
+-#else
+ static void
+-yy_reduce_print (yyvsp, yyrule, arg)
+-    YYSTYPE *yyvsp;
+-    int yyrule;
+-    struct parse_args *arg;
+-#endif
++yy_reduce_print (yytype_int16 *yyssp, YYSTYPE *yyvsp, int yyrule, struct parse_args *arg)
+ {
++  unsigned long int yylno = yyrline[yyrule];
+   int yynrhs = yyr2[yyrule];
+   int yyi;
+-  unsigned long int yylno = yyrline[yyrule];
+   YYFPRINTF (stderr, "Reducing stack by rule %d (line %lu):\n",
+-	     yyrule - 1, yylno);
++             yyrule - 1, yylno);
+   /* The symbols being reduced.  */
+   for (yyi = 0; yyi < yynrhs; yyi++)
+     {
+       YYFPRINTF (stderr, "   $%d = ", yyi + 1);
+-      yy_symbol_print (stderr, yyrhs[yyprhs[yyrule] + yyi],
+-		       &(yyvsp[(yyi + 1) - (yynrhs)])
+-		       , arg);
++      yy_symbol_print (stderr,
++                       yystos[yyssp[yyi + 1 - yynrhs]],
++                       &(yyvsp[(yyi + 1) - (yynrhs)])
++                                              , arg);
+       YYFPRINTF (stderr, "\n");
+     }
+ }
+ 
+-# define YY_REDUCE_PRINT(Rule)		\
+-do {					\
+-  if (yydebug)				\
+-    yy_reduce_print (yyvsp, Rule, arg); \
+-} while (YYID (0))
++# define YY_REDUCE_PRINT(Rule)          \
++do {                                    \
++  if (yydebug)                          \
++    yy_reduce_print (yyssp, yyvsp, Rule, arg); \
++} while (0)
+ 
+ /* Nonzero means print parse trace.  It is left uninitialized so that
+    multiple parsers can coexist.  */
+@@ -916,7 +838,7 @@ int yydebug;
+ 
+ 
+ /* YYINITDEPTH -- initial size of the parser's stacks.  */
+-#ifndef	YYINITDEPTH
++#ifndef YYINITDEPTH
+ # define YYINITDEPTH 200
+ #endif
+ 
+@@ -939,15 +861,8 @@ int yydebug;
+ #   define yystrlen strlen
+ #  else
+ /* Return the length of YYSTR.  */
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+ static YYSIZE_T
+ yystrlen (const char *yystr)
+-#else
+-static YYSIZE_T
+-yystrlen (yystr)
+-    const char *yystr;
+-#endif
+ {
+   YYSIZE_T yylen;
+   for (yylen = 0; yystr[yylen]; yylen++)
+@@ -963,16 +878,8 @@ yystrlen (yystr)
+ #  else
+ /* Copy YYSRC to YYDEST, returning the address of the terminating '\0' in
+    YYDEST.  */
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+ static char *
+ yystpcpy (char *yydest, const char *yysrc)
+-#else
+-static char *
+-yystpcpy (yydest, yysrc)
+-    char *yydest;
+-    const char *yysrc;
+-#endif
+ {
+   char *yyd = yydest;
+   const char *yys = yysrc;
+@@ -1002,27 +909,27 @@ yytnamerr (char *yyres, const char *yyst
+       char const *yyp = yystr;
+ 
+       for (;;)
+-	switch (*++yyp)
+-	  {
+-	  case '\'':
+-	  case ',':
+-	    goto do_not_strip_quotes;
+-
+-	  case '\\':
+-	    if (*++yyp != '\\')
+-	      goto do_not_strip_quotes;
+-	    /* Fall through.  */
+-	  default:
+-	    if (yyres)
+-	      yyres[yyn] = *yyp;
+-	    yyn++;
+-	    break;
+-
+-	  case '"':
+-	    if (yyres)
+-	      yyres[yyn] = '\0';
+-	    return yyn;
+-	  }
++        switch (*++yyp)
++          {
++          case '\'':
++          case ',':
++            goto do_not_strip_quotes;
++
++          case '\\':
++            if (*++yyp != '\\')
++              goto do_not_strip_quotes;
++            /* Fall through.  */
++          default:
++            if (yyres)
++              yyres[yyn] = *yyp;
++            yyn++;
++            break;
++
++          case '"':
++            if (yyres)
++              yyres[yyn] = '\0';
++            return yyn;
++          }
+     do_not_strip_quotes: ;
+     }
+ 
+@@ -1045,11 +952,11 @@ static int
+ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
+                 yytype_int16 *yyssp, int yytoken)
+ {
+-  YYSIZE_T yysize0 = yytnamerr (YY_NULL, yytname[yytoken]);
++  YYSIZE_T yysize0 = yytnamerr (YY_NULLPTR, yytname[yytoken]);
+   YYSIZE_T yysize = yysize0;
+   enum { YYERROR_VERBOSE_ARGS_MAXIMUM = 5 };
+   /* Internationalized format string. */
+-  const char *yyformat = YY_NULL;
++  const char *yyformat = YY_NULLPTR;
+   /* Arguments of yyformat. */
+   char const *yyarg[YYERROR_VERBOSE_ARGS_MAXIMUM];
+   /* Number of reported tokens (one for the "unexpected", one per
+@@ -1057,10 +964,6 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, c
+   int yycount = 0;
+ 
+   /* There are many possibilities here to consider:
+-     - Assume YYFAIL is not used.  It's too flawed to consider.  See
+-       <http://lists.gnu.org/archive/html/bison-patches/2009-12/msg00024.html>
+-       for details.  YYERROR is fine as it does not invoke this
+-       function.
+      - If this state is a consistent state with a default action, then
+        the only way this function was invoked is if the default action
+        is an error action.  In that case, don't check for expected
+@@ -1110,7 +1013,7 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, c
+                   }
+                 yyarg[yycount++] = yytname[yyx];
+                 {
+-                  YYSIZE_T yysize1 = yysize + yytnamerr (YY_NULL, yytname[yyx]);
++                  YYSIZE_T yysize1 = yysize + yytnamerr (YY_NULLPTR, yytname[yyx]);
+                   if (! (yysize <= yysize1
+                          && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
+                     return 2;
+@@ -1177,33 +1080,18 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, c
+ | Release the memory associated to this symbol.  |
+ `-----------------------------------------------*/
+ 
+-/*ARGSUSED*/
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+ static void
+ yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, struct parse_args *arg)
+-#else
+-static void
+-yydestruct (yymsg, yytype, yyvaluep, arg)
+-    const char *yymsg;
+-    int yytype;
+-    YYSTYPE *yyvaluep;
+-    struct parse_args *arg;
+-#endif
+ {
+   YYUSE (yyvaluep);
+   YYUSE (arg);
+-
+   if (!yymsg)
+     yymsg = "Deleting";
+   YY_SYMBOL_PRINT (yymsg, yytype, yyvaluep, yylocationp);
+ 
+-  switch (yytype)
+-    {
+-
+-      default:
+-        break;
+-    }
++  YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
++  YYUSE (yytype);
++  YY_IGNORE_MAYBE_UNINITIALIZED_END
+ }
+ 
+ 
+@@ -1213,56 +1101,18 @@ yydestruct (yymsg, yytype, yyvaluep, arg
+ | yyparse.  |
+ `----------*/
+ 
+-#ifdef YYPARSE_PARAM
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+-int
+-yyparse (void *YYPARSE_PARAM)
+-#else
+-int
+-yyparse (YYPARSE_PARAM)
+-    void *YYPARSE_PARAM;
+-#endif
+-#else /* ! YYPARSE_PARAM */
+-#if (defined __STDC__ || defined __C99__FUNC__ \
+-     || defined __cplusplus || defined _MSC_VER)
+ int
+ yyparse (struct parse_args *arg)
+-#else
+-int
+-yyparse (arg)
+-    struct parse_args *arg;
+-#endif
+-#endif
+ {
+ /* The lookahead symbol.  */
+ int yychar;
+ 
+ 
+-#if defined __GNUC__ && 407 <= __GNUC__ * 100 + __GNUC_MINOR__
+-/* Suppress an incorrect diagnostic about yylval being uninitialized.  */
+-# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN \
+-    _Pragma ("GCC diagnostic push") \
+-    _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")\
+-    _Pragma ("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
+-# define YY_IGNORE_MAYBE_UNINITIALIZED_END \
+-    _Pragma ("GCC diagnostic pop")
+-#else
++/* The semantic value of the lookahead symbol.  */
+ /* Default value used for initialization, for pacifying older GCCs
+    or non-GCC compilers.  */
+-static YYSTYPE yyval_default;
+-# define YY_INITIAL_VALUE(Value) = Value
+-#endif
+-#ifndef YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
+-# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
+-# define YY_IGNORE_MAYBE_UNINITIALIZED_END
+-#endif
+-#ifndef YY_INITIAL_VALUE
+-# define YY_INITIAL_VALUE(Value) /* Nothing. */
+-#endif
+-
+-/* The semantic value of the lookahead symbol.  */
+-YYSTYPE yylval YY_INITIAL_VALUE(yyval_default);
++YY_INITIAL_VALUE (static YYSTYPE yyval_default;)
++YYSTYPE yylval YY_INITIAL_VALUE (= yyval_default);
+ 
+     /* Number of syntax errors so far.  */
+     int yynerrs;
+@@ -1272,8 +1122,8 @@ YYSTYPE yylval YY_INITIAL_VALUE(yyval_de
+     int yyerrstatus;
+ 
+     /* The stacks and their tools:
+-       `yyss': related to states.
+-       `yyvs': related to semantic values.
++       'yyss': related to states.
++       'yyvs': related to semantic values.
+ 
+        Refer to the stacks through separate pointers, to allow yyoverflow
+        to reallocate them elsewhere.  */
+@@ -1341,23 +1191,23 @@ YYSTYPE yylval YY_INITIAL_VALUE(yyval_de
+ 
+ #ifdef yyoverflow
+       {
+-	/* Give user a chance to reallocate the stack.  Use copies of
+-	   these so that the &'s don't force the real ones into
+-	   memory.  */
+-	YYSTYPE *yyvs1 = yyvs;
+-	yytype_int16 *yyss1 = yyss;
+-
+-	/* Each stack pointer address is followed by the size of the
+-	   data in use in that stack, in bytes.  This used to be a
+-	   conditional around just the two extra args, but that might
+-	   be undefined if yyoverflow is a macro.  */
+-	yyoverflow (YY_("memory exhausted"),
+-		    &yyss1, yysize * sizeof (*yyssp),
+-		    &yyvs1, yysize * sizeof (*yyvsp),
+-		    &yystacksize);
++        /* Give user a chance to reallocate the stack.  Use copies of
++           these so that the &'s don't force the real ones into
++           memory.  */
++        YYSTYPE *yyvs1 = yyvs;
++        yytype_int16 *yyss1 = yyss;
++
++        /* Each stack pointer address is followed by the size of the
++           data in use in that stack, in bytes.  This used to be a
++           conditional around just the two extra args, but that might
++           be undefined if yyoverflow is a macro.  */
++        yyoverflow (YY_("memory exhausted"),
++                    &yyss1, yysize * sizeof (*yyssp),
++                    &yyvs1, yysize * sizeof (*yyvsp),
++                    &yystacksize);
+ 
+-	yyss = yyss1;
+-	yyvs = yyvs1;
++        yyss = yyss1;
++        yyvs = yyvs1;
+       }
+ #else /* no yyoverflow */
+ # ifndef YYSTACK_RELOCATE
+@@ -1365,22 +1215,22 @@ YYSTYPE yylval YY_INITIAL_VALUE(yyval_de
+ # else
+       /* Extend the stack our own way.  */
+       if (YYMAXDEPTH <= yystacksize)
+-	goto yyexhaustedlab;
++        goto yyexhaustedlab;
+       yystacksize *= 2;
+       if (YYMAXDEPTH < yystacksize)
+-	yystacksize = YYMAXDEPTH;
++        yystacksize = YYMAXDEPTH;
+ 
+       {
+-	yytype_int16 *yyss1 = yyss;
+-	union yyalloc *yyptr =
+-	  (union yyalloc *) YYSTACK_ALLOC (YYSTACK_BYTES (yystacksize));
+-	if (! yyptr)
+-	  goto yyexhaustedlab;
+-	YYSTACK_RELOCATE (yyss_alloc, yyss);
+-	YYSTACK_RELOCATE (yyvs_alloc, yyvs);
++        yytype_int16 *yyss1 = yyss;
++        union yyalloc *yyptr =
++          (union yyalloc *) YYSTACK_ALLOC (YYSTACK_BYTES (yystacksize));
++        if (! yyptr)
++          goto yyexhaustedlab;
++        YYSTACK_RELOCATE (yyss_alloc, yyss);
++        YYSTACK_RELOCATE (yyvs_alloc, yyvs);
+ #  undef YYSTACK_RELOCATE
+-	if (yyss1 != yyssa)
+-	  YYSTACK_FREE (yyss1);
++        if (yyss1 != yyssa)
++          YYSTACK_FREE (yyss1);
+       }
+ # endif
+ #endif /* no yyoverflow */
+@@ -1389,10 +1239,10 @@ YYSTYPE yylval YY_INITIAL_VALUE(yyval_de
+       yyvsp = yyvs + yysize - 1;
+ 
+       YYDPRINTF ((stderr, "Stack size increased to %lu\n",
+-		  (unsigned long int) yystacksize));
++                  (unsigned long int) yystacksize));
+ 
+       if (yyss + yystacksize - 1 <= yyssp)
+-	YYABORT;
++        YYABORT;
+     }
+ 
+   YYDPRINTF ((stderr, "Entering state %d\n", yystate));
+@@ -1421,7 +1271,7 @@ yybackup:
+   if (yychar == YYEMPTY)
+     {
+       YYDPRINTF ((stderr, "Reading a token: "));
+-      yychar = YYLEX;
++      yychar = yylex (&yylval, arg);
+     }
+ 
+   if (yychar <= YYEOF)
+@@ -1486,7 +1336,7 @@ yyreduce:
+   yylen = yyr2[yyn];
+ 
+   /* If YYLEN is nonzero, implement the default value of the action:
+-     `$$ = $1'.
++     '$$ = $1'.
+ 
+      Otherwise, the following line sets YYVAL to garbage.
+      This behavior is undocumented and Bison
+@@ -1500,107 +1350,106 @@ yyreduce:
+   switch (yyn)
+     {
+         case 2:
+-/* Line 1792 of yacc.c  */
+-#line 153 "plural.y"
++#line 153 "plural.y" /* yacc.c:1646  */
+     {
+-	    if ((yyvsp[(1) - (1)].exp) == NULL)
++	    if ((yyvsp[0].exp) == NULL)
+ 	      YYABORT;
+-	    arg->res = (yyvsp[(1) - (1)].exp);
++	    arg->res = (yyvsp[0].exp);
+ 	  }
++#line 1360 "plural.c" /* yacc.c:1646  */
+     break;
+ 
+   case 3:
+-/* Line 1792 of yacc.c  */
+-#line 161 "plural.y"
++#line 161 "plural.y" /* yacc.c:1646  */
+     {
+-	    (yyval.exp) = new_exp_3 (qmop, (yyvsp[(1) - (5)].exp), (yyvsp[(3) - (5)].exp), (yyvsp[(5) - (5)].exp));
++	    (yyval.exp) = new_exp_3 (qmop, (yyvsp[-4].exp), (yyvsp[-2].exp), (yyvsp[0].exp));
+ 	  }
++#line 1368 "plural.c" /* yacc.c:1646  */
+     break;
+ 
+   case 4:
+-/* Line 1792 of yacc.c  */
+-#line 165 "plural.y"
++#line 165 "plural.y" /* yacc.c:1646  */
+     {
+-	    (yyval.exp) = new_exp_2 (lor, (yyvsp[(1) - (3)].exp), (yyvsp[(3) - (3)].exp));
++	    (yyval.exp) = new_exp_2 (lor, (yyvsp[-2].exp), (yyvsp[0].exp));
+ 	  }
++#line 1376 "plural.c" /* yacc.c:1646  */
+     break;
+ 
+   case 5:
+-/* Line 1792 of yacc.c  */
+-#line 169 "plural.y"
++#line 169 "plural.y" /* yacc.c:1646  */
+     {
+-	    (yyval.exp) = new_exp_2 (land, (yyvsp[(1) - (3)].exp), (yyvsp[(3) - (3)].exp));
++	    (yyval.exp) = new_exp_2 (land, (yyvsp[-2].exp), (yyvsp[0].exp));
+ 	  }
++#line 1384 "plural.c" /* yacc.c:1646  */
+     break;
+ 
+   case 6:
+-/* Line 1792 of yacc.c  */
+-#line 173 "plural.y"
++#line 173 "plural.y" /* yacc.c:1646  */
+     {
+-	    (yyval.exp) = new_exp_2 ((yyvsp[(2) - (3)].op), (yyvsp[(1) - (3)].exp), (yyvsp[(3) - (3)].exp));
++	    (yyval.exp) = new_exp_2 ((yyvsp[-1].op), (yyvsp[-2].exp), (yyvsp[0].exp));
+ 	  }
++#line 1392 "plural.c" /* yacc.c:1646  */
+     break;
+ 
+   case 7:
+-/* Line 1792 of yacc.c  */
+-#line 177 "plural.y"
++#line 177 "plural.y" /* yacc.c:1646  */
+     {
+-	    (yyval.exp) = new_exp_2 ((yyvsp[(2) - (3)].op), (yyvsp[(1) - (3)].exp), (yyvsp[(3) - (3)].exp));
++	    (yyval.exp) = new_exp_2 ((yyvsp[-1].op), (yyvsp[-2].exp), (yyvsp[0].exp));
+ 	  }
++#line 1400 "plural.c" /* yacc.c:1646  */
+     break;
+ 
+   case 8:
+-/* Line 1792 of yacc.c  */
+-#line 181 "plural.y"
++#line 181 "plural.y" /* yacc.c:1646  */
+     {
+-	    (yyval.exp) = new_exp_2 ((yyvsp[(2) - (3)].op), (yyvsp[(1) - (3)].exp), (yyvsp[(3) - (3)].exp));
++	    (yyval.exp) = new_exp_2 ((yyvsp[-1].op), (yyvsp[-2].exp), (yyvsp[0].exp));
+ 	  }
++#line 1408 "plural.c" /* yacc.c:1646  */
+     break;
+ 
+   case 9:
+-/* Line 1792 of yacc.c  */
+-#line 185 "plural.y"
++#line 185 "plural.y" /* yacc.c:1646  */
+     {
+-	    (yyval.exp) = new_exp_2 ((yyvsp[(2) - (3)].op), (yyvsp[(1) - (3)].exp), (yyvsp[(3) - (3)].exp));
++	    (yyval.exp) = new_exp_2 ((yyvsp[-1].op), (yyvsp[-2].exp), (yyvsp[0].exp));
+ 	  }
++#line 1416 "plural.c" /* yacc.c:1646  */
+     break;
+ 
+   case 10:
+-/* Line 1792 of yacc.c  */
+-#line 189 "plural.y"
++#line 189 "plural.y" /* yacc.c:1646  */
+     {
+-	    (yyval.exp) = new_exp_1 (lnot, (yyvsp[(2) - (2)].exp));
++	    (yyval.exp) = new_exp_1 (lnot, (yyvsp[0].exp));
+ 	  }
++#line 1424 "plural.c" /* yacc.c:1646  */
+     break;
+ 
+   case 11:
+-/* Line 1792 of yacc.c  */
+-#line 193 "plural.y"
++#line 193 "plural.y" /* yacc.c:1646  */
+     {
+ 	    (yyval.exp) = new_exp_0 (var);
+ 	  }
++#line 1432 "plural.c" /* yacc.c:1646  */
+     break;
+ 
+   case 12:
+-/* Line 1792 of yacc.c  */
+-#line 197 "plural.y"
++#line 197 "plural.y" /* yacc.c:1646  */
+     {
+ 	    if (((yyval.exp) = new_exp_0 (num)) != NULL)
+-	      (yyval.exp)->val.num = (yyvsp[(1) - (1)].num);
++	      (yyval.exp)->val.num = (yyvsp[0].num);
+ 	  }
++#line 1441 "plural.c" /* yacc.c:1646  */
+     break;
+ 
+   case 13:
+-/* Line 1792 of yacc.c  */
+-#line 202 "plural.y"
++#line 202 "plural.y" /* yacc.c:1646  */
+     {
+-	    (yyval.exp) = (yyvsp[(2) - (3)].exp);
++	    (yyval.exp) = (yyvsp[-1].exp);
+ 	  }
++#line 1449 "plural.c" /* yacc.c:1646  */
+     break;
+ 
+ 
+-/* Line 1792 of yacc.c  */
+-#line 1604 "plural.c"
++#line 1453 "plural.c" /* yacc.c:1646  */
+       default: break;
+     }
+   /* User semantic actions sometimes alter yychar, and that requires
+@@ -1622,7 +1471,7 @@ yyreduce:
+ 
+   *++yyvsp = yyval;
+ 
+-  /* Now `shift' the result of the reduction.  Determine what state
++  /* Now 'shift' the result of the reduction.  Determine what state
+      that goes to, based on the state we popped back to and the rule
+      number reduced by.  */
+ 
+@@ -1637,9 +1486,9 @@ yyreduce:
+   goto yynewstate;
+ 
+ 
+-/*------------------------------------.
+-| yyerrlab -- here on detecting error |
+-`------------------------------------*/
++/*--------------------------------------.
++| yyerrlab -- here on detecting error.  |
++`--------------------------------------*/
+ yyerrlab:
+   /* Make sure we have latest lookahead translation.  See comments at
+      user semantic actions for why this is necessary.  */
+@@ -1690,20 +1539,20 @@ yyerrlab:
+   if (yyerrstatus == 3)
+     {
+       /* If just tried and failed to reuse lookahead token after an
+-	 error, discard it.  */
++         error, discard it.  */
+ 
+       if (yychar <= YYEOF)
+-	{
+-	  /* Return failure if at end of input.  */
+-	  if (yychar == YYEOF)
+-	    YYABORT;
+-	}
++        {
++          /* Return failure if at end of input.  */
++          if (yychar == YYEOF)
++            YYABORT;
++        }
+       else
+-	{
+-	  yydestruct ("Error: discarding",
+-		      yytoken, &yylval, arg);
+-	  yychar = YYEMPTY;
+-	}
++        {
++          yydestruct ("Error: discarding",
++                      yytoken, &yylval, arg);
++          yychar = YYEMPTY;
++        }
+     }
+ 
+   /* Else will try to reuse lookahead token after shifting the error
+@@ -1722,7 +1571,7 @@ yyerrorlab:
+   if (/*CONSTCOND*/ 0)
+      goto yyerrorlab;
+ 
+-  /* Do not reclaim the symbols of the rule which action triggered
++  /* Do not reclaim the symbols of the rule whose action triggered
+      this YYERROR.  */
+   YYPOPSTACK (yylen);
+   yylen = 0;
+@@ -1735,29 +1584,29 @@ yyerrorlab:
+ | yyerrlab1 -- common code for both syntax error and YYERROR.  |
+ `-------------------------------------------------------------*/
+ yyerrlab1:
+-  yyerrstatus = 3;	/* Each real token shifted decrements this.  */
++  yyerrstatus = 3;      /* Each real token shifted decrements this.  */
+ 
+   for (;;)
+     {
+       yyn = yypact[yystate];
+       if (!yypact_value_is_default (yyn))
+-	{
+-	  yyn += YYTERROR;
+-	  if (0 <= yyn && yyn <= YYLAST && yycheck[yyn] == YYTERROR)
+-	    {
+-	      yyn = yytable[yyn];
+-	      if (0 < yyn)
+-		break;
+-	    }
+-	}
++        {
++          yyn += YYTERROR;
++          if (0 <= yyn && yyn <= YYLAST && yycheck[yyn] == YYTERROR)
++            {
++              yyn = yytable[yyn];
++              if (0 < yyn)
++                break;
++            }
++        }
+ 
+       /* Pop the current state because it cannot handle the error token.  */
+       if (yyssp == yyss)
+-	YYABORT;
++        YYABORT;
+ 
+ 
+       yydestruct ("Error: popping",
+-		  yystos[yystate], yyvsp, arg);
++                  yystos[yystate], yyvsp, arg);
+       YYPOPSTACK (1);
+       yystate = *yyssp;
+       YY_STACK_PRINT (yyss, yyssp);
+@@ -1808,14 +1657,14 @@ yyreturn:
+       yydestruct ("Cleanup: discarding lookahead",
+                   yytoken, &yylval, arg);
+     }
+-  /* Do not reclaim the symbols of the rule which action triggered
++  /* Do not reclaim the symbols of the rule whose action triggered
+      this YYABORT or YYACCEPT.  */
+   YYPOPSTACK (yylen);
+   YY_STACK_PRINT (yyss, yyssp);
+   while (yyssp != yyss)
+     {
+       yydestruct ("Cleanup: popping",
+-		  yystos[*yyssp], yyvsp, arg);
++                  yystos[*yyssp], yyvsp, arg);
+       YYPOPSTACK (1);
+     }
+ #ifndef yyoverflow
+@@ -1826,13 +1675,9 @@ yyreturn:
+   if (yymsg != yymsgbuf)
+     YYSTACK_FREE (yymsg);
+ #endif
+-  /* Make sure YYID is used.  */
+-  return YYID (yyresult);
++  return yyresult;
+ }
+-
+-
+-/* Line 2055 of yacc.c  */
+-#line 207 "plural.y"
++#line 207 "plural.y" /* yacc.c:1906  */
+ 
+ 
+ void
 --- original-glibc/scripts/config.sub
 +++ glibc/scripts/config.sub
 @@ -302,6 +302,7 @@ case $basic_machine in
@@ -8,31 +1441,44 @@
  	| rl78 | rx \
  	| score \
  	| sh | sh[1234] | sh[24]a | sh[24]aeb | sh[23]e | sh[34]eb | sheb | shbe | shle | sh[1234]le | sh3ele \
---- original-glibc/shlib-versions
-+++ glibc/shlib-versions
-@@ -25,6 +25,7 @@ s390x-.*-linux.*        DEFAULT			GLIBC_
- powerpc64-.*-linux.*	DEFAULT			GLIBC_2.3
- powerpc.*le-.*-linux.*	DEFAULT			GLIBC_2.17
- .*-.*-gnu-gnu.*		DEFAULT			GLIBC_2.2.6
-+riscv-.*-linux.*	DEFAULT			GLIBC_2.20
- 
- # Configuration		Library=version		Earliest symbol set (optional)
- # -------------		---------------		------------------------------
 --- original-glibc/sunrpc/rpc_main.c
 +++ glibc/sunrpc/rpc_main.c
 @@ -38,7 +38,9 @@
  #include <stdio.h>
  #include <string.h>
  #include <unistd.h>
-+#ifndef __APPLE__
++#if !defined(__FreeBSD__) && !defined(__APPLE__)
  #include <libintl.h>
 +#endif
  #include <locale.h>
  #include <ctype.h>
  #include <sys/types.h>
+@@ -54,6 +56,10 @@
+ #include "../version.h"
+ #define PACKAGE _libc_intl_domainname
+ 
++#ifdef __FreeBSD__
++#define stat64 stat
++#endif
++
+ #define EXTEND	1		/* alias for TRUE */
+ #define DONT_EXTEND	0	/* alias for FALSE */
+ 
+--- original-glibc/sunrpc/rpc_scan.c
++++ glibc/sunrpc/rpc_scan.c
+@@ -37,7 +37,9 @@
+ #include <stdio.h>
+ #include <ctype.h>
+ #include <string.h>
++#ifndef __FreeBSD__
+ #include <libintl.h>
++#endif
+ #include "rpc_scan.h"
+ #include "rpc_parse.h"
+ #include "rpc_util.h"
 --- original-glibc/sysdeps/riscv/bits/atomic.h
 +++ glibc/sysdeps/riscv/bits/atomic.h
-@@ -0,0 +1,115 @@
+@@ -0,0 +1,128 @@
 +/* Low-level functions for atomic operations. RISC-V version.
 +   Copyright (C) 2011-2014 Free Software Foundation, Inc.
 +
@@ -76,6 +1522,14 @@
 +typedef uintmax_t uatomic_max_t;
 +
 +#ifdef __riscv_atomic
++
++#ifdef __riscv64
++# define __HAVE_64B_ATOMICS 1
++#else
++# define __HAVE_64B_ATOMICS 0
++#endif
++
++#define USE_ATOMIC_COMPILER_BUILTINS 1
 +
 +#define asm_amo(which, ordering, mem, value) ({ 		\
 +  typeof(*mem) __tmp; 						\
@@ -145,7 +1599,12 @@
 +  atomic_exchange_and_add(mem, value)
 +#define catomic_max(mem, value) atomic_max(mem, value)
 +
-+#endif /* __riscv_atomic */
++#else /* __riscv_atomic */
++
++#define __HAVE_64B_ATOMICS 0
++#define USE_ATOMIC_COMPILER_BUILTINS 0
++
++#endif /* !__riscv_atomic */
 +
 +#endif /* bits/atomic.h */
 --- original-glibc/sysdeps/riscv/bits/dlfcn.h
@@ -353,7 +1812,7 @@
 +  unsigned long lr_sp;
 +} La_riscv_regs;
 +
-+/* Return values for calls from PLT on MIPS.  */
++/* Return values for calls from PLT on RISC-V.  */
 +typedef struct La_riscv_retval
 +{
 +  unsigned long lrv_a0;
@@ -554,7 +2013,7 @@
 +
 +#if defined(__GNUC__) && !defined(__cplusplus)
 +
-+static inline unsigned long __libc_detect_null(unsigned long w)
++static __inline__ unsigned long __libc_detect_null(unsigned long w)
 +{
 +  unsigned long mask = 0x7f7f7f7f;
 +  if (sizeof(long) == 8)
@@ -565,6 +2024,33 @@
 +#endif /* __GNUC__ && !__cplusplus */
 +
 +#endif /* bits/string.h */
+--- original-glibc/sysdeps/riscv/bits/wordsize.h
++++ glibc/sysdeps/riscv/bits/wordsize.h
+@@ -0,0 +1,24 @@
++/* Copyright (C) 2002, 2003 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, write to the Free
++   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
++   02111-1307 USA.  */
++
++#if defined __riscv64
++#define __WORDSIZE 64
++#define __WORDSIZE_TIME64_COMPAT32 1
++#else
++#define __WORDSIZE 32
++#endif
 --- original-glibc/sysdeps/riscv/bsd-_setjmp.c
 +++ glibc/sysdeps/riscv/bsd-_setjmp.c
 @@ -0,0 +1 @@
@@ -691,7 +2177,7 @@
 +#endif
 --- original-glibc/sysdeps/riscv/dl-machine.h
 +++ glibc/sysdeps/riscv/dl-machine.h
-@@ -0,0 +1,333 @@
+@@ -0,0 +1,331 @@
 +/* Machine-dependent ELF dynamic relocation inline functions.  MIPS version.
 +   Copyright (C) 1996-2001, 2002, 2003, 2004, 2005, 2006, 2007
 +   Free Software Foundation, Inc.
@@ -772,8 +2258,6 @@
 +#define ELF_MACHINE_NO_REL 1
 +#define ELF_MACHINE_NO_RELA 0
 +
-+#define ELF_MACHINE_DEBUG_SETUP(l,r)
-+
 +/* Return nonzero iff ELF header is compatible with the running host.  */
 +static inline int __attribute_used__
 +elf_machine_matches_host (const ElfW(Ehdr) *ehdr)
@@ -832,7 +2316,7 @@
 +	add a3, a3, a2\n\
 +	add a3, a3, " STRINGXP (SZREG) "\n\
 +	# Call the function to run the initializers.\n\
-+	jal _dl_init_internal\n\
++	jal _dl_init\n\
 +	# Pass our finalizer function to _start.\n\
 +	lla a0, _dl_fini\n\
 +	# Jump to the user entry point.\n\
@@ -872,7 +2356,7 @@
 +  ElfW(Addr) r_info = reloc->r_info;
 +  const unsigned long int r_type = ELFW(R_TYPE) (r_info);
 +  ElfW(Addr) *addr_field = (ElfW(Addr) *) reloc_addr;
-+  const ElfW(Sym) *const refsym = sym;
++  const ElfW(Sym) *const __attribute__((unused)) refsym = sym;
 +  struct link_map *sym_map = RESOLVE_MAP (&sym, version, r_type);
 +  ElfW(Addr) value = 0;
 +  if (sym_map != NULL)
@@ -912,7 +2396,7 @@
 +	    /* There's nothing to do if the symbol is in .tbss.  */
 +	    if (__glibc_likely (sym->st_value >= sym_map->l_tls_initimage_size))
 +	      break;
-+	    value += sym_map->l_tls_initimage - sym_map->l_addr;
++	    value += (ElfW(Addr)) sym_map->l_tls_initimage - sym_map->l_addr;
 +	  }
 +
 +	size_t size = sym->st_size;
@@ -1295,7 +2779,7 @@
 +}
 --- original-glibc/sysdeps/riscv/fpu/fegetenv.c
 +++ glibc/sysdeps/riscv/fpu/fegetenv.c
-@@ -0,0 +1,32 @@
+@@ -0,0 +1,34 @@
 +/* Store current floating-point environment.
 +   Copyright (C) 1998, 1999, 2000, 2002, 2010 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -1320,14 +2804,16 @@
 +#include <fpu_control.h>
 +
 +int
-+fegetenv (fenv_t *envp)
++__fegetenv (fenv_t *envp)
 +{
 +  _FPU_GETCW (*envp);
 +
 +  /* Success.  */
 +  return 0;
 +}
-+libm_hidden_def (fegetenv)
++libm_hidden_def (__fegetenv)
++weak_alias (__fegetenv, fegetenv)
++libm_hidden_weak (fegetenv)
 --- original-glibc/sysdeps/riscv/fpu/fegetexcept.c
 +++ glibc/sysdeps/riscv/fpu/fegetexcept.c
 @@ -0,0 +1,29 @@
@@ -1362,7 +2848,7 @@
 +}
 --- original-glibc/sysdeps/riscv/fpu/fegetround.c
 +++ glibc/sysdeps/riscv/fpu/fegetround.c
-@@ -0,0 +1,31 @@
+@@ -0,0 +1,33 @@
 +/* Return current rounding direction.
 +   Copyright (C) 1998 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -1387,13 +2873,15 @@
 +#include <fpu_control.h>
 +
 +int
-+fegetround (void)
++__fegetround (void)
 +{
 +  int round;
 +  _FPU_GETROUND (round);
 +  return round;
 +}
-+libm_hidden_def (fegetround)
++libm_hidden_def (__fegetround)
++weak_alias (__fegetround, fegetround)
++libm_hidden_weak (fegetround)
 --- original-glibc/sysdeps/riscv/fpu/feholdexcpt.c
 +++ glibc/sysdeps/riscv/fpu/feholdexcpt.c
 @@ -0,0 +1,32 @@
@@ -1418,20 +2906,20 @@
 +   02111-1307 USA.  */
 +
 +#include <fenv.h>
-+#include <fpu_control.h>
++#include <math_private.h>
 +
 +int
-+feholdexcept (fenv_t *envp)
++__feholdexcept (fenv_t *envp)
 +{
-+  _FPU_GETCW (*envp);
-+  _FPU_SETFLAGS (0);
++  libc_feholdexcept_riscv (envp);
 +  return 0;
 +}
-+
-+libm_hidden_def (feholdexcept)
++libm_hidden_def (__feholdexcept)
++weak_alias (__feholdexcept, feholdexcept)
++libm_hidden_weak (feholdexcept)
 --- original-glibc/sysdeps/riscv/fpu/fesetenv.c
 +++ glibc/sysdeps/riscv/fpu/fesetenv.c
-@@ -0,0 +1,31 @@
+@@ -0,0 +1,32 @@
 +/* Install given floating-point environment.
 +   Copyright (C) 1998, 1999, 2000, 2002 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -1453,19 +2941,20 @@
 +   02111-1307 USA.  */
 +
 +#include <fenv.h>
-+#include <fpu_control.h>
++#include <math_private.h>
 +
 +int
-+fesetenv (const fenv_t *envp)
++__fesetenv (const fenv_t *envp)
 +{
-+  _FPU_SETCW (envp == FE_DFL_ENV ? 0 : *envp);
++  libc_fesetenv_riscv (envp);
 +  return 0;
 +}
-+
-+libm_hidden_def (fesetenv)
++libm_hidden_def (__fesetenv)
++weak_alias (__fesetenv, fesetenv)
++libm_hidden_weak (fesetenv)
 --- original-glibc/sysdeps/riscv/fpu/fesetround.c
 +++ glibc/sysdeps/riscv/fpu/fesetround.c
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,41 @@
 +/* Set current rounding direction.
 +   Copyright (C) 1998 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -1490,7 +2979,7 @@
 +#include <fpu_control.h>
 +
 +int
-+fesetround (int round)
++__fesetround (int round)
 +{
 +  switch (round)
 +    {
@@ -1504,11 +2993,12 @@
 +      return round; /* a nonzero value */
 +    }
 +}
-+
-+libm_hidden_def (fesetround)
++libm_hidden_def (__fesetround)
++weak_alias (__fesetround, fesetround)
++libm_hidden_weak (fesetround)
 --- original-glibc/sysdeps/riscv/fpu/feupdateenv.c
 +++ glibc/sysdeps/riscv/fpu/feupdateenv.c
-@@ -0,0 +1,35 @@
+@@ -0,0 +1,32 @@
 +/* Install given floating-point environment and raise exceptions.
 +   Copyright (C) 1998, 1999, 2000, 2002, 2010 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -1530,23 +3020,20 @@
 +   02111-1307 USA.  */
 +
 +#include <fenv.h>
-+#include <fpu_control.h>
++#include <math_private.h>
 +
 +int
-+feupdateenv (const fenv_t *envp)
++__feupdateenv (const fenv_t *envp)
 +{
-+  fenv_t env = *envp;
-+
-+  /* rm = 0; rm |= fenv.rm; flags |= fenv.flags */
-+  _FPU_SETROUND (0);
-+  asm volatile ("csrs fcsr, %0" : : "r"(env));
-+
++  libc_feupdateenv_riscv (envp);
 +  return 0;
 +}
-+libm_hidden_def (feupdateenv)
++libm_hidden_def (__feupdateenv)
++weak_alias (__feupdateenv, feupdateenv)
++libm_hidden_weak (feupdateenv)
 --- original-glibc/sysdeps/riscv/fpu/fgetexcptflg.c
 +++ glibc/sysdeps/riscv/fpu/fgetexcptflg.c
-@@ -0,0 +1,35 @@
+@@ -0,0 +1,33 @@
 +/* Store current representation for exceptions.
 +   Copyright (C) 1998, 1999, 2000, 2002 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -1573,8 +3060,6 @@
 +int
 +fegetexceptflag (fexcept_t *flagp, int excepts)
 +{
-+  fpu_control_t temp;
-+
 +  /* Get the current exceptions.  */
 +  _FPU_GETFLAGS (*flagp);
 +  *flagp &= excepts;
@@ -1584,7 +3069,7 @@
 +}
 --- original-glibc/sysdeps/riscv/fpu/fraiseexcpt.c
 +++ glibc/sysdeps/riscv/fpu/fraiseexcpt.c
-@@ -0,0 +1,31 @@
+@@ -0,0 +1,32 @@
 +/* Raise given exceptions.
 +   Copyright (C) 2000, 2002 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -1609,13 +3094,14 @@
 +#include <fpu_control.h>
 +
 +int
-+feraiseexcept (int excepts)
++__feraiseexcept (int excepts)
 +{
 +  asm volatile ("csrs fflags, %0" : : "r"(excepts));
 +  return 0;
 +}
-+
-+libm_hidden_def (feraiseexcept)
++libm_hidden_def (__feraiseexcept)
++weak_alias (__feraiseexcept, feraiseexcept)
++libm_hidden_weak (feraiseexcept)
 --- original-glibc/sysdeps/riscv/fpu/fsetexcptflg.c
 +++ glibc/sysdeps/riscv/fpu/fsetexcptflg.c
 @@ -0,0 +1,32 @@
@@ -1653,7 +3139,7 @@
 +}
 --- original-glibc/sysdeps/riscv/fpu/ftestexcept.c
 +++ glibc/sysdeps/riscv/fpu/ftestexcept.c
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,29 @@
 +/* Test exception in current environment.
 +   Copyright (C) 1998, 2010 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -1675,18 +3161,162 @@
 +   02111-1307 USA.  */
 +
 +#include <fenv.h>
-+#include <fpu_control.h>
++#include <math_private.h>
 +
 +int
 +fetestexcept (int excepts)
++{
++  return libc_fetestexcept_riscv (excepts);
++}
++libm_hidden_def (fetestexcept)
+--- original-glibc/sysdeps/riscv/fpu/math_private.h
++++ glibc/sysdeps/riscv/fpu/math_private.h
+@@ -0,0 +1,145 @@
++/* Private floating point rounding and exceptions handling.  RISC-V version.
++   Copyright (C) 2014-2015 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#ifndef RISCV_MATH_PRIVATE_H
++#define RISCV_MATH_PRIVATE_H 1
++
++#include <fenv.h>
++#include <fpu_control.h>
++
++static __always_inline void
++libc_feholdexcept_riscv (fenv_t *envp)
++{
++  _FPU_GETCW (*envp);
++  _FPU_SETFLAGS (0);
++}
++
++#define libc_feholdexcept  libc_feholdexcept_riscv
++#define libc_feholdexceptf libc_feholdexcept_riscv
++#define libc_feholdexceptl libc_feholdexcept_riscv
++
++static __always_inline void
++libc_fesetround_riscv (int round)
++{
++  _FPU_SETROUND (round);
++}
++
++#define libc_fesetround  libc_fesetround_riscv
++#define libc_fesetroundf libc_fesetround_riscv
++#define libc_fesetroundl libc_fesetround_riscv
++
++static __always_inline void
++libc_feholdexcept_setround_riscv (fenv_t *envp, int round)
++{
++  libc_fesetround_riscv (round);
++  libc_feholdexcept_riscv (envp);
++}
++
++#define libc_feholdexcept_setround  libc_feholdexcept_setround_riscv
++#define libc_feholdexcept_setroundf libc_feholdexcept_setround_riscv
++#define libc_feholdexcept_setroundl libc_feholdexcept_setround_riscv
++
++static __always_inline int
++libc_fetestexcept_riscv (int ex)
 +{
 +  int cw;
 +
 +  _FPU_GETFLAGS (cw);
 +
-+  return cw & excepts;
++  return cw & ex;
 +}
-+libm_hidden_def (fetestexcept)
++
++#define libc_fetestexcept  libc_fetestexcept_riscv
++#define libc_fetestexceptf libc_fetestexcept_riscv
++#define libc_fetestexceptl libc_fetestexcept_riscv
++
++static __always_inline void
++libc_fesetenv_riscv (const fenv_t *envp)
++{
++  long env = (long) envp - (long) FE_DFL_ENV;
++  if (env != 0)
++    env = *envp;
++
++  _FPU_SETCW (env);
++}
++
++#define libc_fesetenv  libc_fesetenv_riscv
++#define libc_fesetenvf libc_fesetenv_riscv
++#define libc_fesetenvl libc_fesetenv_riscv
++#define libc_feresetround_noex  libc_fesetenv_riscv
++#define libc_feresetround_noexf libc_fesetenv_riscv
++#define libc_feresetround_noexl libc_fesetenv_riscv
++
++static __always_inline int
++libc_feupdateenv_test_riscv (const fenv_t *envp, int ex)
++{
++  fenv_t env = *envp;
++  int excepts;
++
++  _FPU_SETROUND (0);
++  asm volatile ("csrrs %0, fcsr, %1" : "=r"(excepts) : "r"(env));
++
++  return excepts & ex;
++}
++
++#define libc_feupdateenv_test  libc_feupdateenv_test_riscv
++#define libc_feupdateenv_testf libc_feupdateenv_test_riscv
++#define libc_feupdateenv_testl libc_feupdateenv_test_riscv
++
++static __always_inline void
++libc_feupdateenv_riscv (const fenv_t *envp)
++{
++  fenv_t env = *envp;
++
++  _FPU_SETROUND (0);
++  asm volatile ("csrs fcsr, %0" : : "r"(env));
++}
++
++#define libc_feupdateenv  libc_feupdateenv_riscv
++#define libc_feupdateenvf libc_feupdateenv_riscv
++#define libc_feupdateenvl libc_feupdateenv_riscv
++
++static __always_inline void
++libc_feholdsetround_riscv (fenv_t *envp, int round)
++{
++  /* Note this implementation makes an improperly-formatted fenv_t and
++     so should only be used in conjunction with libc_feresetround.  */
++  int old_round;
++  asm volatile ("csrrw %0, frm, %1" : "=r"(old_round) : "r"(round));
++  *envp = old_round;
++}
++
++#define libc_feholdsetround  libc_feholdsetround_riscv
++#define libc_feholdsetroundf libc_feholdsetround_riscv
++#define libc_feholdsetroundl libc_feholdsetround_riscv
++
++static __always_inline void
++libc_feresetround_riscv (fenv_t *envp)
++{
++  /* Note this implementation takes an improperly-formatted fenv_t and
++     so should only be used in conjunction with libc_feholdsetround.  */
++  _FPU_SETROUND (*envp);
++}
++
++#define libc_feresetround  libc_feresetround_riscv
++#define libc_feresetroundf libc_feresetround_riscv
++#define libc_feresetroundl libc_feresetround_riscv
++
++#include_next <math_private.h>
++
++#endif
 --- original-glibc/sysdeps/riscv/fpu/s_copysign.c
 +++ glibc/sysdeps/riscv/fpu/s_copysign.c
 @@ -0,0 +1,9 @@
@@ -2037,7 +3667,7 @@
 +#define _FPU_RESERVED 0xffffffff
 +#define _FPU_DEFAULT  0x00000000
 +typedef unsigned int fpu_control_t;
-+#define _FPU_GETCW(cw) 0
++#define _FPU_GETCW(cw) (cw) = 0
 +#define _FPU_SETCW(cw) do { } while (0)
 +extern fpu_control_t __fpu_control;
 +
@@ -2735,7 +4365,7 @@
 +ASFLAGS-.os += $(pic-ccflag)
 --- original-glibc/sysdeps/riscv/memcpy.c
 +++ glibc/sysdeps/riscv/memcpy.c
-@@ -0,0 +1,69 @@
+@@ -0,0 +1,68 @@
 +#include <string.h>
 +#include <stdint.h>
 +
@@ -2796,7 +4426,6 @@
 +  while (la < lend)
 +    BODY(la, lb, long);
 +
-+maybe_done:
 +  a = (char*)la;
 +  b = (const char*)lb;
 +  if (__builtin_expect(a < end, 0))
@@ -3228,271 +4857,17 @@
 @@ -0,0 +1,2 @@
 +#define RESET_PID
 +#include <sysdeps/unix/sysv/linux/riscv/clone.S>
---- original-glibc/sysdeps/riscv/nptl/lowlevellock.h
-+++ glibc/sysdeps/riscv/nptl/lowlevellock.h
-@@ -0,0 +1,262 @@
-+/* Copyright (C) 2011-2014 Free Software Foundation, Inc.
-+   This file is part of the GNU C Library.
+--- original-glibc/sysdeps/riscv/nptl/libc-lowlevellock.c
++++ glibc/sysdeps/riscv/nptl/libc-lowlevellock.c
+@@ -0,0 +1,8 @@
++/* This kludge works around a libpthread static linking problem:
++   https://sourceware.org/bugzilla/show_bug.cgi?id=15648 */
 +
-+   The GNU C Library is free software; you can redistribute it and/or
-+   modify it under the terms of the GNU Lesser General Public
-+   License as published by the Free Software Foundation; either
-+   version 2.1 of the License, or (at your option) any later version.
-+
-+   The GNU C Library is distributed in the hope that it will be useful,
-+   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU
-+   Lesser General Public License for more details.
-+
-+   You should have received a copy of the GNU Lesser General Public
-+   License along with the GNU C Library; if not, write to the Free
-+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-+   02111-1307 USA.  */
-+
-+#ifndef _LOWLEVELLOCK_H
-+#define _LOWLEVELLOCK_H	1
-+
-+#include <time.h>
-+#include <sys/param.h>
-+#include <bits/pthreadtypes.h>
-+#include <atomic.h>
-+#include <sysdep.h>
-+#include <kernel-features.h>
-+
-+#define FUTEX_WAIT		0
-+#define FUTEX_WAKE		1
-+#define FUTEX_REQUEUE		3
-+#define FUTEX_CMP_REQUEUE	4
-+#define FUTEX_WAKE_OP		5
-+#define FUTEX_OP_CLEAR_WAKE_IF_GT_ONE	((4 << 24) | 1)
-+#define FUTEX_LOCK_PI		6
-+#define FUTEX_UNLOCK_PI		7
-+#define FUTEX_TRYLOCK_PI	8
-+#define FUTEX_WAIT_BITSET	9
-+#define FUTEX_WAKE_BITSET	10
-+#define FUTEX_PRIVATE_FLAG	128
-+#define FUTEX_CLOCK_REALTIME	256
-+
-+#define FUTEX_BITSET_MATCH_ANY	0xffffffff
-+
-+/* Values for 'private' parameter of locking macros.  Yes, the
-+   definition seems to be backwards.  But it is not.  The bit will be
-+   reversed before passing to the system call.  */
-+#define LLL_PRIVATE	0
-+#define LLL_SHARED	FUTEX_PRIVATE_FLAG
-+
-+
-+#if !defined NOT_IN_libc || defined IS_IN_rtld
-+/* In libc.so or ld.so all futexes are private.  */
-+# ifdef __ASSUME_PRIVATE_FUTEX
-+#  define __lll_private_flag(fl, private) \
-+  ((fl) | FUTEX_PRIVATE_FLAG)
-+# else
-+#  define __lll_private_flag(fl, private) \
-+  ((fl) | THREAD_GETMEM (THREAD_SELF, header.private_futex))
-+# endif
-+#else
-+# ifdef __ASSUME_PRIVATE_FUTEX
-+#  define __lll_private_flag(fl, private) \
-+  (((fl) | FUTEX_PRIVATE_FLAG) ^ (private))
-+# else
-+#  define __lll_private_flag(fl, private) \
-+  (__builtin_constant_p (private)					      \
-+   ? ((private) == 0							      \
-+      ? ((fl) | THREAD_GETMEM (THREAD_SELF, header.private_futex))	      \
-+      : (fl))								      \
-+   : ((fl) | (((private) ^ FUTEX_PRIVATE_FLAG)				      \
-+	      & THREAD_GETMEM (THREAD_SELF, header.private_futex))))
-+# endif	      
++#ifndef SHARED
++# define __lll_lock_wait_private weak_function __lll_lock_wait_private
 +#endif
 +
-+
-+#define lll_futex_wait(futexp, val, private) \
-+  lll_futex_timed_wait(futexp, val, NULL, private)
-+
-+#define lll_futex_timed_wait(futexp, val, timespec, private) \
-+  ({									      \
-+    INTERNAL_SYSCALL_DECL (__err);					      \
-+    long int __ret;							      \
-+    __ret = INTERNAL_SYSCALL (futex, __err, 4, (long) (futexp),		      \
-+			      __lll_private_flag (FUTEX_WAIT, private),	      \
-+			      (val), (timespec));			      \
-+    INTERNAL_SYSCALL_ERROR_P (__ret, __err) ? -__ret : __ret;		      \
-+  })
-+
-+#define lll_futex_wake(futexp, nr, private) \
-+  ({									      \
-+    INTERNAL_SYSCALL_DECL (__err);					      \
-+    long int __ret;							      \
-+    __ret = INTERNAL_SYSCALL (futex, __err, 4, (long) (futexp),		      \
-+			      __lll_private_flag (FUTEX_WAKE, private),	      \
-+			      (nr), 0);	      \
-+    INTERNAL_SYSCALL_ERROR_P (__ret, __err) ? -__ret : __ret;		      \
-+  })
-+
-+#define lll_robust_dead(futexv, private) \
-+  do									      \
-+    {									      \
-+      int *__futexp = &(futexv);					      \
-+      atomic_or (__futexp, FUTEX_OWNER_DIED);				      \
-+      lll_futex_wake (__futexp, 1, private);				      \
-+    }									      \
-+  while (0)
-+
-+/* Returns non-zero if error happened, zero if success.  */
-+#define lll_futex_requeue(futexp, nr_wake, nr_move, mutex, val, private) \
-+  ({									      \
-+    INTERNAL_SYSCALL_DECL (__err);					      \
-+    long int __ret;							      \
-+    __ret = INTERNAL_SYSCALL (futex, __err, 6, (long) (futexp),		      \
-+			      __lll_private_flag (FUTEX_CMP_REQUEUE, private),\
-+			      (nr_wake), (nr_move), (mutex), (val));	      \
-+    INTERNAL_SYSCALL_ERROR_P (__ret, __err);				      \
-+  })
-+
-+/* Returns non-zero if error happened, zero if success.  */
-+#define lll_futex_wake_unlock(futexp, nr_wake, nr_wake2, futexp2, private) \
-+  ({									      \
-+    INTERNAL_SYSCALL_DECL (__err);					      \
-+    long int __ret;							      \
-+									      \
-+    __ret = INTERNAL_SYSCALL (futex, __err, 6, (futexp),		      \
-+			      __lll_private_flag (FUTEX_WAKE_OP, private),    \
-+			      (nr_wake), (nr_wake2), (futexp2),		      \
-+			      FUTEX_OP_CLEAR_WAKE_IF_GT_ONE);		      \
-+    INTERNAL_SYSCALL_ERROR_P (__ret, __err);				      \
-+  })
-+
-+#define lll_trylock(futex) \
-+  ({                                                                          \
-+    atomic_compare_and_exchange_val_acq (&(futex), 1, 0) != 0;                \
-+  })
-+
-+#define lll_cond_trylock(futex) \
-+  ({                                                                          \
-+    atomic_compare_and_exchange_val_acq (&(futex), 2, 0) != 0;                \
-+  })
-+
-+#define lll_robust_trylock(futex, id) \
-+  ({                                                                          \
-+    atomic_compare_and_exchange_val_acq (&(futex), id, 0) != 0;               \
-+  })
-+
-+extern void __lll_lock_wait_private (int *futex) attribute_hidden;
-+extern void __lll_lock_wait (int *futex, int private) attribute_hidden;
-+extern int __lll_robust_lock_wait (int *futex, int private) attribute_hidden;
-+
-+#define lll_lock(futex, private) \
-+  ({                                                                          \
-+    int val = atomic_compare_and_exchange_val_acq (&(futex), 1, 0);           \
-+                                                                              \
-+    if (__builtin_expect (val != 0, 0))                                       \
-+      {                                                                       \
-+        if (__builtin_constant_p (private) && private == LLL_PRIVATE)         \
-+          __lll_lock_wait_private (&(futex));                                 \
-+        else                                                                  \
-+          __lll_lock_wait (&(futex), private);                                \
-+      }                                                                       \
-+  })
-+
-+#define lll_robust_lock(futex, id, private) \
-+  ({                                                                          \
-+    int result = 0;                                                           \
-+    if (atomic_compare_and_exchange_bool_acq (&(futex), id, 0) != 0)          \
-+      result = __lll_robust_lock_wait (&(futex), private);                    \
-+    result;                                                                   \
-+  })
-+
-+#define lll_cond_lock(futex, private) \
-+  ({                                                                          \
-+    int val = atomic_compare_and_exchange_val_acq (&(futex), 2, 0);           \
-+                                                                              \
-+    if (__builtin_expect (val != 0, 0))                                       \
-+      __lll_lock_wait (&(futex), private);                                    \
-+  })
-+
-+#define lll_robust_cond_lock(futex, id, private) \
-+  lll_robust_lock (futex, (id) | FUTEX_WAITERS, private)
-+
-+
-+extern int __lll_timedlock_wait (int *futex, const struct timespec *,
-+				 int private) attribute_hidden;
-+extern int __lll_robust_timedlock_wait (int *futex, const struct timespec *,
-+					int private) attribute_hidden;
-+
-+#define lll_timedlock(futex, abstime, private) \
-+  ({                                                                          \
-+    int val = atomic_compare_and_exchange_val_acq (&(futex), 1, 0);           \
-+    int result = 0;                                                           \
-+                                                                              \
-+    if (__builtin_expect (val != 0, 0))                                       \
-+      result = __lll_timedlock_wait (&(futex), abstime, private);             \
-+    result;                                                                   \
-+  })
-+
-+#define lll_robust_timedlock(futex, abstime, id, private) \
-+  ({                                                                          \
-+    int result = 0;                                                           \
-+    if (atomic_compare_and_exchange_bool_acq (&(futex), id, 0) != 0)          \
-+      result = __lll_robust_timedlock_wait (&(futex), abstime, private);      \
-+    result;                                                                   \
-+  })
-+
-+#define lll_unlock(lock, private) \
-+  ((void) ({								      \
-+    int *__futex = &(lock);						      \
-+    int __val = atomic_exchange_rel (__futex, 0);			      \
-+    if (__builtin_expect (__val > 1, 0))				      \
-+      lll_futex_wake (__futex, 1, private);				      \
-+  }))
-+
-+#define lll_robust_unlock(lock, private) \
-+  ((void) ({								      \
-+    int *__futex = &(lock);						      \
-+    int __val = atomic_exchange_rel (__futex, 0);			      \
-+    if (__builtin_expect (__val & FUTEX_WAITERS, 0))			      \
-+      lll_futex_wake (__futex, 1, private);				      \
-+  }))
-+
-+#define lll_islocked(futex) \
-+  (futex != 0)
-+
-+
-+/* Our internal lock implementation is identical to the binary-compatible
-+   mutex implementation. */
-+
-+/* Initializers for lock.  */
-+#define LLL_LOCK_INITIALIZER		(0)
-+#define LLL_LOCK_INITIALIZER_LOCKED	(1)
-+
-+/* The states of a lock are:
-+    0  -  untaken
-+    1  -  taken by one user
-+   >1  -  taken by more users */
-+
-+/* The kernel notifies a process which uses CLONE_CLEARTID via futex
-+   wakeup when the clone terminates.  The memory location contains the
-+   thread ID while the clone is running and is reset to zero
-+   afterwards.	*/
-+#define lll_wait_tid(tid) \
-+  do {							\
-+    __typeof (tid) __tid;				\
-+    while ((__tid = (tid)) != 0)			\
-+      lll_futex_wait (&(tid), __tid, LLL_SHARED);	\
-+  } while (0)
-+
-+extern int __lll_timedwait_tid (int *, const struct timespec *)
-+     attribute_hidden;
-+
-+#define lll_timedwait_tid(tid, abstime) \
-+  ({							\
-+    int __res = 0;					\
-+    if ((tid) != 0)					\
-+      __res = __lll_timedwait_tid (&(tid), (abstime));	\
-+    __res;						\
-+  })
-+
-+#endif	/* lowlevellock.h */
++#include <lowlevellock.c>
 --- original-glibc/sysdeps/riscv/nptl/Makefile
 +++ glibc/sysdeps/riscv/nptl/Makefile
 @@ -0,0 +1,25 @@
@@ -3563,7 +4938,7 @@
 +#define CURRENT_STACK_FRAME	__builtin_frame_address (0)
 --- original-glibc/sysdeps/riscv/nptl/pthread_spin_destroy.c
 +++ glibc/sysdeps/riscv/nptl/pthread_spin_destroy.c
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,32 @@
 +/* Copyright (C) 2002 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
 +   Contributed by Ulrich Drepper <drepper@redhat.com>, 2002.
@@ -3586,17 +4961,19 @@
 +#include "pthreadP.h"
 +
 +
-+#ifndef __riscv_atomic
 +int
-+pthread_spin_destroy (lock)
-+     pthread_spinlock_t *lock;
++pthread_spin_destroy (pthread_spinlock_t *lock)
 +{
++#ifdef __riscv_atomic
++  /* Nothing to do.  */
++  return 0;
++#else
 +  return pthread_mutex_destroy(lock);
-+}
 +#endif
++}
 --- original-glibc/sysdeps/riscv/nptl/pthread_spin_init.c
 +++ glibc/sysdeps/riscv/nptl/pthread_spin_init.c
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,33 @@
 +/* pthread_spin_init -- initialize a spin lock.  Generic version.
 +   Copyright (C) 2003 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
@@ -3620,13 +4997,16 @@
 +#include "pthreadP.h"
 +
 +
-+#ifndef __riscv_atomic
 +int
 +pthread_spin_init (pthread_spinlock_t *lock, int pshared)
 +{
++#ifdef __riscv_atomic
++  *lock = 0;
++  return 0;
++#else
 +  return pthread_mutex_init(lock, NULL);
-+}
 +#endif
++}
 --- original-glibc/sysdeps/riscv/nptl/pthread_spin_lock.c
 +++ glibc/sysdeps/riscv/nptl/pthread_spin_lock.c
 @@ -0,0 +1,39 @@
@@ -3819,7 +5199,7 @@
 +   happen before any instructions.  So we use cfi_same_value instead of
 +   cfi_restore.  */
 +
-+#if !defined NOT_IN_libc || defined IS_IN_libpthread || defined IS_IN_librt
++#if IS_IN (libc) || IS_IN (libpthread) || IS_IN (librt)
 +
 +# undef PSEUDO
 +# define PSEUDO(name, syscall_name, args)				\
@@ -3884,10 +5264,10 @@
 +# define STKOFF_RA	(STKOFF_SVMSK + SZREG)
 +# define STKSPACE	(STKOFF_RA + SZREG)
 +
-+# ifdef IS_IN_libpthread
++# if IS_IN (libpthread)
 +#  define CENABLE  call __pthread_enable_asynccancel
 +#  define CDISABLE call __pthread_disable_asynccancel
-+# elif defined IS_IN_librt
++# elif IS_IN (librt)
 +#  define CENABLE  call __librt_enable_asynccancel
 +#  define CDISABLE call __librt_disable_asynccancel
 +# else
@@ -4142,7 +5522,10 @@
 +++ glibc/sysdeps/riscv/preconfigure
 @@ -0,0 +1,28 @@
 +case "$machine" in
-+riscv64*)
++riscv32*)	base_machine=riscv machine=riscv/rv32
++		machine=$machine/$config_machine
++		;;
++riscv*)
 +		case "$CC $CFLAGS $CPPFLAGS " in
 +		*" -m32 "*) riscv_cc_abi=32 ;;
 +		*" -m64 "*) riscv_cc_abi=64 ;;
@@ -4165,32 +5548,7 @@
 +		  CPPFLAGS="$CPPFLAGS -m$riscv_config_abi"
 +		fi
 +		;;
-+riscv*)		base_machine=riscv machine=riscv/rv64
-+		machine=$machine/$config_machine
-+		;;
 +esac
---- original-glibc/sysdeps/riscv/rv32/bits/wordsize.h
-+++ glibc/sysdeps/riscv/rv32/bits/wordsize.h
-@@ -0,0 +1,19 @@
-+/* Copyright (C) 2002, 2003 Free Software Foundation, Inc.
-+   This file is part of the GNU C Library.
-+
-+   The GNU C Library is free software; you can redistribute it and/or
-+   modify it under the terms of the GNU Lesser General Public
-+   License as published by the Free Software Foundation; either
-+   version 2.1 of the License, or (at your option) any later version.
-+
-+   The GNU C Library is distributed in the hope that it will be useful,
-+   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+   Lesser General Public License for more details.
-+
-+   You should have received a copy of the GNU Lesser General Public
-+   License along with the GNU C Library; if not, write to the Free
-+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-+   02111-1307 USA.  */
-+
-+#define __WORDSIZE 32
 --- original-glibc/sysdeps/riscv/rv32/Implies
 +++ glibc/sysdeps/riscv/rv32/Implies
 @@ -0,0 +1,2 @@
@@ -4202,29 +5560,6 @@
 +ifeq ($(filter -m32,$(CC)),)
 +CC += -m32
 +endif
---- original-glibc/sysdeps/riscv/rv64/bits/wordsize.h
-+++ glibc/sysdeps/riscv/rv64/bits/wordsize.h
-@@ -0,0 +1,20 @@
-+/* Copyright (C) 2002, 2003 Free Software Foundation, Inc.
-+   This file is part of the GNU C Library.
-+
-+   The GNU C Library is free software; you can redistribute it and/or
-+   modify it under the terms of the GNU Lesser General Public
-+   License as published by the Free Software Foundation; either
-+   version 2.1 of the License, or (at your option) any later version.
-+
-+   The GNU C Library is distributed in the hope that it will be useful,
-+   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+   Lesser General Public License for more details.
-+
-+   You should have received a copy of the GNU Lesser General Public
-+   License along with the GNU C Library; if not, write to the Free
-+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-+   02111-1307 USA.  */
-+
-+#define __WORDSIZE 64
-+#define __WORDSIZE_TIME64_COMPAT32 1
 --- original-glibc/sysdeps/riscv/rv64/gmp-mparam.h
 +++ glibc/sysdeps/riscv/rv64/gmp-mparam.h
 @@ -0,0 +1,31 @@
@@ -4435,7 +5770,7 @@
 +	REG_S a3, 15*SZREG(a0)
 +#endif
 +
-+#if defined NOT_IN_libc && defined IS_IN_rtld
++#if !IS_IN (libc) && IS_IN (rtld)
 +  /* In ld.so we never save the signal mask.  */
 +  li a0, 0
 +  ret
@@ -4498,6 +5833,60 @@
 +#define FP_EX_OVERFLOW          (1 << 2)
 +#define FP_EX_UNDERFLOW         (1 << 1)
 +#define FP_EX_INEXACT           (1 << 0)
+--- original-glibc/sysdeps/riscv/sotruss-lib.c
++++ glibc/sysdeps/riscv/sotruss-lib.c
+@@ -0,0 +1,51 @@
++/* Override generic sotruss-lib.c to define actual functions for RISC-V.
++   Copyright (C) 2012-2015 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library.  If not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#define HAVE_ARCH_PLTENTER
++#define HAVE_ARCH_PLTEXIT
++
++#include <elf/sotruss-lib.c>
++
++ElfW(Addr)
++la_riscv_gnu_pltenter (ElfW(Sym) *sym __attribute__ ((unused)),
++		       unsigned int ndx __attribute__ ((unused)),
++		       uintptr_t *refcook, uintptr_t *defcook,
++		       La_riscv_regs *regs, unsigned int *flags,
++		       const char *symname, long int *framesizep)
++{
++  print_enter (refcook, defcook, symname,
++	       regs->lr_reg[0], regs->lr_reg[1], regs->lr_reg[2],
++	       *flags);
++
++  /* No need to copy anything, we will not need the parameters in any case.  */
++  *framesizep = 0;
++
++  return sym->st_value;
++}
++
++unsigned int
++la_riscv_gnu_pltexit (ElfW(Sym) *sym, unsigned int ndx, uintptr_t *refcook,
++		      uintptr_t *defcook,
++		      const struct La_riscv_regs *inregs,
++		      struct La_riscv_retval *outregs,
++		      const char *symname)
++{
++  print_exit (refcook, defcook, symname, outregs->lrv_a0);
++
++  return 0;
++}
 --- original-glibc/sysdeps/riscv/stackinfo.h
 +++ glibc/sysdeps/riscv/stackinfo.h
 @@ -0,0 +1,34 @@
@@ -5000,14 +6389,14 @@
 +#define __arch_compare_and_exchange_val_32_acq(mem, newval, oldval) \
 +  ({									      \
 +    INTERNAL_SYSCALL_DECL (__err);					      \
-+    INTERNAL_SYSCALL (sysriscv, __err, 4,				      \
++    (__typeof (*mem)) INTERNAL_SYSCALL (sysriscv, __err, 4,		      \
 +		      RISCV_ATOMIC_CMPXCHG, mem, oldval, newval);	      \
 +  })
 +
 +#define __arch_compare_and_exchange_val_64_acq(mem, newval, oldval) \
 +  ({									      \
 +    INTERNAL_SYSCALL_DECL (__err);					      \
-+    INTERNAL_SYSCALL (sysriscv, __err, 4,				      \
++    (__typeof (*mem)) INTERNAL_SYSCALL (sysriscv, __err, 4,		      \
 +		      RISCV_ATOMIC_CMPXCHG64, mem, oldval, newval);	      \
 +  })
 +
@@ -5508,12 +6897,11 @@
 +#include <sysdeps/unix/sysv/linux/i386/getmsg.c>
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/Implies
 +++ glibc/sysdeps/unix/sysv/linux/riscv/Implies
-@@ -0,0 +1,2 @@
-+unix/sysv/linux/generic
+@@ -0,0 +1 @@
 +riscv/nptl
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/kernel-features.h
 +++ glibc/sysdeps/unix/sysv/linux/riscv/kernel-features.h
-@@ -0,0 +1,29 @@
+@@ -0,0 +1,26 @@
 +/* Copyright (C) 2014 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
 +
@@ -5536,9 +6924,6 @@
 +#define __ASSUME_SENDMMSG_SYSCALL	1
 +
 +#include_next <kernel-features.h>
-+
-+/* asm-generic architectures do not have the utimes syscall.  */
-+#undef __ASSUME_UTIMES
 +
 +/* Define this if your 32-bit syscall API requires 64-bit register
 +   pairs to start with an even-number register.  */
@@ -5753,8 +7138,10 @@
 +#define REGISTER_DUMP register_dump (fd, ctx)
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/rv32/Implies
 +++ glibc/sysdeps/unix/sysv/linux/riscv/rv32/Implies
-@@ -0,0 +1 @@
+@@ -0,0 +1,3 @@
++unix/sysv/linux/riscv
 +unix/sysv/linux/generic/wordsize-32
++unix/sysv/linux/generic
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/rv32/lockf64.c
 +++ glibc/sysdeps/unix/sysv/linux/riscv/rv32/lockf64.c
 @@ -0,0 +1 @@
@@ -5769,7 +7156,9 @@
 +#include <sysdeps/unix/sysv/linux/mips/mips32/sync_file_range.c>
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/rv64/Implies
 +++ glibc/sysdeps/unix/sysv/linux/riscv/rv64/Implies
-@@ -0,0 +1 @@
+@@ -0,0 +1,3 @@
++unix/sysv/linux/riscv
++unix/sysv/linux/generic
 +unix/sysv/linux/wordsize-64
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/rv64/ldconfig.h
 +++ glibc/sysdeps/unix/sysv/linux/riscv/rv64/ldconfig.h
@@ -5945,6 +7334,10 @@
 +1:	j	exit
 +
 +PSEUDO_END (__start_context)
+--- original-glibc/sysdeps/unix/sysv/linux/riscv/shlib-versions
++++ glibc/sysdeps/unix/sysv/linux/riscv/shlib-versions
+@@ -0,0 +1 @@
++DEFAULT		GLIBC_2.20
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/sigcontextinfo.h
 +++ glibc/sysdeps/unix/sysv/linux/riscv/sigcontextinfo.h
 @@ -0,0 +1,29 @@
@@ -6298,11 +7691,12 @@
 +#endif /* sys/ucontext.h */
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/sys/user.h
 +++ glibc/sysdeps/unix/sysv/linux/riscv/sys/user.h
-@@ -0,0 +1 @@
-+/* This file is not needed, but in practice gdb might try to include it.  */
+@@ -0,0 +1,2 @@
++/* x86 puts "struct user_regs_struct" in here, this is just a shim. */
++#include <asm/ptrace.h>
 --- original-glibc/sysdeps/unix/sysv/linux/riscv/syscall.c
 +++ glibc/sysdeps/unix/sysv/linux/riscv/syscall.c
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,37 @@
 +/* Copyright (C) 2001, 2002, 2003, 2005 Free Software Foundation, Inc.
 +   This file is part of the GNU C Library.
 +
@@ -6326,14 +7720,15 @@
 +long syscall (long syscall_number, long arg1, long arg2, long arg3,
 +	      long arg4, long arg5, long arg6, long arg7)
 +{
-+  long ret, err; 
++  long ret;
++  INTERNAL_SYSCALL_DECL (err);
 +
 +  ret = INTERNAL_SYSCALL_NCS(syscall_number, err, 7, arg1, arg2, arg3, arg4,
 +			     arg5, arg6, arg7);
 +
 +  if (INTERNAL_SYSCALL_ERROR_P (ret, err))
 +    {
-+      extern long __syscall_error() attribute_hidden;
++      extern long __syscall_error (void) attribute_hidden;
 +      return __syscall_error();
 +    }
 +

@@ -1,22 +1,28 @@
---- gnu-config-20120814/config.sub	2012-09-18 10:27:45.000000000 +0100
-+++ /home/martin/config.sub	2014-09-23 23:14:10.619326512 +0100
-@@ -311,6 +312,7 @@ case $basic_machine in
+diff -rupN gnu-config-20120814/config.sub gnu-config-20120814-new/config.sub
+--- gnu-config-20120814/config.sub	2015-05-08 17:53:20.549866017 -0700
++++ gnu-config-20120814-new/config.sub	2015-05-08 17:55:20.595793468 -0700
+@@ -312,6 +312,7 @@ case $basic_machine in
  	| sparc | sparc64 | sparc64b | sparc64v | sparc86x | sparclet | sparclite \
  	| sparcv8 | sparcv9 | sparcv9b | sparcv9v \
  	| spu \
-+	| riscv \
++        | riscv | riscv64 \
  	| tahoe | tic4x | tic54x | tic55x | tic6x | tic80 | tron \
  	| ubicom32 \
  	| v850 | v850e | v850e1 | v850e2 | v850es | v850e2v3 \
-@@ -1027,6 +1029,11 @@ case $basic_machine in
+@@ -1028,6 +1029,16 @@ case $basic_machine in
  		basic_machine=i386-pc
  		os=-rdos
  		;;
-+	riscv)
-+		basic_machine=riscv
-+		;;
-+	riscv-*)
-+		;;
++        riscv)
++                basic_machine=riscv
++                ;;
++        riscv64)
++                basic_machine=riscv64
++                ;;
++        riscv-*)
++                ;;
++        riscv64-*)
++                ;;
  	rom68k)
  		basic_machine=m68k-rom68k
  		os=-coff

@@ -1,6 +1,6 @@
-TUNE_ARCH = "riscv"
+TUNE_ARCH = "riscv64"
 
-TUNE_PKGARCH = "riscv"
+TUNE_PKGARCH = "riscv64"
 
 DEFAULTTUNE ?= "riscv"
 

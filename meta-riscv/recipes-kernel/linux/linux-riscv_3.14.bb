@@ -10,7 +10,7 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
 PR := "${PR}.1"
 
-COMPATIBLE_MACHINE = "(qemuriscv|riscv)"
+COMPATIBLE_MACHINE = "(qemuriscv64|riscv64)"
 
 LINUX_KERNEL_TYPE ?= "standard"
 
@@ -32,10 +32,23 @@ KERNEL_IMAGETYPE = "vmlinux"
 #            file://riscv-user-features.scc \
 #           "
 
-S = "${WORKDIR}/linux-3.14.15"
+#S = "${WORKDIR}/linux-3.14.15"
 
-SRC_URI += "git://github.com/martinmaas/riscv-linux.git;branch=qemu-coredump;destsuffix=${S} \
+# Pick up shared functions
+inherit kernel
+
+SRC_URI += "git://github.com/riscv/riscv-linux.git;branch=new_privileged_isa;destsuffix=${S} \
             https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.14.15.tar.xz;name=kernel"
+
+do_overlay_kernel() {
+  cp -R ${WORKDIR}/linux-3.14.15/* ${S}
+}
+
+#ln -s ${S}/arch/riscv ${S}/arch/riscv64
+
+do_unpack_append () {
+    bb.build.exec_func('do_overlay_kernel', d)
+}
 
 SRC_URI += "file://defconfig"
 
@@ -45,13 +58,10 @@ SRC_URI[kernel.sha256sum] = "209d4607320f83485a057f6fc366489ada2da7ea7ab409a4bc1
 # uncomment and replace these SRCREVs with the real commit ids once you've had
 # the appropriate changes committed to the upstream linux-yocto repo
 #SRCREV_machine_pn-linux-yocto_riscv ?= "840bb8c059418c4753415df56c9aff1c0d5354c8"
-SRCREV_pn-linux-riscv ?= "1b8a11d36516559dc4dfd7b3b2c3ea2aee047ea9"
+SRCREV_pn-linux-riscv ?= "4da7416c2a0d07221678c1f0afff7be87af2e728"
 LINUX_VERSION = "3.14"
 
 do_patch[depends] = "kern-tools-native:do_populate_sysroot"
-
-# Pick up shared functions
-inherit kernel
 
 do_configure_prepend() {
   # If we have supplied a configuration and there is already one, delete it.
