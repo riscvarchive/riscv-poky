@@ -302,7 +302,7 @@ case "$MACHINE" in
     "qemux86") ;;
     "qemux86-64") ;;
     "qemuzynq") ;;
-    "qemuriscv") ;;
+    "qemuriscv64") ;;
     "akita") ;;
     "spitz") ;;
     *)
@@ -588,7 +588,7 @@ if [ "$MACHINE" = "qemuzynq" ]; then
     fi
 fi
 
-if [ "$MACHINE" = "qemuriscv" ]; then
+if [ "$MACHINE" = "qemuriscv64" ]; then
     QEMU=qemu-system-riscv
     QEMU_HOSTFWD=
     if [ -n "$HOSTFWD_OPT" ]; then
