@@ -11,10 +11,10 @@ IMAGE_INSTALL += "dropbear apt libffi libffi-dev"
 # IMAGE_INSTALL += "python-numpy"
 
 # OpenJDK HotSpot JVM (64-bit Zero)
-# IMAGE_INSTALL += "openjdk-7-jre"
+IMAGE_INSTALL += "openjdk-7-jre"
 
 # Basic toolchain on target
-# IMAGE_INSTALL += "gcc binutils glibc glibc-dev libgcc libgcc-dev libstdc++ libstdc++-dev"
+IMAGE_INSTALL += "gcc binutils glibc glibc-dev libgcc libgcc-dev libstdc++ libstdc++-dev"
 
 IMAGE_LINGUAS = " "
 
@@ -22,5 +22,5 @@ LICENSE = "MIT"
 
 inherit core-image
 
-IMAGE_ROOTFS_SIZE ?= "8192"
+IMAGE_ROOTFS_SIZE ?= "524288"
 
