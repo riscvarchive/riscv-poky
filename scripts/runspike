@@ -109,96 +109,13 @@ process_filename() {
 while true; do
     arg=${1}
     case "$arg" in
-        "qemuriscv" | "qemuriscv64")
-            echo
-            echo "ERROR: RISC-V QEMU is currently broken, a fix is on the way."
-            echo "Until then, please use Spike (you can run it with \"runspike\")!"
-            echo
-            exit
-          ;;
-
-        "qemux86" | "qemux86-64" | "qemuarm" | "qemuarm64" | "qemumips" | "qemumipsel" | \
-        "qemumips64" | "qemush4"  | "qemuppc" | "qemumicroblaze" | "qemuzynq" | "qemuriscv" | "qemuriscv64")
+        "riscv64")
             [ -z "$MACHINE" ] && MACHINE=$arg || \
                 error "conflicting MACHINE types [$MACHINE] and [$arg]"
             ;;
         "ext2" | "ext3" | "ext4" | "jffs2" | "nfs" | "btrfs")
             [ -z "$FSTYPE" -o "$FSTYPE" = "$arg" ] && FSTYPE=$arg || \
                 error "conflicting FSTYPE types [$FSTYPE] and [$arg]"
-            ;;
-        *-image*)
-            [ -z "$ROOTFS" ] || \
-		error "conflicting ROOTFS args [$ROOTFS] and [$arg]"
-            if [ -f "$arg" ]; then
-                process_filename $arg
-            elif [ -d "$arg" ]; then
-                # Handle the case where the nfsroot dir has -image-
-                # in the pathname
-                echo "Assuming $arg is an nfs rootfs"
-                FSTYPE=nfs
-                ROOTFS=$arg
-            else
-                ROOTFS=$arg
-                LAZY_ROOTFS="true"
-            fi
-            ;;
-        "ramfs")
-            FSTYPE=cpio.gz
-            RAMFS=true
-            ;;
-        "iso")
-	    FSTYPE=iso
-	    ISOFS=true
-	    ;;
-        "nographic")
-            SCRIPT_QEMU_OPT="$SCRIPT_QEMU_OPT -nographic"
-            SCRIPT_KERNEL_OPT="$SCRIPT_KERNEL_OPT console=ttyS0"
-            ;;
-        "serial")
-            SCRIPT_QEMU_OPT="$SCRIPT_QEMU_OPT -serial stdio"
-            SCRIPT_KERNEL_OPT="$SCRIPT_KERNEL_OPT console=ttyS0"
-            SERIALSTDIO="1"
-            ;;
-	"biosdir="*)
-            CUSTOMBIOSDIR="${arg##biosdir=}"
-	    ;;
-        "biosfilename="*)
-            SCRIPT_QEMU_OPT="$SCRIPT_QEMU_OPT -bios ${arg##biosfilename=}"
-            ;;
-        "qemuparams="*)
-            SCRIPT_QEMU_EXTRA_OPT="${arg##qemuparams=}"
-
-            # Warn user if they try to specify serial or kvm options
-            # to use simplified options instead
-            serial_option=`expr "$SCRIPT_QEMU_EXTRA_OPT" : '.*\(-serial\)'`
-            kvm_option=`expr "$SCRIPT_QEMU_EXTRA_OPT" : '.*\(-enable-kvm\)'`
-            vga_option=`expr "$SCRIPT_QEMU_EXTRA_OPT" : '.*\(-vga\)'`
-            [ ! -z "$serial_option" -o ! -z "$kvm_option" ] && \
-                echo "Please use simplified serial or kvm options instead"
-            ;;
-        "bootparams="*)
-            SCRIPT_KERNEL_OPT="$SCRIPT_KERNEL_OPT ${arg##bootparams=}"
-            ;;
-        "hostfwd="*)
-            HOSTFWD_OPT="${arg}"
-            ;;
-        "audio")
-            if [ "x$MACHINE" = "xqemux86" -o "x$MACHINE" = "xqemux86-64" ]; then
-                echo "Enabling audio in qemu."
-                echo "Please install snd_intel8x0 or snd_ens1370 driver in linux guest."
-                QEMU_AUDIO_DRV="alsa"
-                SCRIPT_QEMU_OPT="$SCRIPT_QEMU_OPT -soundhw ac97,es1370"
-            fi
-            ;;
-        "kvm")
-            KVM_ENABLED="yes"
-            KVM_CAPABLE=`grep -q 'vmx\|svm' /proc/cpuinfo && echo 1`
-            ;;
-        "slirp")
-            SLIRP_ENABLED="yes"
-            ;;
-        "publicvnc")
-            SCRIPT_QEMU_OPT="$SCRIPT_QEMU_OPT -vnc 0.0.0.0:0"
             ;;
         "") break ;;
         *)
@@ -307,50 +224,9 @@ machine2=`echo $MACHINE | tr 'a-z' 'A-Z' | sed 's/-/_/'`
 # MACHINE is now set for all cases
 
 # Defaults used when these vars need to be inferred
-QEMUX86_DEFAULT_KERNEL=bzImage-qemux86.bin
-QEMUX86_DEFAULT_FSTYPE=ext4
 
-QEMUX86_64_DEFAULT_KERNEL=bzImage-qemux86-64.bin
-QEMUX86_64_DEFAULT_FSTYPE=ext4
-
-QEMUARM_DEFAULT_KERNEL=zImage-qemuarm.bin
-QEMUARM_DEFAULT_FSTYPE=ext4
-
-QEMUARM64_DEFAULT_KERNEL=Image-qemuarm64.bin
-QEMUARM64_DEFAULT_FSTYPE=ext4
-
-QEMUMIPS_DEFAULT_KERNEL=vmlinux-qemumips.bin
-QEMUMIPS_DEFAULT_FSTYPE=ext4
-
-QEMUMIPSEL_DEFAULT_KERNEL=vmlinux-qemumipsel.bin
-QEMUMIPSEL_DEFAULT_FSTYPE=ext4
-
-QEMUMIPS64_DEFAULT_KERNEL=vmlinux-qemumips64.bin
-QEMUMIPS64_DEFAULT_FSTYPE=ext4
-
-QEMUSH4_DEFAULT_KERNEL=vmlinux-qemumips.bin
-QEMUSH4_DEFAULT_FSTYPE=ext4
-
-QEMUPPC_DEFAULT_KERNEL=vmlinux-qemuppc.bin
-QEMUPPC_DEFAULT_FSTYPE=ext4
-
-QEMUMICROBLAZE_DEFAULT_KERNEL=linux.bin.ub
-QEMUMICROBLAZE_DEFAULT_FSTYPE=cpio
-
-QEMUZYNQ_DEFAULT_KERNEL=uImage
-QEMUZYNQ_DEFAULT_FSTYPE=cpio
-
-QEMURISCV_DEFAULT_KERNEL=vmlinux-qemuriscv.bin
-QEMURISCV_DEFAULT_FSTYPE=ext2
-
-QEMURISCV64_DEFAULT_KERNEL=vmlinux-qemuriscv64.bin
-QEMURISCV64_DEFAULT_FSTYPE=ext2
-
-AKITA_DEFAULT_KERNEL=zImage-akita.bin
-AKITA_DEFAULT_FSTYPE=jffs2
-
-SPITZ_DEFAULT_KERNEL=zImage-spitz.bin
-SPITZ_DEFAULT_FSTYPE=ext3
+RISCV64_DEFAULT_KERNEL=vmlinux-riscv64.bin
+RISCV64_DEFAULT_FSTYPE=ext2
 
 setup_path_vars() {
     if [ -z "$OE_TMPDIR" ] ; then
@@ -504,28 +380,16 @@ fi
 echo "FSTYPE: [$FSTYPE]"
 
 setup_sysroot
+
+SPIKE_BIN="$OECORE_NATIVE_SYSROOT/usr/bin/spike"
+BBL_PATH="$OE_TMPDIR/work/riscv64-poky-linux/riscv-pk/1.0-r0/bbl"
+
+echo "SPIKE_BIN: [$SPIKE_BIN]"
+echo "BBL_PATH: [$BBL_PATH]"
+
+echo
+
 # OECORE_NATIVE_SYSROOT is now set for all cases
 
-INTERNAL_SCRIPT="$0-internal"
-if [ ! -f "$INTERNAL_SCRIPT" -o ! -r "$INTERNAL_SCRIPT" ]; then
-INTERNAL_SCRIPT=`which runqemu-internal`
-fi
-
-# Specify directory for BIOS, VGA BIOS and keymaps
-if [ ! -z "$CUSTOMBIOSDIR" ]; then
-    if [ -d "$OECORE_NATIVE_SYSROOT/$CUSTOMBIOSDIR" ]; then
-        echo "Assuming biosdir is $OECORE_NATIVE_SYSROOT/$CUSTOMBIOSDIR"
-        SCRIPT_QEMU_OPT="$SCRIPT_QEMU_OPT -L $OECORE_NATIVE_SYSROOT/$CUSTOMBIOSDIR"
-    else
-        if [ ! -d "$CUSTOMBIOSDIR" ]; then
-            echo "Custom BIOS directory not found. Tried: $CUSTOMBIOSDIR"
-            echo "and $OECORE_NATIVE_SYSROOT/$CUSTOMBIOSDIR"
-            exit 1;
-        fi
-        echo "Assuming biosdir is $CUSTOMBIOSDIR"
-        SCRIPT_QEMU_OPT="$SCRIPT_QEMU_OPT -L $CUSTOMBIOSDIR"
-    fi
-fi
-
-. $INTERNAL_SCRIPT
+$SPIKE_BIN +disk=$ROOTFS $BBL_PATH $KERNEL
 exit $?

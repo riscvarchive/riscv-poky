@@ -7,6 +7,8 @@ IMAGE_INSTALL = "packagegroup-core-boot ${ROOTFS_PKGMANAGE_BOOTSTRAP} ${CORE_IMA
 # Basic packages
 IMAGE_INSTALL += "dropbear apt libffi libffi-dev"
 
+IMAGE_INSTALL_riscv64 += "riscv-pk"
+
 # Python
 # IMAGE_INSTALL += "python-numpy"
 

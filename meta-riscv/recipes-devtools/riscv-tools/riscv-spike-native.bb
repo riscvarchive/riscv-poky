@@ -7,7 +7,7 @@ LIC_FILES_CHKSUM = "file://${COREBASE}/meta/COPYING.GPLv2;md5=751419260aa954499f
 SRCREV = "c1273bcbaf659f5bb54fb85e1292b21d70503bc4"
 SRC_URI = "git://github.com/riscv/riscv-isa-sim.git"
 
-DEPENDS = "riscv-fesvr"
+DEPENDS = "riscv-fesvr-native"
 
 inherit autotools native
 

@@ -4,14 +4,22 @@ LICENSE = "GPLv2+"
 
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/COPYING.GPLv2;md5=751419260aa954499f7abaabaa882bbe"
 
-SRCREV = "c31914e9440a460e20cd419f4da3d2830ec98442"
+SRCREV = "027ba300cbeaa425218fd472e1fcf45c785f645c"
 SRC_URI = "git://github.com/riscv/riscv-pk.git"
+
+FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+SRC_URI += "file://bbl"
 
 inherit autotools
 
-DEPENDS = "riscv-fesvr riscv-spike"
+DEPENDS = "riscv-fesvr-native riscv-spike-native"
 
 S = "${WORKDIR}/git"
+
+CFLAGS = ""
+CPPFLAGS = ""
+CXXFLAGS = ""
+LDFLAGS = ""
 
 do_configure_prepend () {
         if [ ! -e ${S}/acinclude.m4 ]; then
