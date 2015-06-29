@@ -34,6 +34,8 @@ The large number of available packages makes Yocto a very good starting point fo
 Getting Started
 ---------------
 
+** The current version only supports the Spike ISA simulator; QEMU is unsupported as it does not support the new privileged ISA yet. If you need QEMU, please use the January-2015 release for now. We anticipate this problem to be resolved within the next weeks.  **
+
 To get started, clone the `usb-bar/riscv-poky` repository (poky is the name of the distribution that Yocto generates):
 
 >```
@@ -61,24 +63,24 @@ bitbake core-image-riscv
 
 **Warning**: This will download a large amount of data over the network and use up a significant amount of space on disk.
 
-The local.conf file is preconfigured to build for the `qemuriscv` machine by default. `core-image-minimal` is an image target, which contains a list of packages to build as well as instructions how to install them into an image.
+The local.conf file is preconfigured to build for the `qemuriscv64` machine by default. `core-image-minimal` is an image target, which contains a list of packages to build as well as instructions how to install them into an image.
 
 Depending on the machine, the build process can take a very long time (remember that this downloads and builds dozens of packages, including riscv-tools, riscv-qemu and riscv-linux). Note that bitbake is very efficient at utilizing highly parallel machines since it can spawn off many jobs in parallel.
 
 Once compilation has finished, you can run the resulting image from the build directory by calling:
 
 ```
-runqemu qemuriscv nographic slirp
+runqemu qemuriscv64 nographic slirp
 ```
 
 ### Targeting real hardware
 
-The qemuriscv target uses VirtIO for console, block devices and network. As these are not available on real hardware, you can build a version that uses the HTIF instead by changing `MACHINE` in local.conf to **riscv** instead of **qemuriscv**.
+The qemuriscv target uses VirtIO for console, block devices and network. As these are not available on real hardware, you can build a version that uses the HTIF instead by changing `MACHINE` in local.conf to **riscv64** instead of **qemuriscv64**.
 
 Note that this will cause an error when trying to run in QEMU, but it will work in the Spike simulator:
 
 ```
-<...>/build$ spike +disk=tmp/deploy/images/qemuriscv/core-image-minimal-qemuriscv.ext2 tmp/deploy/images/qemuriscv/vmlinux-qemuriscv.bin
+<...>/build$ runspike riscv64
 ```
 
 Maintaining the RISC-V Port
@@ -98,14 +100,14 @@ Details and HOWTOs
 
 * **Networking**: To SSH into a QEMU instance, build `core-image-riscv` and run it in QEMU with a command such as the following:
 ```
-runqemu qemuriscv nographic slirp hostfwd="tcp::12347-:22"
+runqemu qemuriscv64 nographic slirp hostfwd="tcp::12347-:22"
 ```
 This will forward port 12347 on the host to port 22 on the target (SSH). Now you can SSH into the QEMU instance with:
 ```
 ssh -p 12347 root@localhost
 ```
 
-* **GCC Versions**: By default, riscv-poky uses the new `riscv-gnu-toolchain` based on GCC 4.9.1. If for any reason you would like to use the old `riscv-tools` toolchain, you can look at the uncommented lines towards the end of `meta-riscv/conf/distro/poky-riscv-tiny.conf`. Note that the old toolchain is not supported at this point and may cause compilation problems.
+* **GCC Versions**: By default, riscv-poky uses the `riscv-gnu-toolchain` based on GCC 4.9.2. If for any reason you would like to use the old `riscv-tools` toolchain, you can look at the uncommented lines towards the end of `meta-riscv/conf/distro/poky-riscv-tiny.conf`. Note that the old toolchain is not supported at this point and may cause compilation problems.
 
 * **Distributions**: In addition to the default distrbiution (poky-riscv with core-image-riscv), it is also possible to build a minimal distribution using BusyBox, without SysV boot, package management and most applications. To do this, set the distribution to `poky-riscv-tiny` in local.conf (`DISTRO ?= "poky-riscv-tiny"`), and build `core-image-minimal`.
 
