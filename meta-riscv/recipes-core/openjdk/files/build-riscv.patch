@@ -1,0 +1,17 @@
+Index: icedtea-2.3.12/acinclude.m4
+===================================================================
+--- icedtea-2.3.12.orig/acinclude.m4	2015-06-04 14:46:27.302659046 -0700
++++ icedtea-2.3.12/acinclude.m4	2015-06-04 17:19:10.412013544 -0700
+@@ -55,6 +55,12 @@
+       ARCH_PREFIX=${LINUX32}
+       ARCHFLAG="-m32"
+        ;;
++    riscv*)
++      BUILD_ARCH_DIR=riscv
++      INSTALL_ARCH_DIR=riscv
++      JRE_ARCH_DIR=riscv
++      ARCHFLAG="-m64"
++       ;;
+     sparc64)
+       BUILD_ARCH_DIR=sparcv9
+       INSTALL_ARCH_DIR=sparcv9

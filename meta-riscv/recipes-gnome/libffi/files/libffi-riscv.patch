@@ -1,0 +1,3223 @@
+diff -rupN libffi-3.1-orig/aclocal.m4 libffi-3.1/aclocal.m4
+--- libffi-3.1-orig/aclocal.m4	2014-05-19 06:44:02.000000000 -0700
++++ libffi-3.1/aclocal.m4	2015-04-14 01:26:45.080389939 -0700
+@@ -1,4 +1,4 @@
+-# generated automatically by aclocal 1.13.4 -*- Autoconf -*-
++# generated automatically by aclocal 1.14.1 -*- Autoconf -*-
+ 
+ # Copyright (C) 1996-2013 Free Software Foundation, Inc.
+ 
+@@ -515,7 +515,7 @@ AC_CACHE_CHECK([whether deplibs are load
+     # at 6.2 and later dlopen does load deplibs.
+     lt_cv_sys_dlopen_deplibs=yes
+     ;;
+-  netbsd*)
++  netbsd* | netbsdelf*-gnu)
+     lt_cv_sys_dlopen_deplibs=yes
+     ;;
+   openbsd*)
+@@ -850,10 +850,10 @@ dnl AC_DEFUN([AC_LTDL_DLSYM_USCORE], [])
+ # generated from the m4 files accompanying Automake X.Y.
+ # (This private macro should not be called outside this file.)
+ AC_DEFUN([AM_AUTOMAKE_VERSION],
+-[am__api_version='1.13'
++[am__api_version='1.14'
+ dnl Some users find AM_AUTOMAKE_VERSION and mistake it for a way to
+ dnl require some minimum version.  Point them to the right macro.
+-m4_if([$1], [1.13.4], [],
++m4_if([$1], [1.14.1], [],
+       [AC_FATAL([Do not call $0, use AM_INIT_AUTOMAKE([$1]).])])dnl
+ ])
+ 
+@@ -869,7 +869,7 @@ m4_define([_AM_AUTOCONF_VERSION], [])
+ # Call AM_AUTOMAKE_VERSION and AM_AUTOMAKE_VERSION so they can be traced.
+ # This function is AC_REQUIREd by AM_INIT_AUTOMAKE.
+ AC_DEFUN([AM_SET_CURRENT_AUTOMAKE_VERSION],
+-[AM_AUTOMAKE_VERSION([1.13.4])dnl
++[AM_AUTOMAKE_VERSION([1.14.1])dnl
+ m4_ifndef([AC_AUTOCONF_VERSION],
+   [m4_copy([m4_PACKAGE_VERSION], [AC_AUTOCONF_VERSION])])dnl
+ _AM_AUTOCONF_VERSION(m4_defn([AC_AUTOCONF_VERSION]))])
+@@ -1256,6 +1256,12 @@ AC_DEFUN([AM_OUTPUT_DEPENDENCY_COMMANDS]
+ # This macro actually does too much.  Some checks are only needed if
+ # your package does certain things.  But this isn't really a big deal.
+ 
++dnl Redefine AC_PROG_CC to automatically invoke _AM_PROG_CC_C_O.
++m4_define([AC_PROG_CC],
++m4_defn([AC_PROG_CC])
++[_AM_PROG_CC_C_O
++])
++
+ # AM_INIT_AUTOMAKE(PACKAGE, VERSION, [NO-DEFINE])
+ # AM_INIT_AUTOMAKE([OPTIONS])
+ # -----------------------------------------------
+@@ -1364,7 +1370,48 @@ dnl macro is hooked onto _AC_COMPILER_EX
+ AC_CONFIG_COMMANDS_PRE(dnl
+ [m4_provide_if([_AM_COMPILER_EXEEXT],
+   [AM_CONDITIONAL([am__EXEEXT], [test -n "$EXEEXT"])])])dnl
+-])
++
++# POSIX will say in a future version that running "rm -f" with no argument
++# is OK; and we want to be able to make that assumption in our Makefile
++# recipes.  So use an aggressive probe to check that the usage we want is
++# actually supported "in the wild" to an acceptable degree.
++# See automake bug#10828.
++# To make any issue more visible, cause the running configure to be aborted
++# by default if the 'rm' program in use doesn't match our expectations; the
++# user can still override this though.
++if rm -f && rm -fr && rm -rf; then : OK; else
++  cat >&2 <<'END'
++Oops!
++
++Your 'rm' program seems unable to run without file operands specified
++on the command line, even when the '-f' option is present.  This is contrary
++to the behaviour of most rm programs out there, and not conforming with
++the upcoming POSIX standard: <http://austingroupbugs.net/view.php?id=542>
++
++Please tell bug-automake@gnu.org about your system, including the value
++of your $PATH and any error possibly output before this message.  This
++can help us improve future automake versions.
++
++END
++  if test x"$ACCEPT_INFERIOR_RM_PROGRAM" = x"yes"; then
++    echo 'Configuration will proceed anyway, since you have set the' >&2
++    echo 'ACCEPT_INFERIOR_RM_PROGRAM variable to "yes"' >&2
++    echo >&2
++  else
++    cat >&2 <<'END'
++Aborting the configuration process, to ensure you take notice of the issue.
++
++You can download and install GNU coreutils to get an 'rm' implementation
++that behaves properly: <http://www.gnu.org/software/coreutils/>.
++
++If you want to complete the configuration process using your problematic
++'rm' anyway, export the environment variable ACCEPT_INFERIOR_RM_PROGRAM
++to "yes", and re-run configure.
++
++END
++    AC_MSG_ERROR([Your 'rm' program is bad, sorry.])
++  fi
++fi])
+ 
+ dnl Hook into '_AC_COMPILER_EXEEXT' early to learn its expansion.  Do not
+ dnl add the conditional right here, as _AC_COMPILER_EXEEXT may be further
+@@ -1372,7 +1419,6 @@ dnl mangled by Autoconf and run in a she
+ m4_define([_AC_COMPILER_EXEEXT],
+ m4_defn([_AC_COMPILER_EXEEXT])[m4_provide([_AM_COMPILER_EXEEXT])])
+ 
+-
+ # When config.status generates a header, we must update the stamp-h file.
+ # This file resides in the same directory as the config header
+ # that is generated.  The stamp files are numbered to have different names.
+@@ -1520,38 +1566,6 @@ AC_MSG_RESULT([$_am_result])
+ rm -f confinc confmf
+ ])
+ 
+-# Copyright (C) 1999-2013 Free Software Foundation, Inc.
+-#
+-# This file is free software; the Free Software Foundation
+-# gives unlimited permission to copy and/or distribute it,
+-# with or without modifications, as long as this notice is preserved.
+-
+-# AM_PROG_CC_C_O
+-# --------------
+-# Like AC_PROG_CC_C_O, but changed for automake.
+-AC_DEFUN([AM_PROG_CC_C_O],
+-[AC_REQUIRE([AC_PROG_CC_C_O])dnl
+-AC_REQUIRE([AM_AUX_DIR_EXPAND])dnl
+-AC_REQUIRE_AUX_FILE([compile])dnl
+-# FIXME: we rely on the cache variable name because
+-# there is no other way.
+-set dummy $CC
+-am_cc=`echo $[2] | sed ['s/[^a-zA-Z0-9_]/_/g;s/^[0-9]/_/']`
+-eval am_t=\$ac_cv_prog_cc_${am_cc}_c_o
+-if test "$am_t" != yes; then
+-   # Losing compiler, so override with the script.
+-   # FIXME: It is wrong to rewrite CC.
+-   # But if we don't then we get into trouble of one sort or another.
+-   # A longer-term fix would be to have automake use am__CC in this case,
+-   # and then we could set am__CC="\$(top_srcdir)/compile \$(CC)"
+-   CC="$am_aux_dir/compile $CC"
+-fi
+-dnl Make sure AC_PROG_CC is never called again, or it will override our
+-dnl setting of CC.
+-m4_define([AC_PROG_CC],
+-          [m4_fatal([AC_PROG_CC cannot be called after AM_PROG_CC_C_O])])
+-])
+-
+ # Fake the existence of programs that GNU maintainers use.  -*- Autoconf -*-
+ 
+ # Copyright (C) 1997-2013 Free Software Foundation, Inc.
+@@ -1622,6 +1636,70 @@ AC_DEFUN([_AM_SET_OPTIONS],
+ AC_DEFUN([_AM_IF_OPTION],
+ [m4_ifset(_AM_MANGLE_OPTION([$1]), [$2], [$3])])
+ 
++# Copyright (C) 1999-2013 Free Software Foundation, Inc.
++#
++# This file is free software; the Free Software Foundation
++# gives unlimited permission to copy and/or distribute it,
++# with or without modifications, as long as this notice is preserved.
++
++# _AM_PROG_CC_C_O
++# ---------------
++# Like AC_PROG_CC_C_O, but changed for automake.  We rewrite AC_PROG_CC
++# to automatically call this.
++AC_DEFUN([_AM_PROG_CC_C_O],
++[AC_REQUIRE([AM_AUX_DIR_EXPAND])dnl
++AC_REQUIRE_AUX_FILE([compile])dnl
++AC_LANG_PUSH([C])dnl
++AC_CACHE_CHECK(
++  [whether $CC understands -c and -o together],
++  [am_cv_prog_cc_c_o],
++  [AC_LANG_CONFTEST([AC_LANG_PROGRAM([])])
++  # Make sure it works both with $CC and with simple cc.
++  # Following AC_PROG_CC_C_O, we do the test twice because some
++  # compilers refuse to overwrite an existing .o file with -o,
++  # though they will create one.
++  am_cv_prog_cc_c_o=yes
++  for am_i in 1 2; do
++    if AM_RUN_LOG([$CC -c conftest.$ac_ext -o conftest2.$ac_objext]) \
++         && test -f conftest2.$ac_objext; then
++      : OK
++    else
++      am_cv_prog_cc_c_o=no
++      break
++    fi
++  done
++  rm -f core conftest*
++  unset am_i])
++if test "$am_cv_prog_cc_c_o" != yes; then
++   # Losing compiler, so override with the script.
++   # FIXME: It is wrong to rewrite CC.
++   # But if we don't then we get into trouble of one sort or another.
++   # A longer-term fix would be to have automake use am__CC in this case,
++   # and then we could set am__CC="\$(top_srcdir)/compile \$(CC)"
++   CC="$am_aux_dir/compile $CC"
++fi
++AC_LANG_POP([C])])
++
++# For backward compatibility.
++AC_DEFUN_ONCE([AM_PROG_CC_C_O], [AC_REQUIRE([AC_PROG_CC])])
++
++# Copyright (C) 2001-2013 Free Software Foundation, Inc.
++#
++# This file is free software; the Free Software Foundation
++# gives unlimited permission to copy and/or distribute it,
++# with or without modifications, as long as this notice is preserved.
++
++# AM_RUN_LOG(COMMAND)
++# -------------------
++# Run COMMAND, save the exit status in ac_status, and log it.
++# (This has been adapted from Autoconf's _AC_RUN_LOG macro.)
++AC_DEFUN([AM_RUN_LOG],
++[{ echo "$as_me:$LINENO: $1" >&AS_MESSAGE_LOG_FD
++   ($1) >&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD
++   ac_status=$?
++   echo "$as_me:$LINENO: \$? = $ac_status" >&AS_MESSAGE_LOG_FD
++   (exit $ac_status); }])
++
+ # Check to make sure that the build environment is sane.    -*- Autoconf -*-
+ 
+ # Copyright (C) 1996-2013 Free Software Foundation, Inc.
+diff -rupN libffi-3.1-orig/config.sub libffi-3.1/config.sub
+--- libffi-3.1-orig/config.sub	2014-05-19 06:44:04.000000000 -0700
++++ libffi-3.1/config.sub	2015-04-14 01:26:45.080389939 -0700
+@@ -1,8 +1,8 @@
+ #! /bin/sh
+ # Configuration validation subroutine script.
+-#   Copyright 1992-2013 Free Software Foundation, Inc.
++#   Copyright 1992-2014 Free Software Foundation, Inc.
+ 
+-timestamp='2013-04-24'
++timestamp='2014-05-01'
+ 
+ # This file is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU General Public License as published by
+@@ -68,7 +68,7 @@ Report bugs and patches to <config-patch
+ version="\
+ GNU config.sub ($timestamp)
+ 
+-Copyright 1992-2013 Free Software Foundation, Inc.
++Copyright 1992-2014 Free Software Foundation, Inc.
+ 
+ This is free software; see the source for copying conditions.  There is NO
+ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+@@ -257,7 +257,7 @@ case $basic_machine in
+ 	| avr | avr32 \
+ 	| be32 | be64 \
+ 	| bfin \
+-	| c4x | clipper \
++	| c4x | c8051 | clipper \
+ 	| d10v | d30v | dlx | dsp16xx \
+ 	| epiphany \
+ 	| fido | fr30 | frv \
+@@ -265,6 +265,7 @@ case $basic_machine in
+ 	| hexagon \
+ 	| i370 | i860 | i960 | ia64 \
+ 	| ip2k | iq2000 \
++	| k1om \
+ 	| le32 | le64 \
+ 	| lm32 \
+ 	| m32c | m32r | m32rle | m68000 | m68k | m88k \
+@@ -282,8 +283,10 @@ case $basic_machine in
+ 	| mips64vr5900 | mips64vr5900el \
+ 	| mipsisa32 | mipsisa32el \
+ 	| mipsisa32r2 | mipsisa32r2el \
++	| mipsisa32r6 | mipsisa32r6el \
+ 	| mipsisa64 | mipsisa64el \
+ 	| mipsisa64r2 | mipsisa64r2el \
++	| mipsisa64r6 | mipsisa64r6el \
+ 	| mipsisa64sb1 | mipsisa64sb1el \
+ 	| mipsisa64sr71k | mipsisa64sr71kel \
+ 	| mipsr5900 | mipsr5900el \
+@@ -295,11 +298,11 @@ case $basic_machine in
+ 	| nds32 | nds32le | nds32be \
+ 	| nios | nios2 | nios2eb | nios2el \
+ 	| ns16k | ns32k \
+-	| open8 \
+-	| or1k | or32 \
++	| open8 | or1k | or1knd | or32 \
+ 	| pdp10 | pdp11 | pj | pjl \
+ 	| powerpc | powerpc64 | powerpc64le | powerpcle \
+ 	| pyramid \
++	| riscv \
+ 	| rl78 | rx \
+ 	| score \
+ 	| sh | sh[1234] | sh[24]a | sh[24]aeb | sh[23]e | sh[34]eb | sheb | shbe | shle | sh[1234]le | sh3ele \
+@@ -324,7 +327,7 @@ case $basic_machine in
+ 	c6x)
+ 		basic_machine=tic6x-unknown
+ 		;;
+-	m6811 | m68hc11 | m6812 | m68hc12 | m68hcs12x | picochip)
++	m6811 | m68hc11 | m6812 | m68hc12 | m68hcs12x | nvptx | picochip)
+ 		basic_machine=$basic_machine-unknown
+ 		os=-none
+ 		;;
+@@ -372,7 +375,7 @@ case $basic_machine in
+ 	| be32-* | be64-* \
+ 	| bfin-* | bs2000-* \
+ 	| c[123]* | c30-* | [cjt]90-* | c4x-* \
+-	| clipper-* | craynv-* | cydra-* \
++	| c8051-* | clipper-* | craynv-* | cydra-* \
+ 	| d10v-* | d30v-* | dlx-* \
+ 	| elxsi-* \
+ 	| f30[01]-* | f700-* | fido-* | fr30-* | frv-* | fx80-* \
+@@ -381,6 +384,7 @@ case $basic_machine in
+ 	| hexagon-* \
+ 	| i*86-* | i860-* | i960-* | ia64-* \
+ 	| ip2k-* | iq2000-* \
++	| k1om-* \
+ 	| le32-* | le64-* \
+ 	| lm32-* \
+ 	| m32c-* | m32r-* | m32rle-* \
+@@ -400,8 +404,10 @@ case $basic_machine in
+ 	| mips64vr5900-* | mips64vr5900el-* \
+ 	| mipsisa32-* | mipsisa32el-* \
+ 	| mipsisa32r2-* | mipsisa32r2el-* \
++	| mipsisa32r6-* | mipsisa32r6el-* \
+ 	| mipsisa64-* | mipsisa64el-* \
+ 	| mipsisa64r2-* | mipsisa64r2el-* \
++	| mipsisa64r6-* | mipsisa64r6el-* \
+ 	| mipsisa64sb1-* | mipsisa64sb1el-* \
+ 	| mipsisa64sr71k-* | mipsisa64sr71kel-* \
+ 	| mipsr5900-* | mipsr5900el-* \
+@@ -413,6 +419,7 @@ case $basic_machine in
+ 	| nios-* | nios2-* | nios2eb-* | nios2el-* \
+ 	| none-* | np1-* | ns16k-* | ns32k-* \
+ 	| open8-* \
++	| or1k*-* \
+ 	| orion-* \
+ 	| pdp10-* | pdp11-* | pj-* | pjl-* | pn-* | power-* \
+ 	| powerpc-* | powerpc64-* | powerpc64le-* | powerpcle-* \
+@@ -794,7 +801,7 @@ case $basic_machine in
+ 		os=-mingw64
+ 		;;
+ 	mingw32)
+-		basic_machine=i386-pc
++		basic_machine=i686-pc
+ 		os=-mingw32
+ 		;;
+ 	mingw32ce)
+@@ -830,7 +837,7 @@ case $basic_machine in
+ 		basic_machine=`echo $basic_machine | sed -e 's/ms1-/mt-/'`
+ 		;;
+ 	msys)
+-		basic_machine=i386-pc
++		basic_machine=i686-pc
+ 		os=-msys
+ 		;;
+ 	mvs)
+@@ -1006,7 +1013,7 @@ case $basic_machine in
+ 		;;
+ 	ppc64)	basic_machine=powerpc64-unknown
+ 		;;
+-	ppc64-* | ppc64p7-*) basic_machine=powerpc64-`echo $basic_machine | sed 's/^[^-]*-//'`
++	ppc64-*) basic_machine=powerpc64-`echo $basic_machine | sed 's/^[^-]*-//'`
+ 		;;
+ 	ppc64le | powerpc64little | ppc64-le | powerpc64-little)
+ 		basic_machine=powerpc64le-unknown
+@@ -1374,7 +1381,7 @@ case $os in
+ 	      | -os2* | -vos* | -palmos* | -uclinux* | -nucleus* \
+ 	      | -morphos* | -superux* | -rtmk* | -rtmk-nova* | -windiss* \
+ 	      | -powermax* | -dnix* | -nx6 | -nx7 | -sei* | -dragonfly* \
+-	      | -skyos* | -haiku* | -rdos* | -toppers* | -drops* | -es*)
++	      | -skyos* | -haiku* | -rdos* | -toppers* | -drops* | -es* | -tirtos*)
+ 	# Remember, each alternative MUST END IN *, to match a version number.
+ 		;;
+ 	-qnx*)
+@@ -1546,6 +1553,9 @@ case $basic_machine in
+ 	c4x-* | tic4x-*)
+ 		os=-coff
+ 		;;
++	c8051-*)
++		os=-elf
++		;;
+ 	hexagon-*)
+ 		os=-elf
+ 		;;
+@@ -1589,9 +1599,6 @@ case $basic_machine in
+ 	mips*-*)
+ 		os=-elf
+ 		;;
+-	or1k-*)
+-		os=-elf
+-		;;
+ 	or32-*)
+ 		os=-coff
+ 		;;
+diff -rupN libffi-3.1-orig/configure libffi-3.1/configure
+--- libffi-3.1-orig/configure	2014-05-19 06:44:03.000000000 -0700
++++ libffi-3.1/configure	2015-04-14 01:26:45.084389993 -0700
+@@ -726,6 +726,8 @@ BFIN_FALSE
+ BFIN_TRUE
+ MIPS_FALSE
+ MIPS_TRUE
++RISCV_FALSE
++RISCV_TRUE
+ AM_LTLDFLAGS
+ AM_RUNTESTFLAGS
+ TESTSUBDIR_FALSE
+@@ -2959,7 +2961,7 @@ ax_enable_builddir_auxdir="$am_aux_dir"
+ ac_config_commands="$ac_config_commands buildir"
+ 
+ 
+-am__api_version='1.13'
++am__api_version='1.14'
+ 
+ # Find a good install program.  We prefer a C program (faster),
+ # so one script is as good as another.  But avoid the broken or
+@@ -3493,6 +3495,47 @@ am__tar='$${TAR-tar} chof - "$$tardir"'
+ 
+ 
+ 
++# POSIX will say in a future version that running "rm -f" with no argument
++# is OK; and we want to be able to make that assumption in our Makefile
++# recipes.  So use an aggressive probe to check that the usage we want is
++# actually supported "in the wild" to an acceptable degree.
++# See automake bug#10828.
++# To make any issue more visible, cause the running configure to be aborted
++# by default if the 'rm' program in use doesn't match our expectations; the
++# user can still override this though.
++if rm -f && rm -fr && rm -rf; then : OK; else
++  cat >&2 <<'END'
++Oops!
++
++Your 'rm' program seems unable to run without file operands specified
++on the command line, even when the '-f' option is present.  This is contrary
++to the behaviour of most rm programs out there, and not conforming with
++the upcoming POSIX standard: <http://austingroupbugs.net/view.php?id=542>
++
++Please tell bug-automake@gnu.org about your system, including the value
++of your $PATH and any error possibly output before this message.  This
++can help us improve future automake versions.
++
++END
++  if test x"$ACCEPT_INFERIOR_RM_PROGRAM" = x"yes"; then
++    echo 'Configuration will proceed anyway, since you have set the' >&2
++    echo 'ACCEPT_INFERIOR_RM_PROGRAM variable to "yes"' >&2
++    echo >&2
++  else
++    cat >&2 <<'END'
++Aborting the configuration process, to ensure you take notice of the issue.
++
++You can download and install GNU coreutils to get an 'rm' implementation
++that behaves properly: <http://www.gnu.org/software/coreutils/>.
++
++If you want to complete the configuration process using your problematic
++'rm' anyway, export the environment variable ACCEPT_INFERIOR_RM_PROGRAM
++to "yes", and re-run configure.
++
++END
++    as_fn_error $? "Your 'rm' program is bad, sorry." "$LINENO" 5
++  fi
++fi
+ 
+ # The same as in boehm-gc and libstdc++. Have to borrow it from there.
+ # We must force CC to /not/ be precious variables; otherwise
+@@ -4292,6 +4335,65 @@ ac_cpp='$CPP $CPPFLAGS'
+ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ ac_compiler_gnu=$ac_cv_c_compiler_gnu
++
++ac_ext=c
++ac_cpp='$CPP $CPPFLAGS'
++ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
++ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
++ac_compiler_gnu=$ac_cv_c_compiler_gnu
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $CC understands -c and -o together" >&5
++$as_echo_n "checking whether $CC understands -c and -o together... " >&6; }
++if ${am_cv_prog_cc_c_o+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++int
++main ()
++{
++
++  ;
++  return 0;
++}
++_ACEOF
++  # Make sure it works both with $CC and with simple cc.
++  # Following AC_PROG_CC_C_O, we do the test twice because some
++  # compilers refuse to overwrite an existing .o file with -o,
++  # though they will create one.
++  am_cv_prog_cc_c_o=yes
++  for am_i in 1 2; do
++    if { echo "$as_me:$LINENO: $CC -c conftest.$ac_ext -o conftest2.$ac_objext" >&5
++   ($CC -c conftest.$ac_ext -o conftest2.$ac_objext) >&5 2>&5
++   ac_status=$?
++   echo "$as_me:$LINENO: \$? = $ac_status" >&5
++   (exit $ac_status); } \
++         && test -f conftest2.$ac_objext; then
++      : OK
++    else
++      am_cv_prog_cc_c_o=no
++      break
++    fi
++  done
++  rm -f core conftest*
++  unset am_i
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $am_cv_prog_cc_c_o" >&5
++$as_echo "$am_cv_prog_cc_c_o" >&6; }
++if test "$am_cv_prog_cc_c_o" != yes; then
++   # Losing compiler, so override with the script.
++   # FIXME: It is wrong to rewrite CC.
++   # But if we don't then we get into trouble of one sort or another.
++   # A longer-term fix would be to have automake use am__CC in this case,
++   # and then we could set am__CC="\$(top_srcdir)/compile \$(CC)"
++   CC="$am_aux_dir/compile $CC"
++fi
++ac_ext=c
++ac_cpp='$CPP $CPPFLAGS'
++ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
++ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
++ac_compiler_gnu=$ac_cv_c_compiler_gnu
++
+ DEPDIR="${am__leading_dot}deps"
+ 
+ ac_config_commands="$ac_config_commands depfiles"
+@@ -5008,131 +5110,6 @@ else
+ fi
+ 
+ 
+-if test "x$CC" != xcc; then
+-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $CC and cc understand -c and -o together" >&5
+-$as_echo_n "checking whether $CC and cc understand -c and -o together... " >&6; }
+-else
+-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether cc understands -c and -o together" >&5
+-$as_echo_n "checking whether cc understands -c and -o together... " >&6; }
+-fi
+-set dummy $CC; ac_cc=`$as_echo "$2" |
+-		      sed 's/[^a-zA-Z0-9_]/_/g;s/^[0-9]/_/'`
+-if eval \${ac_cv_prog_cc_${ac_cc}_c_o+:} false; then :
+-  $as_echo_n "(cached) " >&6
+-else
+-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+-/* end confdefs.h.  */
+-
+-int
+-main ()
+-{
+-
+-  ;
+-  return 0;
+-}
+-_ACEOF
+-# Make sure it works both with $CC and with simple cc.
+-# We do the test twice because some compilers refuse to overwrite an
+-# existing .o file with -o, though they will create one.
+-ac_try='$CC -c conftest.$ac_ext -o conftest2.$ac_objext >&5'
+-rm -f conftest2.*
+-if { { case "(($ac_try" in
+-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+-  *) ac_try_echo=$ac_try;;
+-esac
+-eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+-$as_echo "$ac_try_echo"; } >&5
+-  (eval "$ac_try") 2>&5
+-  ac_status=$?
+-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+-  test $ac_status = 0; } &&
+-   test -f conftest2.$ac_objext && { { case "(($ac_try" in
+-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+-  *) ac_try_echo=$ac_try;;
+-esac
+-eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+-$as_echo "$ac_try_echo"; } >&5
+-  (eval "$ac_try") 2>&5
+-  ac_status=$?
+-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+-  test $ac_status = 0; };
+-then
+-  eval ac_cv_prog_cc_${ac_cc}_c_o=yes
+-  if test "x$CC" != xcc; then
+-    # Test first that cc exists at all.
+-    if { ac_try='cc -c conftest.$ac_ext >&5'
+-  { { case "(($ac_try" in
+-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+-  *) ac_try_echo=$ac_try;;
+-esac
+-eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+-$as_echo "$ac_try_echo"; } >&5
+-  (eval "$ac_try") 2>&5
+-  ac_status=$?
+-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+-  test $ac_status = 0; }; }; then
+-      ac_try='cc -c conftest.$ac_ext -o conftest2.$ac_objext >&5'
+-      rm -f conftest2.*
+-      if { { case "(($ac_try" in
+-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+-  *) ac_try_echo=$ac_try;;
+-esac
+-eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+-$as_echo "$ac_try_echo"; } >&5
+-  (eval "$ac_try") 2>&5
+-  ac_status=$?
+-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+-  test $ac_status = 0; } &&
+-	 test -f conftest2.$ac_objext && { { case "(($ac_try" in
+-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+-  *) ac_try_echo=$ac_try;;
+-esac
+-eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+-$as_echo "$ac_try_echo"; } >&5
+-  (eval "$ac_try") 2>&5
+-  ac_status=$?
+-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+-  test $ac_status = 0; };
+-      then
+-	# cc works too.
+-	:
+-      else
+-	# cc exists but doesn't like -o.
+-	eval ac_cv_prog_cc_${ac_cc}_c_o=no
+-      fi
+-    fi
+-  fi
+-else
+-  eval ac_cv_prog_cc_${ac_cc}_c_o=no
+-fi
+-rm -f core conftest*
+-
+-fi
+-if eval test \$ac_cv_prog_cc_${ac_cc}_c_o = yes; then
+-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+-$as_echo "yes" >&6; }
+-else
+-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+-$as_echo "no" >&6; }
+-
+-$as_echo "#define NO_MINUS_C_MINUS_O 1" >>confdefs.h
+-
+-fi
+-
+-# FIXME: we rely on the cache variable name because
+-# there is no other way.
+-set dummy $CC
+-am_cc=`echo $2 | sed 's/[^a-zA-Z0-9_]/_/g;s/^[0-9]/_/'`
+-eval am_t=\$ac_cv_prog_cc_${am_cc}_c_o
+-if test "$am_t" != yes; then
+-   # Losing compiler, so override with the script.
+-   # FIXME: It is wrong to rewrite CC.
+-   # But if we don't then we get into trouble of one sort or another.
+-   # A longer-term fix would be to have automake use am__CC in this case,
+-   # and then we could set am__CC="\$(top_srcdir)/compile \$(CC)"
+-   CC="$am_aux_dir/compile $CC"
+-fi
+-
+ 
+ case `pwd` in
+   *\ * | *\	*)
+@@ -16950,6 +16927,7 @@ fi
+ cat > local.exp <<EOF
+ set CC_FOR_TARGET "$CC"
+ set CXX_FOR_TARGET "$CXX"
++lappend boards_dir "$srcdir/../misc"
+ EOF
+ 
+ 
+@@ -17337,6 +17315,10 @@ case "$host" in
+ 	TARGET=POWERPC; TARGETDIR=powerpc
+ 	;;
+ 
++  riscv | riscv-* | riscv64-*)
++    TARGET=RISCV; TARGETDIR=riscv;
++    ;;
++
+   s390-*-* | s390x-*-*)
+ 	TARGET=S390; TARGETDIR=s390
+ 	;;
+@@ -17353,8 +17335,8 @@ case "$host" in
+ 	;;
+ 
+   tile*-*)
+-        TARGET=TILE; TARGETDIR=tile
+-        ;;
++    TARGET=TILE; TARGETDIR=tile
++    ;;
+ 
+   vax-*-*)
+ 	TARGET=VAX; TARGETDIR=vax
+@@ -17373,6 +17355,14 @@ if test $TARGETDIR = unknown; then
+   as_fn_error $? "\"libffi has not been ported to $host.\"" "$LINENO" 5
+ fi
+ 
++ if test x$TARGET = xRISCV; then
++  RISCV_TRUE=
++  RISCV_FALSE='#'
++else
++  RISCV_TRUE='#'
++  RISCV_FALSE=
++fi
++
+  if test x$TARGET = xMIPS; then
+   MIPS_TRUE=
+   MIPS_FALSE='#'
+@@ -18963,6 +18953,10 @@ if test -z "${TESTSUBDIR_TRUE}" && test
+   as_fn_error $? "conditional \"TESTSUBDIR\" was never defined.
+ Usually this means the macro was only invoked conditionally." "$LINENO" 5
+ fi
++if test -z "${RISCV_TRUE}" && test -z "${RISCV_FALSE}"; then
++  as_fn_error $? "conditional \"RISCV\" was never defined.
++Usually this means the macro was only invoked conditionally." "$LINENO" 5
++fi
+ if test -z "${MIPS_TRUE}" && test -z "${MIPS_FALSE}"; then
+   as_fn_error $? "conditional \"MIPS\" was never defined.
+ Usually this means the macro was only invoked conditionally." "$LINENO" 5
+diff -rupN libffi-3.1-orig/configure.ac libffi-3.1/configure.ac
+--- libffi-3.1-orig/configure.ac	2014-05-11 06:57:49.000000000 -0700
++++ libffi-3.1/configure.ac	2015-04-14 01:26:45.084389993 -0700
+@@ -59,6 +59,7 @@ fi
+ cat > local.exp <<EOF
+ set CC_FOR_TARGET "$CC"
+ set CXX_FOR_TARGET "$CXX"
++lappend boards_dir "$srcdir/../misc"
+ EOF
+ 
+ AM_MAINTAINER_MODE
+@@ -256,6 +257,10 @@ case "$host" in
+   powerpc*-*-rtems*)
+ 	TARGET=POWERPC; TARGETDIR=powerpc
+ 	;;
++	
++  riscv | riscv-* | riscv64-*)
++    TARGET=RISCV; TARGETDIR=riscv;
++    ;;
+ 
+   s390-*-* | s390x-*-*)
+ 	TARGET=S390; TARGETDIR=s390
+@@ -273,8 +278,8 @@ case "$host" in
+ 	;;
+ 
+   tile*-*)
+-        TARGET=TILE; TARGETDIR=tile
+-        ;;
++    TARGET=TILE; TARGETDIR=tile
++    ;;
+ 
+   vax-*-*)
+ 	TARGET=VAX; TARGETDIR=vax
+@@ -293,6 +298,7 @@ if test $TARGETDIR = unknown; then
+   AC_MSG_ERROR(["libffi has not been ported to $host."])
+ fi
+ 
++AM_CONDITIONAL(RISCV, test x$TARGET = xRISCV)
+ AM_CONDITIONAL(MIPS, test x$TARGET = xMIPS)
+ AM_CONDITIONAL(BFIN, test x$TARGET = xBFIN)
+ AM_CONDITIONAL(SPARC, test x$TARGET = xSPARC)
+diff -rupN libffi-3.1-orig/fficonfig.h.in libffi-3.1/fficonfig.h.in
+--- libffi-3.1-orig/fficonfig.h.in	2014-05-19 06:44:04.000000000 -0700
++++ libffi-3.1/fficonfig.h.in	2015-04-14 01:26:45.084389993 -0700
+@@ -124,9 +124,6 @@
+ /* Define to the sub-directory where libtool stores uninstalled libraries. */
+ #undef LT_OBJDIR
+ 
+-/* Define to 1 if your C compiler doesn't accept -c and -o together. */
+-#undef NO_MINUS_C_MINUS_O
+-
+ /* Name of package */
+ #undef PACKAGE
+ 
+diff -rupN libffi-3.1-orig/include/Makefile.in libffi-3.1/include/Makefile.in
+--- libffi-3.1-orig/include/Makefile.in	2014-05-19 06:44:04.000000000 -0700
++++ libffi-3.1/include/Makefile.in	2015-04-14 01:26:45.084389993 -0700
+@@ -1,4 +1,4 @@
+-# Makefile.in generated by automake 1.13.4 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+ # Copyright (C) 1994-2013 Free Software Foundation, Inc.
+diff -rupN libffi-3.1-orig/Makefile.am libffi-3.1/Makefile.am
+--- libffi-3.1-orig/Makefile.am	2014-05-11 07:21:54.000000000 -0700
++++ libffi-3.1/Makefile.am	2015-04-14 01:26:45.080389939 -0700
+@@ -8,7 +8,7 @@ SUBDIRS = include testsuite man
+ 
+ EXTRA_DIST = LICENSE ChangeLog.v1 ChangeLog.libgcj			\
+ 	 src/aarch64/ffi.c src/aarch64/ffitarget.h src/aarch64/sysv.S	\
+-	 src/alpha/ffi.c src/alpha/osf.S			\
++	 src/alpha/ffi.c src/alpha/osf.S			        \
+ 	 src/alpha/ffitarget.h src/arc/ffi.c src/arc/arcompact.S	\
+ 	 src/arc/ffitarget.h src/arm/ffi.c src/arm/sysv.S		\
+ 	 src/arm/ffitarget.h src/avr32/ffi.c src/avr32/sysv.S		\
+@@ -31,6 +31,7 @@ EXTRA_DIST = LICENSE ChangeLog.v1 Change
+ 	 src/powerpc/asm.h src/powerpc/aix.S src/powerpc/darwin.S	\
+ 	 src/powerpc/aix_closure.S src/powerpc/darwin_closure.S		\
+ 	 src/powerpc/ffi_darwin.c src/powerpc/ffitarget.h		\
++	 src/riscv/ffi.c src/riscv/ffitarget.h src/riscv/sysv.S		\
+ 	 src/s390/ffi.c src/s390/sysv.S src/s390/ffitarget.h		\
+ 	 src/sh/ffi.c src/sh/sysv.S src/sh/ffitarget.h src/sh64/ffi.c	\
+ 	 src/sh64/sysv.S src/sh64/ffitarget.h src/sparc/v8.S		\
+@@ -121,6 +122,9 @@ endif
+ if MIPS
+ nodist_libffi_la_SOURCES += src/mips/ffi.c src/mips/o32.S src/mips/n32.S
+ endif
++if RISCV
++nodist_libffi_la_SOURCES += src/riscv/ffi.c src/riscv/sysv.S
++endif
+ if BFIN
+ nodist_libffi_la_SOURCES += src/bfin/ffi.c src/bfin/sysv.S
+ endif
+diff -rupN libffi-3.1-orig/Makefile.in libffi-3.1/Makefile.in
+--- libffi-3.1-orig/Makefile.in	2014-05-19 06:44:04.000000000 -0700
++++ libffi-3.1/Makefile.in	2015-04-14 01:26:45.080389939 -0700
+@@ -82,53 +82,54 @@ host_triplet = @host@
+ target_triplet = @target@
+ @FFI_DEBUG_TRUE@am__append_1 = src/debug.c
+ @MIPS_TRUE@am__append_2 = src/mips/ffi.c src/mips/o32.S src/mips/n32.S
+-@BFIN_TRUE@am__append_3 = src/bfin/ffi.c src/bfin/sysv.S
+-@X86_TRUE@am__append_4 = src/x86/ffi.c src/x86/sysv.S src/x86/win32.S
+-@X86_FREEBSD_TRUE@am__append_5 = src/x86/ffi.c src/x86/freebsd.S src/x86/win32.S
+-@X86_WIN32_TRUE@am__append_6 = src/x86/ffi.c src/x86/win32.S
+-@X86_WIN64_TRUE@am__append_7 = src/x86/ffi.c src/x86/win64.S
+-@X86_DARWIN_TRUE@am__append_8 = src/x86/ffi.c src/x86/darwin.S src/x86/ffi64.c src/x86/darwin64.S
+-@X86_DARWIN32_TRUE@@X86_DARWIN_TRUE@am__append_9 = src/x86/win32.S
+-@SPARC_TRUE@am__append_10 = src/sparc/ffi.c src/sparc/v8.S src/sparc/v9.S
+-@ALPHA_TRUE@am__append_11 = src/alpha/ffi.c src/alpha/osf.S
+-@IA64_TRUE@am__append_12 = src/ia64/ffi.c src/ia64/unix.S
+-@M32R_TRUE@am__append_13 = src/m32r/sysv.S src/m32r/ffi.c
+-@M68K_TRUE@am__append_14 = src/m68k/ffi.c src/m68k/sysv.S
+-@M88K_TRUE@am__append_15 = src/m88k/ffi.c src/m88k/obsd.S
+-@MOXIE_TRUE@am__append_16 = src/moxie/ffi.c src/moxie/eabi.S
+-@MICROBLAZE_TRUE@am__append_17 = src/microblaze/ffi.c src/microblaze/sysv.S
+-@NIOS2_TRUE@am__append_18 = src/nios2/sysv.S src/nios2/ffi.c
+-@POWERPC_TRUE@am__append_19 = src/powerpc/ffi.c src/powerpc/ffi_sysv.c src/powerpc/ffi_linux64.c src/powerpc/sysv.S src/powerpc/ppc_closure.S src/powerpc/linux64.S src/powerpc/linux64_closure.S
+-@POWERPC_AIX_TRUE@am__append_20 = src/powerpc/ffi_darwin.c src/powerpc/aix.S src/powerpc/aix_closure.S
+-@POWERPC_DARWIN_TRUE@am__append_21 = src/powerpc/ffi_darwin.c src/powerpc/darwin.S src/powerpc/darwin_closure.S
+-@POWERPC_FREEBSD_TRUE@am__append_22 = src/powerpc/ffi.c src/powerpc/ffi_sysv.c src/powerpc/sysv.S src/powerpc/ppc_closure.S
+-@AARCH64_TRUE@am__append_23 = src/aarch64/sysv.S src/aarch64/ffi.c
+-@ARC_TRUE@am__append_24 = src/arc/arcompact.S src/arc/ffi.c
+-@ARM_TRUE@am__append_25 = src/arm/sysv.S src/arm/ffi.c
+-@ARM_TRUE@@FFI_EXEC_TRAMPOLINE_TABLE_TRUE@am__append_26 = src/arm/trampoline.S
+-@AVR32_TRUE@am__append_27 = src/avr32/sysv.S src/avr32/ffi.c
+-@LIBFFI_CRIS_TRUE@am__append_28 = src/cris/sysv.S src/cris/ffi.c
+-@FRV_TRUE@am__append_29 = src/frv/eabi.S src/frv/ffi.c
+-@S390_TRUE@am__append_30 = src/s390/sysv.S src/s390/ffi.c
+-@X86_64_TRUE@am__append_31 = src/x86/ffi64.c src/x86/unix64.S src/x86/ffi.c src/x86/sysv.S
+-@SH_TRUE@am__append_32 = src/sh/sysv.S src/sh/ffi.c
+-@SH64_TRUE@am__append_33 = src/sh64/sysv.S src/sh64/ffi.c
+-@PA_LINUX_TRUE@am__append_34 = src/pa/linux.S src/pa/ffi.c
+-@PA_HPUX_TRUE@am__append_35 = src/pa/hpux32.S src/pa/ffi.c
+-@TILE_TRUE@am__append_36 = src/tile/tile.S src/tile/ffi.c
+-@XTENSA_TRUE@am__append_37 = src/xtensa/sysv.S src/xtensa/ffi.c
+-@METAG_TRUE@am__append_38 = src/metag/sysv.S src/metag/ffi.c
+-@VAX_TRUE@am__append_39 = src/vax/elfbsd.S src/vax/ffi.c
++@RISCV_TRUE@am__append_3 = src/riscv/ffi.c src/riscv/sysv.S
++@BFIN_TRUE@am__append_4 = src/bfin/ffi.c src/bfin/sysv.S
++@X86_TRUE@am__append_5 = src/x86/ffi.c src/x86/sysv.S src/x86/win32.S
++@X86_FREEBSD_TRUE@am__append_6 = src/x86/ffi.c src/x86/freebsd.S src/x86/win32.S
++@X86_WIN32_TRUE@am__append_7 = src/x86/ffi.c src/x86/win32.S
++@X86_WIN64_TRUE@am__append_8 = src/x86/ffi.c src/x86/win64.S
++@X86_DARWIN_TRUE@am__append_9 = src/x86/ffi.c src/x86/darwin.S src/x86/ffi64.c src/x86/darwin64.S
++@X86_DARWIN32_TRUE@@X86_DARWIN_TRUE@am__append_10 = src/x86/win32.S
++@SPARC_TRUE@am__append_11 = src/sparc/ffi.c src/sparc/v8.S src/sparc/v9.S
++@ALPHA_TRUE@am__append_12 = src/alpha/ffi.c src/alpha/osf.S
++@IA64_TRUE@am__append_13 = src/ia64/ffi.c src/ia64/unix.S
++@M32R_TRUE@am__append_14 = src/m32r/sysv.S src/m32r/ffi.c
++@M68K_TRUE@am__append_15 = src/m68k/ffi.c src/m68k/sysv.S
++@M88K_TRUE@am__append_16 = src/m88k/ffi.c src/m88k/obsd.S
++@MOXIE_TRUE@am__append_17 = src/moxie/ffi.c src/moxie/eabi.S
++@MICROBLAZE_TRUE@am__append_18 = src/microblaze/ffi.c src/microblaze/sysv.S
++@NIOS2_TRUE@am__append_19 = src/nios2/sysv.S src/nios2/ffi.c
++@POWERPC_TRUE@am__append_20 = src/powerpc/ffi.c src/powerpc/ffi_sysv.c src/powerpc/ffi_linux64.c src/powerpc/sysv.S src/powerpc/ppc_closure.S src/powerpc/linux64.S src/powerpc/linux64_closure.S
++@POWERPC_AIX_TRUE@am__append_21 = src/powerpc/ffi_darwin.c src/powerpc/aix.S src/powerpc/aix_closure.S
++@POWERPC_DARWIN_TRUE@am__append_22 = src/powerpc/ffi_darwin.c src/powerpc/darwin.S src/powerpc/darwin_closure.S
++@POWERPC_FREEBSD_TRUE@am__append_23 = src/powerpc/ffi.c src/powerpc/ffi_sysv.c src/powerpc/sysv.S src/powerpc/ppc_closure.S
++@AARCH64_TRUE@am__append_24 = src/aarch64/sysv.S src/aarch64/ffi.c
++@ARC_TRUE@am__append_25 = src/arc/arcompact.S src/arc/ffi.c
++@ARM_TRUE@am__append_26 = src/arm/sysv.S src/arm/ffi.c
++@ARM_TRUE@@FFI_EXEC_TRAMPOLINE_TABLE_TRUE@am__append_27 = src/arm/trampoline.S
++@AVR32_TRUE@am__append_28 = src/avr32/sysv.S src/avr32/ffi.c
++@LIBFFI_CRIS_TRUE@am__append_29 = src/cris/sysv.S src/cris/ffi.c
++@FRV_TRUE@am__append_30 = src/frv/eabi.S src/frv/ffi.c
++@S390_TRUE@am__append_31 = src/s390/sysv.S src/s390/ffi.c
++@X86_64_TRUE@am__append_32 = src/x86/ffi64.c src/x86/unix64.S src/x86/ffi.c src/x86/sysv.S
++@SH_TRUE@am__append_33 = src/sh/sysv.S src/sh/ffi.c
++@SH64_TRUE@am__append_34 = src/sh64/sysv.S src/sh64/ffi.c
++@PA_LINUX_TRUE@am__append_35 = src/pa/linux.S src/pa/ffi.c
++@PA_HPUX_TRUE@am__append_36 = src/pa/hpux32.S src/pa/ffi.c
++@TILE_TRUE@am__append_37 = src/tile/tile.S src/tile/ffi.c
++@XTENSA_TRUE@am__append_38 = src/xtensa/sysv.S src/xtensa/ffi.c
++@METAG_TRUE@am__append_39 = src/metag/sysv.S src/metag/ffi.c
++@VAX_TRUE@am__append_40 = src/vax/elfbsd.S src/vax/ffi.c
+ # Build debug. Define FFI_DEBUG on the commandline so that, when building with
+ # MSVC, it can link against the debug CRT.
+-@FFI_DEBUG_TRUE@am__append_40 = -DFFI_DEBUG
++@FFI_DEBUG_TRUE@am__append_41 = -DFFI_DEBUG
+ subdir = .
+ DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
+ 	$(top_srcdir)/configure $(am__configure_deps) \
+ 	$(srcdir)/fficonfig.h.in $(srcdir)/libffi.pc.in depcomp \
+ 	mdate-sh $(srcdir)/doc/version.texi $(srcdir)/doc/stamp-vti \
+-	texinfo.tex README compile config.guess config.sub install-sh \
+-	missing ltmain.sh
++	texinfo.tex ChangeLog README compile config.guess config.sub \
++	install-sh missing ltmain.sh
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/m4/asmcfi.m4 \
+ 	$(top_srcdir)/m4/ax_append_flag.m4 \
+@@ -189,61 +190,62 @@ am_libffi_la_OBJECTS = src/prep_cif.lo s
+ @FFI_DEBUG_TRUE@am__objects_1 = src/debug.lo
+ @MIPS_TRUE@am__objects_2 = src/mips/ffi.lo src/mips/o32.lo \
+ @MIPS_TRUE@	src/mips/n32.lo
+-@BFIN_TRUE@am__objects_3 = src/bfin/ffi.lo src/bfin/sysv.lo
+-@X86_TRUE@am__objects_4 = src/x86/ffi.lo src/x86/sysv.lo \
++@RISCV_TRUE@am__objects_3 = src/riscv/ffi.lo src/riscv/sysv.lo
++@BFIN_TRUE@am__objects_4 = src/bfin/ffi.lo src/bfin/sysv.lo
++@X86_TRUE@am__objects_5 = src/x86/ffi.lo src/x86/sysv.lo \
+ @X86_TRUE@	src/x86/win32.lo
+-@X86_FREEBSD_TRUE@am__objects_5 = src/x86/ffi.lo src/x86/freebsd.lo \
++@X86_FREEBSD_TRUE@am__objects_6 = src/x86/ffi.lo src/x86/freebsd.lo \
+ @X86_FREEBSD_TRUE@	src/x86/win32.lo
+-@X86_WIN32_TRUE@am__objects_6 = src/x86/ffi.lo src/x86/win32.lo
+-@X86_WIN64_TRUE@am__objects_7 = src/x86/ffi.lo src/x86/win64.lo
+-@X86_DARWIN_TRUE@am__objects_8 = src/x86/ffi.lo src/x86/darwin.lo \
++@X86_WIN32_TRUE@am__objects_7 = src/x86/ffi.lo src/x86/win32.lo
++@X86_WIN64_TRUE@am__objects_8 = src/x86/ffi.lo src/x86/win64.lo
++@X86_DARWIN_TRUE@am__objects_9 = src/x86/ffi.lo src/x86/darwin.lo \
+ @X86_DARWIN_TRUE@	src/x86/ffi64.lo src/x86/darwin64.lo
+-@X86_DARWIN32_TRUE@@X86_DARWIN_TRUE@am__objects_9 = src/x86/win32.lo
+-@SPARC_TRUE@am__objects_10 = src/sparc/ffi.lo src/sparc/v8.lo \
++@X86_DARWIN32_TRUE@@X86_DARWIN_TRUE@am__objects_10 = src/x86/win32.lo
++@SPARC_TRUE@am__objects_11 = src/sparc/ffi.lo src/sparc/v8.lo \
+ @SPARC_TRUE@	src/sparc/v9.lo
+-@ALPHA_TRUE@am__objects_11 = src/alpha/ffi.lo src/alpha/osf.lo
+-@IA64_TRUE@am__objects_12 = src/ia64/ffi.lo src/ia64/unix.lo
+-@M32R_TRUE@am__objects_13 = src/m32r/sysv.lo src/m32r/ffi.lo
+-@M68K_TRUE@am__objects_14 = src/m68k/ffi.lo src/m68k/sysv.lo
+-@M88K_TRUE@am__objects_15 = src/m88k/ffi.lo src/m88k/obsd.lo
+-@MOXIE_TRUE@am__objects_16 = src/moxie/ffi.lo src/moxie/eabi.lo
+-@MICROBLAZE_TRUE@am__objects_17 = src/microblaze/ffi.lo \
++@ALPHA_TRUE@am__objects_12 = src/alpha/ffi.lo src/alpha/osf.lo
++@IA64_TRUE@am__objects_13 = src/ia64/ffi.lo src/ia64/unix.lo
++@M32R_TRUE@am__objects_14 = src/m32r/sysv.lo src/m32r/ffi.lo
++@M68K_TRUE@am__objects_15 = src/m68k/ffi.lo src/m68k/sysv.lo
++@M88K_TRUE@am__objects_16 = src/m88k/ffi.lo src/m88k/obsd.lo
++@MOXIE_TRUE@am__objects_17 = src/moxie/ffi.lo src/moxie/eabi.lo
++@MICROBLAZE_TRUE@am__objects_18 = src/microblaze/ffi.lo \
+ @MICROBLAZE_TRUE@	src/microblaze/sysv.lo
+-@NIOS2_TRUE@am__objects_18 = src/nios2/sysv.lo src/nios2/ffi.lo
+-@POWERPC_TRUE@am__objects_19 = src/powerpc/ffi.lo \
++@NIOS2_TRUE@am__objects_19 = src/nios2/sysv.lo src/nios2/ffi.lo
++@POWERPC_TRUE@am__objects_20 = src/powerpc/ffi.lo \
+ @POWERPC_TRUE@	src/powerpc/ffi_sysv.lo \
+ @POWERPC_TRUE@	src/powerpc/ffi_linux64.lo src/powerpc/sysv.lo \
+ @POWERPC_TRUE@	src/powerpc/ppc_closure.lo \
+ @POWERPC_TRUE@	src/powerpc/linux64.lo \
+ @POWERPC_TRUE@	src/powerpc/linux64_closure.lo
+-@POWERPC_AIX_TRUE@am__objects_20 = src/powerpc/ffi_darwin.lo \
++@POWERPC_AIX_TRUE@am__objects_21 = src/powerpc/ffi_darwin.lo \
+ @POWERPC_AIX_TRUE@	src/powerpc/aix.lo \
+ @POWERPC_AIX_TRUE@	src/powerpc/aix_closure.lo
+-@POWERPC_DARWIN_TRUE@am__objects_21 = src/powerpc/ffi_darwin.lo \
++@POWERPC_DARWIN_TRUE@am__objects_22 = src/powerpc/ffi_darwin.lo \
+ @POWERPC_DARWIN_TRUE@	src/powerpc/darwin.lo \
+ @POWERPC_DARWIN_TRUE@	src/powerpc/darwin_closure.lo
+-@POWERPC_FREEBSD_TRUE@am__objects_22 = src/powerpc/ffi.lo \
++@POWERPC_FREEBSD_TRUE@am__objects_23 = src/powerpc/ffi.lo \
+ @POWERPC_FREEBSD_TRUE@	src/powerpc/ffi_sysv.lo \
+ @POWERPC_FREEBSD_TRUE@	src/powerpc/sysv.lo \
+ @POWERPC_FREEBSD_TRUE@	src/powerpc/ppc_closure.lo
+-@AARCH64_TRUE@am__objects_23 = src/aarch64/sysv.lo src/aarch64/ffi.lo
+-@ARC_TRUE@am__objects_24 = src/arc/arcompact.lo src/arc/ffi.lo
+-@ARM_TRUE@am__objects_25 = src/arm/sysv.lo src/arm/ffi.lo
+-@ARM_TRUE@@FFI_EXEC_TRAMPOLINE_TABLE_TRUE@am__objects_26 = src/arm/trampoline.lo
+-@AVR32_TRUE@am__objects_27 = src/avr32/sysv.lo src/avr32/ffi.lo
+-@LIBFFI_CRIS_TRUE@am__objects_28 = src/cris/sysv.lo src/cris/ffi.lo
+-@FRV_TRUE@am__objects_29 = src/frv/eabi.lo src/frv/ffi.lo
+-@S390_TRUE@am__objects_30 = src/s390/sysv.lo src/s390/ffi.lo
+-@X86_64_TRUE@am__objects_31 = src/x86/ffi64.lo src/x86/unix64.lo \
++@AARCH64_TRUE@am__objects_24 = src/aarch64/sysv.lo src/aarch64/ffi.lo
++@ARC_TRUE@am__objects_25 = src/arc/arcompact.lo src/arc/ffi.lo
++@ARM_TRUE@am__objects_26 = src/arm/sysv.lo src/arm/ffi.lo
++@ARM_TRUE@@FFI_EXEC_TRAMPOLINE_TABLE_TRUE@am__objects_27 = src/arm/trampoline.lo
++@AVR32_TRUE@am__objects_28 = src/avr32/sysv.lo src/avr32/ffi.lo
++@LIBFFI_CRIS_TRUE@am__objects_29 = src/cris/sysv.lo src/cris/ffi.lo
++@FRV_TRUE@am__objects_30 = src/frv/eabi.lo src/frv/ffi.lo
++@S390_TRUE@am__objects_31 = src/s390/sysv.lo src/s390/ffi.lo
++@X86_64_TRUE@am__objects_32 = src/x86/ffi64.lo src/x86/unix64.lo \
+ @X86_64_TRUE@	src/x86/ffi.lo src/x86/sysv.lo
+-@SH_TRUE@am__objects_32 = src/sh/sysv.lo src/sh/ffi.lo
+-@SH64_TRUE@am__objects_33 = src/sh64/sysv.lo src/sh64/ffi.lo
+-@PA_LINUX_TRUE@am__objects_34 = src/pa/linux.lo src/pa/ffi.lo
+-@PA_HPUX_TRUE@am__objects_35 = src/pa/hpux32.lo src/pa/ffi.lo
+-@TILE_TRUE@am__objects_36 = src/tile/tile.lo src/tile/ffi.lo
+-@XTENSA_TRUE@am__objects_37 = src/xtensa/sysv.lo src/xtensa/ffi.lo
+-@METAG_TRUE@am__objects_38 = src/metag/sysv.lo src/metag/ffi.lo
+-@VAX_TRUE@am__objects_39 = src/vax/elfbsd.lo src/vax/ffi.lo
++@SH_TRUE@am__objects_33 = src/sh/sysv.lo src/sh/ffi.lo
++@SH64_TRUE@am__objects_34 = src/sh64/sysv.lo src/sh64/ffi.lo
++@PA_LINUX_TRUE@am__objects_35 = src/pa/linux.lo src/pa/ffi.lo
++@PA_HPUX_TRUE@am__objects_36 = src/pa/hpux32.lo src/pa/ffi.lo
++@TILE_TRUE@am__objects_37 = src/tile/tile.lo src/tile/ffi.lo
++@XTENSA_TRUE@am__objects_38 = src/xtensa/sysv.lo src/xtensa/ffi.lo
++@METAG_TRUE@am__objects_39 = src/metag/sysv.lo src/metag/ffi.lo
++@VAX_TRUE@am__objects_40 = src/vax/elfbsd.lo src/vax/ffi.lo
+ nodist_libffi_la_OBJECTS = $(am__objects_1) $(am__objects_2) \
+ 	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
+ 	$(am__objects_6) $(am__objects_7) $(am__objects_8) \
+@@ -257,7 +259,7 @@ nodist_libffi_la_OBJECTS = $(am__objects
+ 	$(am__objects_30) $(am__objects_31) $(am__objects_32) \
+ 	$(am__objects_33) $(am__objects_34) $(am__objects_35) \
+ 	$(am__objects_36) $(am__objects_37) $(am__objects_38) \
+-	$(am__objects_39)
++	$(am__objects_39) $(am__objects_40)
+ libffi_la_OBJECTS = $(am_libffi_la_OBJECTS) \
+ 	$(nodist_libffi_la_OBJECTS)
+ AM_V_lt = $(am__v_lt_@AM_V@)
+@@ -268,10 +270,10 @@ libffi_la_LINK = $(LIBTOOL) $(AM_V_lt) -
+ 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+ 	$(libffi_la_LDFLAGS) $(LDFLAGS) -o $@
+ libffi_convenience_la_LIBADD =
+-am__objects_40 = src/prep_cif.lo src/types.lo src/raw_api.lo \
++am__objects_41 = src/prep_cif.lo src/types.lo src/raw_api.lo \
+ 	src/java_raw_api.lo src/closures.lo
+-am_libffi_convenience_la_OBJECTS = $(am__objects_40)
+-am__objects_41 = $(am__objects_1) $(am__objects_2) $(am__objects_3) \
++am_libffi_convenience_la_OBJECTS = $(am__objects_41)
++am__objects_42 = $(am__objects_1) $(am__objects_2) $(am__objects_3) \
+ 	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
+ 	$(am__objects_7) $(am__objects_8) $(am__objects_9) \
+ 	$(am__objects_10) $(am__objects_11) $(am__objects_12) \
+@@ -283,8 +285,9 @@ am__objects_41 = $(am__objects_1) $(am__
+ 	$(am__objects_28) $(am__objects_29) $(am__objects_30) \
+ 	$(am__objects_31) $(am__objects_32) $(am__objects_33) \
+ 	$(am__objects_34) $(am__objects_35) $(am__objects_36) \
+-	$(am__objects_37) $(am__objects_38) $(am__objects_39)
+-nodist_libffi_convenience_la_OBJECTS = $(am__objects_41)
++	$(am__objects_37) $(am__objects_38) $(am__objects_39) \
++	$(am__objects_40)
++nodist_libffi_convenience_la_OBJECTS = $(am__objects_42)
+ libffi_convenience_la_OBJECTS = $(am_libffi_convenience_la_OBJECTS) \
+ 	$(nodist_libffi_convenience_la_OBJECTS)
+ AM_V_P = $(am__v_P_@AM_V@)
+@@ -606,7 +609,7 @@ ACLOCAL_AMFLAGS = -I m4
+ SUBDIRS = include testsuite man
+ EXTRA_DIST = LICENSE ChangeLog.v1 ChangeLog.libgcj			\
+ 	 src/aarch64/ffi.c src/aarch64/ffitarget.h src/aarch64/sysv.S	\
+-	 src/alpha/ffi.c src/alpha/osf.S			\
++	 src/alpha/ffi.c src/alpha/osf.S			        \
+ 	 src/alpha/ffitarget.h src/arc/ffi.c src/arc/arcompact.S	\
+ 	 src/arc/ffitarget.h src/arm/ffi.c src/arm/sysv.S		\
+ 	 src/arm/ffitarget.h src/avr32/ffi.c src/avr32/sysv.S		\
+@@ -629,6 +632,7 @@ EXTRA_DIST = LICENSE ChangeLog.v1 Change
+ 	 src/powerpc/asm.h src/powerpc/aix.S src/powerpc/darwin.S	\
+ 	 src/powerpc/aix_closure.S src/powerpc/darwin_closure.S		\
+ 	 src/powerpc/ffi_darwin.c src/powerpc/ffitarget.h		\
++	 src/riscv/ffi.c src/riscv/ffitarget.h src/riscv/sysv.S		\
+ 	 src/s390/ffi.c src/s390/sysv.S src/s390/ffitarget.h		\
+ 	 src/sh/ffi.c src/sh/sysv.S src/sh/ffitarget.h src/sh64/ffi.c	\
+ 	 src/sh64/sysv.S src/sh64/ffitarget.h src/sparc/v8.S		\
+@@ -714,11 +718,11 @@ nodist_libffi_la_SOURCES = $(am__append_
+ 	$(am__append_30) $(am__append_31) $(am__append_32) \
+ 	$(am__append_33) $(am__append_34) $(am__append_35) \
+ 	$(am__append_36) $(am__append_37) $(am__append_38) \
+-	$(am__append_39)
++	$(am__append_39) $(am__append_40)
+ libffi_convenience_la_SOURCES = $(libffi_la_SOURCES)
+ nodist_libffi_convenience_la_SOURCES = $(nodist_libffi_la_SOURCES)
+ LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/libtool-ldflags $(LDFLAGS))
+-AM_CFLAGS = $(am__append_40)
++AM_CFLAGS = $(am__append_41)
+ libffi_la_LDFLAGS = -no-undefined -version-info `grep -v '^\#' $(srcdir)/libtool-version` $(LTLDFLAGS) $(AM_LTLDFLAGS)
+ AM_CPPFLAGS = -I. -I$(top_srcdir)/include -Iinclude -I$(top_srcdir)/src
+ AM_CCASFLAGS = $(AM_CPPFLAGS)
+@@ -848,6 +852,16 @@ src/mips/o32.lo: src/mips/$(am__dirstamp
+ 	src/mips/$(DEPDIR)/$(am__dirstamp)
+ src/mips/n32.lo: src/mips/$(am__dirstamp) \
+ 	src/mips/$(DEPDIR)/$(am__dirstamp)
++src/riscv/$(am__dirstamp):
++	@$(MKDIR_P) src/riscv
++	@: > src/riscv/$(am__dirstamp)
++src/riscv/$(DEPDIR)/$(am__dirstamp):
++	@$(MKDIR_P) src/riscv/$(DEPDIR)
++	@: > src/riscv/$(DEPDIR)/$(am__dirstamp)
++src/riscv/ffi.lo: src/riscv/$(am__dirstamp) \
++	src/riscv/$(DEPDIR)/$(am__dirstamp)
++src/riscv/sysv.lo: src/riscv/$(am__dirstamp) \
++	src/riscv/$(DEPDIR)/$(am__dirstamp)
+ src/bfin/$(am__dirstamp):
+ 	@$(MKDIR_P) src/bfin
+ 	@: > src/bfin/$(am__dirstamp)
+@@ -1195,6 +1209,8 @@ mostlyclean-compile:
+ 	-rm -f src/pa/*.lo
+ 	-rm -f src/powerpc/*.$(OBJEXT)
+ 	-rm -f src/powerpc/*.lo
++	-rm -f src/riscv/*.$(OBJEXT)
++	-rm -f src/riscv/*.lo
+ 	-rm -f src/s390/*.$(OBJEXT)
+ 	-rm -f src/s390/*.lo
+ 	-rm -f src/sh/*.$(OBJEXT)
+@@ -1272,6 +1288,8 @@ distclean-compile:
+ @AMDEP_TRUE@@am__include@ @am__quote@src/powerpc/$(DEPDIR)/linux64_closure.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@src/powerpc/$(DEPDIR)/ppc_closure.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@src/powerpc/$(DEPDIR)/sysv.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@src/riscv/$(DEPDIR)/ffi.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@src/riscv/$(DEPDIR)/sysv.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@src/s390/$(DEPDIR)/ffi.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@src/s390/$(DEPDIR)/sysv.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@src/sh/$(DEPDIR)/ffi.Plo@am__quote@
+@@ -1370,6 +1388,7 @@ clean-libtool:
+ 	-rm -rf src/nios2/.libs src/nios2/_libs
+ 	-rm -rf src/pa/.libs src/pa/_libs
+ 	-rm -rf src/powerpc/.libs src/powerpc/_libs
++	-rm -rf src/riscv/.libs src/riscv/_libs
+ 	-rm -rf src/s390/.libs src/s390/_libs
+ 	-rm -rf src/sh/.libs src/sh/_libs
+ 	-rm -rf src/sh64/.libs src/sh64/_libs
+@@ -1932,6 +1951,8 @@ distclean-generic:
+ 	-rm -f src/pa/$(am__dirstamp)
+ 	-rm -f src/powerpc/$(DEPDIR)/$(am__dirstamp)
+ 	-rm -f src/powerpc/$(am__dirstamp)
++	-rm -f src/riscv/$(DEPDIR)/$(am__dirstamp)
++	-rm -f src/riscv/$(am__dirstamp)
+ 	-rm -f src/s390/$(DEPDIR)/$(am__dirstamp)
+ 	-rm -f src/s390/$(am__dirstamp)
+ 	-rm -f src/sh/$(DEPDIR)/$(am__dirstamp)
+@@ -1960,7 +1981,7 @@ clean-am: clean-aminfo clean-generic cle
+ 
+ distclean: distclean-recursive
+ 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
+-	-rm -rf src/$(DEPDIR) src/aarch64/$(DEPDIR) src/alpha/$(DEPDIR) src/arc/$(DEPDIR) src/arm/$(DEPDIR) src/avr32/$(DEPDIR) src/bfin/$(DEPDIR) src/cris/$(DEPDIR) src/frv/$(DEPDIR) src/ia64/$(DEPDIR) src/m32r/$(DEPDIR) src/m68k/$(DEPDIR) src/m88k/$(DEPDIR) src/metag/$(DEPDIR) src/microblaze/$(DEPDIR) src/mips/$(DEPDIR) src/moxie/$(DEPDIR) src/nios2/$(DEPDIR) src/pa/$(DEPDIR) src/powerpc/$(DEPDIR) src/s390/$(DEPDIR) src/sh/$(DEPDIR) src/sh64/$(DEPDIR) src/sparc/$(DEPDIR) src/tile/$(DEPDIR) src/vax/$(DEPDIR) src/x86/$(DEPDIR) src/xtensa/$(DEPDIR)
++	-rm -rf src/$(DEPDIR) src/aarch64/$(DEPDIR) src/alpha/$(DEPDIR) src/arc/$(DEPDIR) src/arm/$(DEPDIR) src/avr32/$(DEPDIR) src/bfin/$(DEPDIR) src/cris/$(DEPDIR) src/frv/$(DEPDIR) src/ia64/$(DEPDIR) src/m32r/$(DEPDIR) src/m68k/$(DEPDIR) src/m88k/$(DEPDIR) src/metag/$(DEPDIR) src/microblaze/$(DEPDIR) src/mips/$(DEPDIR) src/moxie/$(DEPDIR) src/nios2/$(DEPDIR) src/pa/$(DEPDIR) src/powerpc/$(DEPDIR) src/riscv/$(DEPDIR) src/s390/$(DEPDIR) src/sh/$(DEPDIR) src/sh64/$(DEPDIR) src/sparc/$(DEPDIR) src/tile/$(DEPDIR) src/vax/$(DEPDIR) src/x86/$(DEPDIR) src/xtensa/$(DEPDIR)
+ 	-rm -f Makefile
+ distclean-am: clean-am distclean-compile distclean-generic \
+ 	distclean-hdr distclean-libtool distclean-tags
+@@ -2099,7 +2120,7 @@ installcheck-am:
+ maintainer-clean: maintainer-clean-recursive
+ 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
+ 	-rm -rf $(top_srcdir)/autom4te.cache
+-	-rm -rf src/$(DEPDIR) src/aarch64/$(DEPDIR) src/alpha/$(DEPDIR) src/arc/$(DEPDIR) src/arm/$(DEPDIR) src/avr32/$(DEPDIR) src/bfin/$(DEPDIR) src/cris/$(DEPDIR) src/frv/$(DEPDIR) src/ia64/$(DEPDIR) src/m32r/$(DEPDIR) src/m68k/$(DEPDIR) src/m88k/$(DEPDIR) src/metag/$(DEPDIR) src/microblaze/$(DEPDIR) src/mips/$(DEPDIR) src/moxie/$(DEPDIR) src/nios2/$(DEPDIR) src/pa/$(DEPDIR) src/powerpc/$(DEPDIR) src/s390/$(DEPDIR) src/sh/$(DEPDIR) src/sh64/$(DEPDIR) src/sparc/$(DEPDIR) src/tile/$(DEPDIR) src/vax/$(DEPDIR) src/x86/$(DEPDIR) src/xtensa/$(DEPDIR)
++	-rm -rf src/$(DEPDIR) src/aarch64/$(DEPDIR) src/alpha/$(DEPDIR) src/arc/$(DEPDIR) src/arm/$(DEPDIR) src/avr32/$(DEPDIR) src/bfin/$(DEPDIR) src/cris/$(DEPDIR) src/frv/$(DEPDIR) src/ia64/$(DEPDIR) src/m32r/$(DEPDIR) src/m68k/$(DEPDIR) src/m88k/$(DEPDIR) src/metag/$(DEPDIR) src/microblaze/$(DEPDIR) src/mips/$(DEPDIR) src/moxie/$(DEPDIR) src/nios2/$(DEPDIR) src/pa/$(DEPDIR) src/powerpc/$(DEPDIR) src/riscv/$(DEPDIR) src/s390/$(DEPDIR) src/sh/$(DEPDIR) src/sh64/$(DEPDIR) src/sparc/$(DEPDIR) src/tile/$(DEPDIR) src/vax/$(DEPDIR) src/x86/$(DEPDIR) src/xtensa/$(DEPDIR)
+ 	-rm -f Makefile
+ maintainer-clean-am: distclean-am maintainer-clean-aminfo \
+ 	maintainer-clean-generic maintainer-clean-vti
+diff -rupN libffi-3.1-orig/man/Makefile.in libffi-3.1/man/Makefile.in
+--- libffi-3.1-orig/man/Makefile.in	2014-05-19 06:44:04.000000000 -0700
++++ libffi-3.1/man/Makefile.in	2015-04-14 01:26:45.084389993 -0700
+@@ -1,4 +1,4 @@
+-# Makefile.in generated by automake 1.13.4 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+ # Copyright (C) 1994-2013 Free Software Foundation, Inc.
+diff -rupN libffi-3.1-orig/misc/parse_tests.py libffi-3.1/misc/parse_tests.py
+--- libffi-3.1-orig/misc/parse_tests.py	1969-12-31 16:00:00.000000000 -0800
++++ libffi-3.1/misc/parse_tests.py	2015-04-13 21:46:21.610106669 -0700
+@@ -0,0 +1,50 @@
++#!/bin/python
++
++import sys
++
++def print_help():
++    print "Usage: python " + sys.argv[0] + " <test result file>"
++
++if len(sys.argv) != 2:
++    exit(1)
++
++summary = ""
++passed = []
++failed = []
++fname = sys.argv[1]
++f = open(fname, 'r')
++for l in f.readlines():
++    if l.startswith("PASS"):
++        z = l.split()
++        if not z[1] in passed: 
++            passed.append(z[1])
++    elif l.startswith("FAIL"):
++        z = l.split()
++        if not z[1] in failed: 
++            failed.append(z[1])
++    elif l.startswith("#"):
++        summary += l
++
++i = 0
++while i < len(passed):
++    if passed[i] in failed:
++        del passed[i]
++        continue
++    i += 1
++
++p_num = len(passed)
++f_num = len(failed)
++total = p_num + f_num
++
++print "---TEST FILES PASSED---"
++for t in passed: print t
++print
++print "---TEST FILES FAILED---"
++for t in failed: print t
++print
++print "------TEST SUMMARY------"
++print "Passed: " + str(p_num) + " (" + str(round(float(p_num)/total*100, 1)) + "%)"
++print "Failed: " + str(f_num) + " (" + str(round(float(f_num)/total*100, 1)) + "%)"
++print "Total:  " + str(total)
++print 
++print summary
+diff -rupN libffi-3.1-orig/misc/riscv-sim.exp libffi-3.1/misc/riscv-sim.exp
+--- libffi-3.1-orig/misc/riscv-sim.exp	1969-12-31 16:00:00.000000000 -0800
++++ libffi-3.1/misc/riscv-sim.exp	2015-04-13 21:46:21.610106669 -0700
+@@ -0,0 +1,6 @@
++load_generic_config "sim"
++set_board_info sim "spike pk"
++set_board_info compiler "[find_gcc]"
++set_board_info ldflags "-static"
++set_board_info gdb,nosignals 1
++set_board_info is_simulator 1
+diff -rupN libffi-3.1-orig/misc/run_test.sh libffi-3.1/misc/run_test.sh
+--- libffi-3.1-orig/misc/run_test.sh	1969-12-31 16:00:00.000000000 -0800
++++ libffi-3.1/misc/run_test.sh	2015-04-13 21:46:21.610106669 -0700
+@@ -0,0 +1,3 @@
++#/bin/bash
++riscv64-unknown-elf-gcc -g -I../../riscv64-unknown-elf/include -I../../riscv64-unknown-elf -L../../riscv64-unknown-elf/.libs/ $1 -lffi 
++spike pk a.out
+diff -rupN libffi-3.1-orig/README.md libffi-3.1/README.md
+--- libffi-3.1-orig/README.md	1969-12-31 16:00:00.000000000 -0800
++++ libffi-3.1/README.md	2015-04-13 21:46:21.606106616 -0700
+@@ -0,0 +1,23 @@
++RISC-V Port of libffi
++=====================
++
++Compile and run:
++
++```
++./configure --host=riscv64-unknown-elf
++make
++```
++
++Run tests in Spike:
++
++```
++make check RUNTESTFLAGS="--target_board=riscv-sim --all"
++```
++
++Run an individual test:
++
++Go to `testsuite/libffi.call` directory and run:
++
++```
++../../misc/run_test.sh <test_name.c>
++```
+diff -rupN libffi-3.1-orig/src/prep_cif.c libffi-3.1/src/prep_cif.c
+--- libffi-3.1-orig/src/prep_cif.c	2014-04-25 10:45:13.000000000 -0700
++++ libffi-3.1/src/prep_cif.c	2015-04-14 01:26:45.084389993 -0700
+@@ -139,8 +139,8 @@ ffi_status FFI_HIDDEN ffi_prep_cif_core(
+   /* Perform a sanity check on the return type */
+   FFI_ASSERT_VALID_TYPE(cif->rtype);
+ 
+-  /* x86, x86-64 and s390 stack space allocation is handled in prep_machdep. */
+-#if !defined M68K && !defined X86_ANY && !defined S390 && !defined PA
++  /* x86, x86-64, s390, and riscv stack space allocation is handled in prep_machdep. */
++#if !defined M68K && !defined X86_ANY && !defined S390 && !defined PA && !defined __riscv64
+   /* Make space for the return structure pointer */
+   if (cif->rtype->type == FFI_TYPE_STRUCT
+ #ifdef SPARC
+@@ -170,7 +170,7 @@ ffi_status FFI_HIDDEN ffi_prep_cif_core(
+ 	 check after the initialization.  */
+       FFI_ASSERT_VALID_TYPE(*ptr);
+ 
+-#if !defined X86_ANY && !defined S390 && !defined PA
++#if !defined X86_ANY && !defined S390 && !defined PA && !defined __riscv64
+ #ifdef SPARC
+       if (((*ptr)->type == FFI_TYPE_STRUCT
+ 	   && ((*ptr)->size > 16 || cif->abi != FFI_V9))
+@@ -197,7 +197,6 @@ ffi_status FFI_HIDDEN ffi_prep_cif_core(
+ 	  if (bytes <= 6*4 && bytes + STACK_ARG_SIZE((*ptr)->size) > 6*4)
+ 	    bytes = 6*4;
+ #endif
+-
+ 	  bytes += STACK_ARG_SIZE((*ptr)->size);
+ 	}
+ #endif
+diff -rupN libffi-3.1-orig/src/riscv/asm.py libffi-3.1/src/riscv/asm.py
+--- libffi-3.1-orig/src/riscv/asm.py	1969-12-31 16:00:00.000000000 -0800
++++ libffi-3.1/src/riscv/asm.py	2015-04-13 21:46:21.618106772 -0700
+@@ -0,0 +1,37 @@
++#!/bin/python
++
++def set_args_64(i):
++    return """
++####################
++## SET ARGUMENT """ + str(i) + """ ##
++####################
++
++set_arg""" + str(i) + """:
++    srli    t1, t0, FFI_FLAG_BITS_X""" + str(i) + """ # Shift to get the bits for this argument
++    andi    t1, t1, 3               # Mask out the bits for this argument
++    
++    # when its zero, it means its just a word-sized int/ptr
++    bne     t1, zero, set_arg""" + str(i) + """_float 
++    REG_L   a""" + str(i) + """, FFI_SIZEOF_ARG_X""" + str(i) + """(sp) # load argument
++    j       set_arg""" + str(i+1) + """
++    
++set_arg""" + str(i) + """_float:
++    addi    t1, t1, -1
++    
++    # when its zero, it means its just a word-sized float
++    bne     t1, zero, set_arg""" + str(i) + """_double
++    flw     fa""" + str(i) + """, FFI_SIZEOF_ARG_X""" + str(i) + """(sp) # load argument
++    j       set_arg""" + str(i+1) + """
++    
++set_arg""" + str(i) + """_double:
++    # otherwise it must be a double we're dealing with
++    fld     fa""" + str(i) + """, FFI_SIZEOF_ARG_X""" + str(i) + """(sp)
++"""
++
++def gen64_setargs_string():
++    setargs = ""
++    for i in range(8):
++        setargs += set_args_64(i)
++    return setargs
++
++print gen64_setargs_string()
+diff -rupN libffi-3.1-orig/src/riscv/.deps/ffi64.Plo libffi-3.1/src/riscv/.deps/ffi64.Plo
+--- libffi-3.1-orig/src/riscv/.deps/ffi64.Plo	1969-12-31 16:00:00.000000000 -0800
++++ libffi-3.1/src/riscv/.deps/ffi64.Plo	2015-04-13 21:46:21.618106772 -0700
+@@ -0,0 +1,61 @@
++src/riscv/ffi64.lo: src/riscv/ffi64.c include/ffi.h include/ffitarget.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/include/stddef.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/include-fixed/limits.h \
++ include/ffi_common.h fficonfig.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/alloca.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/_ansi.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/newlib.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/config.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/machine/ieeefp.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/reent.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/_ansi.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/_types.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/machine/_types.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/machine/_default_types.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/lock.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/string.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/string.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/stdlib.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/machine/stdlib.h
++
++include/ffi.h:
++
++include/ffitarget.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/include/stddef.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/include-fixed/limits.h:
++
++include/ffi_common.h:
++
++fficonfig.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/alloca.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/_ansi.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/newlib.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/config.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/machine/ieeefp.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/reent.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/_ansi.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/_types.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/machine/_types.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/machine/_default_types.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/lock.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/string.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/string.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/stdlib.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/machine/stdlib.h:
+diff -rupN libffi-3.1-orig/src/riscv/.deps/ffi.Plo libffi-3.1/src/riscv/.deps/ffi.Plo
+--- libffi-3.1-orig/src/riscv/.deps/ffi.Plo	1969-12-31 16:00:00.000000000 -0800
++++ libffi-3.1/src/riscv/.deps/ffi.Plo	2015-04-13 21:46:21.618106772 -0700
+@@ -0,0 +1,61 @@
++src/riscv/ffi.lo: src/riscv/ffi.c include/ffi.h include/ffitarget.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/include/stddef.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/include-fixed/limits.h \
++ include/ffi_common.h fficonfig.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/alloca.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/_ansi.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/newlib.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/config.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/machine/ieeefp.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/reent.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/_ansi.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/_types.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/machine/_types.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/machine/_default_types.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/lock.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/string.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/string.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/stdlib.h \
++ /home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/machine/stdlib.h
++
++include/ffi.h:
++
++include/ffitarget.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/include/stddef.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/include-fixed/limits.h:
++
++include/ffi_common.h:
++
++fficonfig.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/alloca.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/_ansi.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/newlib.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/config.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/machine/ieeefp.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/reent.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/_ansi.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/_types.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/machine/_types.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/machine/_default_types.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/lock.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/string.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/sys/string.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/stdlib.h:
++
++/home/risc-v/riscv/lib64/gcc/riscv-elf/4.6.1/../../../../riscv-elf/include/machine/stdlib.h:
+diff -rupN libffi-3.1-orig/src/riscv/.deps/rv32.Plo libffi-3.1/src/riscv/.deps/rv32.Plo
+--- libffi-3.1-orig/src/riscv/.deps/rv32.Plo	1969-12-31 16:00:00.000000000 -0800
++++ libffi-3.1/src/riscv/.deps/rv32.Plo	2015-04-13 21:46:21.618106772 -0700
+@@ -0,0 +1,8 @@
++src/riscv/rv32.lo: src/riscv/rv32.S fficonfig.h include/ffi.h \
++ include/ffitarget.h
++
++fficonfig.h:
++
++include/ffi.h:
++
++include/ffitarget.h:
+diff -rupN libffi-3.1-orig/src/riscv/.deps/rv64.Plo libffi-3.1/src/riscv/.deps/rv64.Plo
+--- libffi-3.1-orig/src/riscv/.deps/rv64.Plo	1969-12-31 16:00:00.000000000 -0800
++++ libffi-3.1/src/riscv/.deps/rv64.Plo	2015-04-13 21:46:21.618106772 -0700
+@@ -0,0 +1,8 @@
++src/riscv/rv64.lo: src/riscv/rv64.S fficonfig.h include/ffi.h \
++ include/ffitarget.h
++
++fficonfig.h:
++
++include/ffi.h:
++
++include/ffitarget.h:
+diff -rupN libffi-3.1-orig/src/riscv/ffi.c libffi-3.1/src/riscv/ffi.c
+--- libffi-3.1-orig/src/riscv/ffi.c	1969-12-31 16:00:00.000000000 -0800
++++ libffi-3.1/src/riscv/ffi.c	2015-04-13 21:46:21.618106772 -0700
+@@ -0,0 +1,746 @@
++/* -----------------------------------------------------------------------
++   ffi.c - Copyright (c) 2015 Michael Knyszek <mknyszek@berkeley.edu>
++                         2015 Andrew Waterman <waterman@cs.berkeley.edu>
++   Based on MIPS N32/64 port
++   
++   RISC-V Foreign Function Interface 
++
++   Permission is hereby granted, free of charge, to any person obtaining
++   a copy of this software and associated documentation files (the
++   ``Software''), to deal in the Software without restriction, including
++   without limitation the rights to use, copy, modify, merge, publish,
++   distribute, sublicense, and/or sell copies of the Software, and to
++   permit persons to whom the Software is furnished to do so, subject to
++   the following conditions:
++
++   The above copyright notice and this permission notice shall be included
++   in all copies or substantial portions of the Software.
++
++   THE SOFTWARE IS PROVIDED ``AS IS'', WITHOUT WARRANTY OF ANY KIND,
++   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++   NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++   HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++   DEALINGS IN THE SOFTWARE.
++   ----------------------------------------------------------------------- */
++
++#include <ffi.h>
++#include <ffi_common.h>
++
++#include <stdlib.h>
++#include <stdint.h>
++
++#define STACK_ARG_SIZE(x) ALIGN(x, FFI_SIZEOF_ARG)
++
++/* ffi_prep_args is called by the assembly routine once stack space
++   has been allocated for the function's arguments */
++
++static void ffi_prep_args(char *stack, extended_cif *ecif, int bytes, int flags)
++{
++    int i;
++    void **p_argv;
++    char *argp, *cpy_struct;
++    ffi_type **p_arg;
++    
++    argp = stack;
++    cpy_struct = stack + ALIGN(bytes, 16);
++
++    memset(stack, 0, bytes);
++
++    if (ecif->cif->rstruct_flag != 0)
++    {
++        *(ffi_arg *) argp = (ffi_arg) ecif->rvalue;
++        argp += sizeof(ffi_arg);
++    }
++    
++    p_argv = ecif->avalue;
++
++    for (i = 0, p_arg = ecif->cif->arg_types; i < ecif->cif->nargs; i++, p_arg++)
++    {
++        size_t z;
++        unsigned int a;
++
++        /* Align if necessary. */
++        a = (*p_arg)->alignment;
++        if (a < sizeof(ffi_arg))
++            a = sizeof(ffi_arg);
++
++        if ((a - 1) & (unsigned long) argp)
++        {
++            argp = (char *) ALIGN(argp, a);
++        }
++
++        z = (*p_arg)->size;
++        if (z <= sizeof(ffi_arg))
++        {
++            int type = (*p_arg)->type;
++            z = sizeof(ffi_arg);
++
++            /* The size of a pointer depends on the ABI */
++            if (type == FFI_TYPE_POINTER)
++            #ifdef __riscv64
++                type = FFI_TYPE_SINT64;
++            #else
++                type = FFI_TYPE_SINT32;
++            #endif
++            
++            if (i < 8 && (ecif->cif->abi == FFI_RV32_SOFT_FLOAT || ecif->cif->abi == FFI_RV64_SOFT_FLOAT))
++            {
++                switch (type)
++                {
++                    case FFI_TYPE_FLOAT:
++                        type = FFI_TYPE_UINT32;
++                        break;
++                    case FFI_TYPE_DOUBLE:
++                        type = FFI_TYPE_UINT64;
++                        break;
++                    default:
++                        break;
++                }
++            }
++            
++            switch (type)
++            {
++                case FFI_TYPE_SINT8:
++                    *(ffi_arg *)argp = *(SINT8 *)(* p_argv);
++                    break;
++
++                case FFI_TYPE_UINT8:
++                    *(ffi_arg *)argp = *(UINT8 *)(* p_argv);
++                    break;
++
++                case FFI_TYPE_SINT16:
++                    *(ffi_arg *)argp = *(SINT16 *)(* p_argv);
++                    break;
++
++                case FFI_TYPE_UINT16:
++                    *(ffi_arg *)argp = *(UINT16 *)(* p_argv);
++                    break;
++
++                case FFI_TYPE_SINT32:
++                    *(ffi_arg *)argp = *(SINT32 *)(* p_argv);
++                    break;
++
++                case FFI_TYPE_UINT32:
++                    *(ffi_arg *)argp = *(UINT32 *)(* p_argv);
++                    break;
++                    
++                case FFI_TYPE_SINT64:
++                    *(ffi_arg *)argp = *(SINT64 *)(* p_argv);
++                    break;
++
++                case FFI_TYPE_UINT64:
++                    *(ffi_arg *)argp = *(UINT64 *)(* p_argv);
++                    break;
++
++                /* This can only happen with 64bit slots. */
++                case FFI_TYPE_FLOAT:
++                    *(float *) argp = *(float *)(* p_argv);
++                    break;
++
++                /* Handle structures. */
++                default:
++                    memcpy(argp, *p_argv, (*p_arg)->size);
++                    break;
++            }
++        }
++        else if (z <= 2*sizeof(ffi_arg))
++        {
++            /* Check if the data will fit within the register space.
++               Handle it if it doesn't. */
++            
++            unsigned long end = (unsigned long) argp + z;
++            unsigned long cap = (unsigned long) stack + bytes;
++            
++            if (end <= cap)
++                memcpy(argp, *p_argv, z);
++            else
++            {
++                unsigned long portion = cap - (unsigned long)argp;
++                
++                memcpy(argp, *p_argv, portion);
++                argp = stack;
++                z -= portion;
++                memcpy(argp, (void*)((unsigned long)(*p_argv) + portion), z);
++            }
++        }
++        else if(i < 8 && z > 2*sizeof(ffi_arg))
++        {
++            /* It's too big to pass in any registers or on the stack, 
++               so we pass a pointer, and copy the struct to pass by value.
++               But, we can't _just_ copy it onto the stack! We need to actually
++               make sure it gets onto the "bottom" (really the top, high memory
++               addresses) of the stack frame... */
++            
++            /* Update pointer to where our struct location on the stack is */
++            cpy_struct -= ALIGN(z, a);
++            
++            memcpy(cpy_struct, *p_argv, z);
++            
++            /* Pass pointer in register */
++            *(ffi_arg *)argp = (ffi_arg) cpy_struct;
++            
++            z = sizeof(ffi_arg);
++        }
++        else
++        {
++            /* Just some big struct, pass it by value by copying it onto
++               the stack. */
++            memcpy(argp, *p_argv, z);
++        }
++        
++        p_argv++;
++        argp += z;
++    }
++}
++
++/* This code traverses structure definitions 
++   and generates the appropriate flags. */
++
++static unsigned calc_riscv_struct_flags(int soft_float, ffi_type *arg, size_t size, unsigned *loc, unsigned *arg_reg)
++{
++    unsigned flags = 0;
++    unsigned index = 0;
++    ffi_type *e;
++    
++    if (soft_float)
++        return 0;
++    
++    /* The struct is too big to pass on the stack, so we pass it by reference */
++    if (size > 2 * FFI_SIZEOF_ARG)
++    {
++        (*arg_reg)++;
++        return 0;
++    }
++    
++    while ((e = arg->elements[index]))
++    {
++        /* Align this object. */
++        *loc = ALIGN(*loc, e->alignment);
++        
++        if (e->type == FFI_TYPE_DOUBLE)
++        {
++            /* Already aligned to FFI_SIZEOF_ARG. */
++            *arg_reg = *loc / FFI_SIZEOF_ARG;
++            
++            if (*arg_reg > 7)
++                break;
++            
++            flags += (FFI_TYPE_DOUBLE << (*arg_reg * FFI_FLAG_BITS));
++            *loc += e->size;
++        }
++        else
++            *loc += e->size;
++        
++        index++;
++    }
++    
++    /* Next Argument register at alignment of FFI_SIZEOF_ARG. */
++    *arg_reg = ALIGN(*loc, FFI_SIZEOF_ARG) / FFI_SIZEOF_ARG;
++    
++    return flags;
++}
++
++/* The flags output of this routine should match the various struct cases
++   described in ffitarget.h */
++
++static unsigned calc_riscv_return_struct_flags(int soft_float, ffi_type *arg)
++{
++    unsigned flags = 0;
++    unsigned small = FFI_TYPE_SMALLSTRUCT;
++    ffi_type *e;
++    
++    /* Returning structures under n32 is a tricky thing.
++       A struct with only one or two floating point fields
++       is returned in $f0 (and $f2 if necessary). Any other
++       struct results at most 128 bits are returned in $2
++       (the first 64 bits) and $3 (remainder, if necessary).
++       Larger structs are handled normally. */
++    
++    if (arg->size > 2 * FFI_SIZEOF_ARG)
++        return 0;
++    
++    if (arg->size > 8)
++        small = FFI_TYPE_SMALLSTRUCT2;
++    
++    e = arg->elements[0];
++    if (e->type == FFI_TYPE_DOUBLE)
++        flags = FFI_TYPE_DOUBLE;
++    else if (e->type == FFI_TYPE_FLOAT)
++        flags = FFI_TYPE_FLOAT;
++    
++    if (flags && (e = arg->elements[1]))
++    {
++        if (e->type == FFI_TYPE_DOUBLE)
++            flags += FFI_TYPE_DOUBLE << FFI_FLAG_BITS;
++        else if (e->type == FFI_TYPE_FLOAT)
++            flags += FFI_TYPE_FLOAT << FFI_FLAG_BITS;
++        else
++            return small;
++        
++        if (flags && (arg->elements[2]))
++        {
++            /* There are three arguments and the first two are
++               floats! This must be passed the old way. */
++            return small;
++        }
++        
++        if (soft_float)
++            flags += FFI_TYPE_STRUCT_SOFT;
++    }
++    else if (!flags)
++        return small;
++    
++    return flags;
++}
++
++/* Generate the flags word for processing arguments and 
++   putting them into their proper registers in the 
++   assembly routine. */
++
++void ffi_prep_cif_machdep_flags(ffi_cif *cif, unsigned int isvariadic, unsigned int nfixedargs)
++{
++    int type;
++    unsigned arg_reg = 0;
++    unsigned loc = 0;
++    unsigned count = (cif->nargs < 8) ? cif->nargs : 8;
++    unsigned index = 0;
++    
++    unsigned int struct_flags = 0;
++    int soft_float = cif->abi == FFI_RV64_SOFT_FLOAT || cif->abi == FFI_RV32_SOFT_FLOAT;;
++    
++    cif->flags = 0;
++    
++    if (cif->rtype->type == FFI_TYPE_STRUCT)
++    {
++        struct_flags = calc_riscv_return_struct_flags(soft_float, cif->rtype);
++        if (struct_flags == 0)
++        {
++            /* This means that the structure is being passed as
++               a hidden argument */
++            arg_reg = 1;
++            count = (cif->nargs < 7) ? cif->nargs : 7;
++            cif->rstruct_flag = !0;
++        }
++        else
++            cif->rstruct_flag = 0;
++    }
++    else
++        cif->rstruct_flag = 0;
++    
++    /* Set the first 8 existing argument types in the flag bit string
++     * 
++     * We only describe the two argument types we care about:
++     * - Whether or not its a float/double
++     * - Whether or not its a struct
++     * 
++     * This is is two bits per argument accounting for the first 16 bits
++     * of cif->flags.
++     * 
++     * The last 16 bits are just used to describe the return type
++     * 
++     * FFI_FLAG_BITS = 2
++     */
++    
++    while (count-- > 0 && arg_reg < 8)
++    {
++        type = (cif->arg_types)[index]->type;
++        
++        /* Handle float argument types for soft float case */
++        if (soft_float || (isvariadic && arg_reg >= nfixedargs))
++        {
++            switch (type)
++            {
++                case FFI_TYPE_FLOAT:
++                    type = FFI_TYPE_UINT32;
++                    break;
++                case FFI_TYPE_DOUBLE:
++                    type = FFI_TYPE_UINT64;
++                    break;
++                default:
++                    break;
++            }
++        }
++        switch (type)
++        {
++            case FFI_TYPE_FLOAT:  /* = 2 = 0b10 */
++            case FFI_TYPE_DOUBLE: /* = 3 = 0b11 */
++                cif->flags += ((cif->arg_types)[index]->type << (arg_reg * FFI_FLAG_BITS));
++                arg_reg++;
++                break;
++            case FFI_TYPE_STRUCT:
++                loc = arg_reg * FFI_SIZEOF_ARG;
++                cif->flags += calc_riscv_struct_flags(soft_float, (cif->arg_types)[index], (cif->arg_types)[index]->size, &loc, &arg_reg);
++                break;
++            default:
++                arg_reg++;
++                break;
++        }
++        index++;
++    }
++    
++    /* Set the return type flag */
++    
++    type = cif->rtype->type;
++    
++    /* Handle float return types for soft float case */
++    if (soft_float)
++    {
++        switch (type)
++        {
++            case FFI_TYPE_FLOAT:
++                type = FFI_TYPE_UINT32;
++                break;
++            case FFI_TYPE_DOUBLE:
++                type = FFI_TYPE_UINT64;
++                break;
++            default:
++                break;
++        }
++    }
++    
++    switch (type)
++    {
++        case FFI_TYPE_STRUCT:
++            if (struct_flags != 0)
++            {
++                /* The structure is returned via some tricky mechanism */
++                cif->flags += FFI_TYPE_STRUCT << (FFI_FLAG_BITS * 8);
++                cif->flags += struct_flags << (4 + (FFI_FLAG_BITS * 8));
++            }
++            /* else the structure is returned through a hidden
++               first argument. Do nothing, 'cause FFI_TYPE_VOID is 0 */
++            break;
++        case FFI_TYPE_VOID:
++            /* Do nothing, 'cause FFI_TYPE_VOID is 0 */
++            break;
++        case FFI_TYPE_FLOAT:
++        case FFI_TYPE_DOUBLE:
++            cif->flags += cif->rtype->type << (FFI_FLAG_BITS * 8);
++            break;
++        case FFI_TYPE_SINT32:
++        case FFI_TYPE_UINT32:
++            cif->flags += FFI_TYPE_SINT32 << (FFI_FLAG_BITS * 8);
++            break;
++        default:
++            cif->flags += FFI_TYPE_INT << (FFI_FLAG_BITS * 8);
++            break;
++    }
++}
++
++/* Count how big our argspace is in bytes. Here, we always
++   allocate at least 8 pointer words and handle big structs
++   being passed in registers. */
++
++void ffi_prep_cif_machdep_bytes(ffi_cif *cif)
++{
++    int i;
++    ffi_type **ptr;
++    unsigned bytes = 0, extra_bytes = 0;
++    
++    if (cif->rtype->type == FFI_TYPE_STRUCT)
++        bytes = STACK_ARG_SIZE(sizeof(void*));
++    
++    for (ptr = cif->arg_types, i = cif->nargs; i > 0; i--, ptr++)
++    {
++        /* Add any padding if necessary */
++        if (((*ptr)->alignment - 1) & bytes)
++            bytes = (unsigned)ALIGN(bytes, (*ptr)->alignment);
++
++        /* When we pass big structs in registers, we copy it onto the stack and assign a pointer to it */
++        if ((*ptr)->size > 2 * FFI_SIZEOF_ARG && bytes < 8 * FFI_SIZEOF_ARG)
++        {
++            bytes += sizeof(void*);
++            extra_bytes += STACK_ARG_SIZE((*ptr)->size);
++        }
++        else
++        {
++            bytes += STACK_ARG_SIZE((*ptr)->size);
++        }
++    }
++
++    if (bytes < 8 * FFI_SIZEOF_ARG)
++        bytes = 8 * FFI_SIZEOF_ARG;
++    
++    bytes += extra_bytes;
++    
++    cif->bytes = bytes;
++}
++
++/* Perform machine dependent cif processing */
++
++ffi_status ffi_prep_cif_machdep(ffi_cif *cif)
++{
++    ffi_prep_cif_machdep_bytes(cif);
++    ffi_prep_cif_machdep_flags(cif, 0, 0);
++    cif->isvariadic = 0;
++    return FFI_OK;
++}
++
++/* Perform machine dependent cif processing when we have a variadic function */
++
++ffi_status ffi_prep_cif_machdep_var(ffi_cif *cif, unsigned int nfixedargs, unsigned int ntotalargs)
++{
++    ffi_prep_cif_machdep_bytes(cif);
++    ffi_prep_cif_machdep_flags(cif, 1, nfixedargs);
++    cif->isvariadic = 1;
++    return FFI_OK;
++}
++
++/* Low level routine for calling RV64 functions */
++extern int ffi_call_asm(void (*)(char *, extended_cif *, int, int), 
++                         extended_cif *, unsigned, unsigned, 
++                         unsigned *, void (*)(void))
++                         __attribute__((visibility("hidden")));
++
++void ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
++{
++    extended_cif ecif;
++
++    ecif.cif = cif;
++    ecif.avalue = avalue;
++
++    /* If the return value is a struct and we don't have a return	*/
++    /* value address then we need to make one		                */
++
++    if ((rvalue == NULL) && (cif->rtype->type == FFI_TYPE_STRUCT))
++        ecif.rvalue = alloca(cif->rtype->size);
++    else
++        ecif.rvalue = rvalue;
++    
++    ffi_call_asm(ffi_prep_args, &ecif, cif->bytes, cif->flags, ecif.rvalue, fn);
++}
++
++#if FFI_CLOSURES
++
++extern void ffi_closure_asm(void) __attribute__((visibility("hidden")));
++
++ffi_status ffi_prep_closure_loc(ffi_closure *closure, ffi_cif *cif, void (*fun)(ffi_cif*,void*,void**,void*), void *user_data, void *codeloc)
++{
++    unsigned int *tramp = (unsigned int *) &closure->tramp[0];
++    
++    uintptr_t fn = (uintptr_t) ffi_closure_asm;
++    FFI_ASSERT(tramp == codeloc);
++    
++    /* Remove when more than just rv64 is supported */
++    if (cif->abi != FFI_RV64)
++        return FFI_BAD_ABI;
++    
++    if (cif->abi == FFI_RV32 || cif->abi == FFI_RV32_SOFT_FLOAT || fn < 0x7ffff000U)
++    {
++        /* auipc t0, 0 (i.e. t0 <- codeloc) */
++        tramp[0] = 0x00000297;
++        /* lui t1, %hi(fn) */
++        tramp[1] = 0x00000337 | ((fn + 0x800) & 0xFFFFF000);
++        /* jalr x0, t1, %lo(fn) */
++        tramp[2] = 0x00030067 | ((fn & 0xFFF) << 20);
++        /* nops */
++        tramp[3] = 0x00000013;
++        tramp[4] = 0x00000013;
++        tramp[5] = 0x00000013;
++    }
++    else
++    {
++        /* auipc t0, 0 (i.e. t0 <- codeloc) */
++        tramp[0] = 0x00000297;
++        /* ld t1, 16(t0) */
++        tramp[1] = 0x0102b303;
++        /* jalr x0, t1, %lo(fn) */
++        tramp[2] = 0x00030067;
++        /* nop */
++        tramp[3] = 0x00000013;
++        /* fn */
++        tramp[4] = fn;
++        tramp[5] = fn >> 32;
++    }
++    
++    closure->cif = cif;
++    closure->fun = fun;
++    closure->user_data = user_data;
++    __builtin___clear_cache(codeloc, codeloc + FFI_TRAMPOLINE_SIZE);
++    
++    return FFI_OK;
++}
++
++static void copy_struct(char *target, unsigned offset, ffi_abi abi, ffi_type *type, int argn, unsigned arg_offset, ffi_arg *ar, ffi_arg *fpr, int soft_float)
++{
++    ffi_type **elt_typep = type->elements;
++    
++    while(*elt_typep)
++    {
++        ffi_type *elt_type = *elt_typep;
++        unsigned o;
++        char *tp;
++        char *argp;
++        char *fpp;
++        
++        o = ALIGN(offset, elt_type->alignment);
++        arg_offset += o - offset;
++        offset = o;
++        argn += arg_offset / sizeof(ffi_arg);
++        arg_offset = arg_offset % sizeof(ffi_arg);
++        argp = (char *)(ar + argn);
++        fpp = (char *)(argn >= 8 ? ar + argn : fpr + argn);
++        tp = target + offset;
++        
++        if (elt_type->type == FFI_TYPE_DOUBLE && !soft_float)
++            *(double *)tp = *(double *)fpp;
++        else
++            memcpy(tp, argp + arg_offset, elt_type->size);
++        
++        offset += elt_type->size;
++        arg_offset += elt_type->size;
++        elt_typep++;
++        argn += arg_offset / sizeof(ffi_arg);
++        arg_offset = arg_offset % sizeof(ffi_arg);
++    }
++}
++
++/*
++* Decodes the arguments to a function, which will be stored on the
++* stack. AR is the pointer to the beginning of the integer
++* arguments. FPR is a pointer to the area where floating point
++* registers have been saved.
++*
++* RVALUE is the location where the function return value will be
++* stored. CLOSURE is the prepared closure to invoke.
++*
++* This function should only be called from assembly, which is in
++* turn called from a trampoline.
++*
++* Returns the function return flags.
++*
++*/
++int ffi_closure_riscv_inner(ffi_closure *closure, void *rvalue, ffi_arg *ar, ffi_arg *fpr)
++{
++    ffi_cif *cif;
++    void **avaluep;
++    ffi_arg *avalue;
++    ffi_type **arg_types;
++    int i, avn, argn;
++    int soft_float;
++    ffi_arg *argp;
++    size_t z;
++    
++    cif = closure->cif;
++    soft_float = cif->abi == FFI_RV64_SOFT_FLOAT || cif->abi == FFI_RV32_SOFT_FLOAT;
++    avalue = alloca(cif->nargs * sizeof (ffi_arg));
++    avaluep = alloca(cif->nargs * sizeof (ffi_arg));
++    argn = 0;
++    
++    if (cif->rstruct_flag)
++    {
++        rvalue = (void *)ar[0];
++        argn = 1;
++    }
++    
++    i = 0;
++    avn = cif->nargs;
++    arg_types = cif->arg_types;
++    
++    while (i < avn)
++    {
++        z = arg_types[i]->size;
++        if (arg_types[i]->type == FFI_TYPE_FLOAT || arg_types[i]->type == FFI_TYPE_DOUBLE || arg_types[i]->type == FFI_TYPE_LONGDOUBLE)
++        {
++            argp = (argn >= 8 || cif->isvariadic || soft_float) ? ar + argn : fpr + argn;
++            if ((arg_types[i]->type == FFI_TYPE_LONGDOUBLE) && ((uintptr_t)argp & (arg_types[i]->alignment-1)))
++            {
++                argp = (ffi_arg*)ALIGN(argp, arg_types[i]->alignment);
++                argn++;
++            }
++            avaluep[i] = (char *) argp;
++        }
++        else
++        {
++            unsigned type = arg_types[i]->type;
++            
++            if (arg_types[i]->alignment > sizeof(ffi_arg))
++                argn = ALIGN(argn, arg_types[i]->alignment / sizeof(ffi_arg));
++            
++            argp = ar + argn;
++            
++            /* The size of a pointer depends on the ABI */
++            if (type == FFI_TYPE_POINTER)
++                type = (cif->abi == FFI_RV64 || cif->abi == FFI_RV64_SOFT_FLOAT) ? FFI_TYPE_SINT64 : FFI_TYPE_SINT32;
++            if (soft_float && type == FFI_TYPE_FLOAT)
++                type = FFI_TYPE_UINT32;
++            
++            switch (type)
++            {
++                case FFI_TYPE_SINT8:
++                    avaluep[i] = &avalue[i];
++                    *(SINT8 *) &avalue[i] = (SINT8) *argp;
++                    break;
++                    
++                case FFI_TYPE_UINT8:
++                    avaluep[i] = &avalue[i];
++                    *(UINT8 *) &avalue[i] = (UINT8) *argp;
++                    break;
++                    
++                case FFI_TYPE_SINT16:
++                    avaluep[i] = &avalue[i];
++                    *(SINT16 *) &avalue[i] = (SINT16) *argp;
++                    break;
++                    
++                case FFI_TYPE_UINT16:
++                    avaluep[i] = &avalue[i];
++                    *(UINT16 *) &avalue[i] = (UINT16) *argp;
++                    break;
++                    
++                case FFI_TYPE_SINT32:
++                    avaluep[i] = &avalue[i];
++                    *(SINT32 *) &avalue[i] = (SINT32) *argp;
++                    break;
++                    
++                case FFI_TYPE_UINT32:
++                    avaluep[i] = &avalue[i];
++                    *(UINT32 *) &avalue[i] = (UINT32) *argp;
++                    break;
++                    
++                case FFI_TYPE_SINT64:
++                    avaluep[i] = &avalue[i];
++                    *(SINT64 *) &avalue[i] = (SINT64) *argp;
++                    break;
++                    
++                case FFI_TYPE_UINT64:
++                    avaluep[i] = &avalue[i];
++                    *(UINT64 *) &avalue[i] = (UINT64) *argp;
++                    break;
++                    
++                case FFI_TYPE_STRUCT:
++                    if (argn < 8 && arg_types[i]->size <= 2*sizeof(ffi_arg))
++                    {
++                        /* Allocate space to copy structs that were passed in registers */
++                        avaluep[i] = alloca(arg_types[i]->size);
++                        copy_struct(avaluep[i], 0, cif->abi, arg_types[i], argn, 0, ar, fpr, soft_float);
++                        break;
++                    }
++                    else
++                    {
++                        /* The struct was too big to be passed in registers, so it was passed on the stack 
++                           with pointers in the registers. We need to properly pass the pointer AND set
++                           the correct size to increment by! */
++                        avaluep[i] = (void *) *argp;
++                        z = 1;
++                        break;
++                    }
++                    
++                /* Else fall through. */
++                default:
++                    avaluep[i] = (char *) argp;
++                    break;
++            }
++        }
++        argn += ALIGN(z, sizeof(ffi_arg)) / sizeof(ffi_arg);
++        i++;
++    }
++    
++    /* Invoke the closure. */
++    (closure->fun) (cif, rvalue, avaluep, closure->user_data);
++    return cif->flags >> (FFI_FLAG_BITS * 8);
++}
++
++#endif /* FFI_CLOSURES */
+diff -rupN libffi-3.1-orig/src/riscv/ffitarget.h libffi-3.1/src/riscv/ffitarget.h
+--- libffi-3.1-orig/src/riscv/ffitarget.h	1969-12-31 16:00:00.000000000 -0800
++++ libffi-3.1/src/riscv/ffitarget.h	2015-04-13 21:46:21.618106772 -0700
+@@ -0,0 +1,120 @@
++/* -----------------------------------------------------------------*-C-*-
++   ffitarget.h - 2014 Michael Knyszek
++   
++   Target configuration macros for RISC-V.
++
++   Permission is hereby granted, free of charge, to any person obtaining
++   a copy of this software and associated documentation files (the
++   ``Software''), to deal in the Software without restriction, including
++   without limitation the rights to use, copy, modify, merge, publish,
++   distribute, sublicense, and/or sell copies of the Software, and to
++   permit persons to whom the Software is furnished to do so, subject to
++   the following conditions:
++
++   The above copyright notice and this permission notice shall be included
++   in all copies or substantial portions of the Software.
++
++   THE SOFTWARE IS PROVIDED ``AS IS'', WITHOUT WARRANTY OF ANY KIND,
++   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++   NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++   HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++   DEALINGS IN THE SOFTWARE.
++
++   ----------------------------------------------------------------------- */
++
++#ifndef LIBFFI_TARGET_H
++#define LIBFFI_TARGET_H
++
++#ifndef LIBFFI_H
++#error "Please do not include ffitarget.h directly into your source.  Use ffi.h instead."
++#endif
++
++#ifndef __riscv64
++# error We currently only support RV64.
++#endif
++
++#ifdef __LP64__
++# define FFI_SIZEOF_ARG 8
++#else
++# define FFI_SIZEOF_ARG 4
++#endif
++
++#define FFI_FLAG_BITS 2
++
++#ifndef LIBFFI_ASM
++
++typedef unsigned long ffi_arg; 
++typedef   signed long ffi_sarg;
++
++typedef enum ffi_abi {
++  FFI_FIRST_ABI = 0,
++  FFI_RV32,
++  FFI_RV32_SOFT_FLOAT,
++  FFI_RV64,
++  FFI_RV64_SOFT_FLOAT,
++  FFI_LAST_ABI,
++
++#ifdef __riscv64
++  #ifdef __riscv_soft_float
++    FFI_DEFAULT_ABI = FFI_RV64_SOFT_FLOAT
++  #else
++    FFI_DEFAULT_ABI = FFI_RV64
++  #endif
++#else
++  #ifdef __riscv_soft_float
++    FFI_DEFAULT_ABI = FFI_RV32_SOFT_FLOAT
++  #else
++    FFI_DEFAULT_ABI = FFI_RV32
++  #endif
++#endif /* __riscv_soft_float */
++} ffi_abi;
++
++#else
++
++#ifdef __riscv64
++  #define REG_S sd
++  #define REG_L ld
++#else
++  #define REG_S sw
++  #define REG_L lw
++#endif
++
++#endif /* LIBFFI_ASM */
++
++#define FFI_ARGS_D FFI_TYPE_DOUBLE
++#define FFI_ARGS_F FFI_TYPE_FLOAT
++#define FFI_ARGS_DD ((FFI_TYPE_DOUBLE << FFI_FLAG_BITS) + FFI_TYPE_DOUBLE)
++#define FFI_ARGS_FF ((FFI_TYPE_FLOAT << FFI_FLAG_BITS) + FFI_TYPE_FLOAT)
++#define FFI_ARGS_FD ((FFI_TYPE_DOUBLE << FFI_FLAG_BITS) + FFI_TYPE_FLOAT)
++#define FFI_ARGS_DF ((FFI_TYPE_FLOAT << FFI_FLAG_BITS) + FFI_TYPE_DOUBLE)
++#define FFI_TYPE_SMALLSTRUCT FFI_TYPE_UINT8
++#define FFI_TYPE_SMALLSTRUCT2 FFI_TYPE_SINT8
++#define FFI_TYPE_STRUCT_D (FFI_TYPE_STRUCT + (FFI_ARGS_D << 4))
++#define FFI_TYPE_STRUCT_F (FFI_TYPE_STRUCT + (FFI_ARGS_F << 4))
++#define FFI_TYPE_STRUCT_DD (FFI_TYPE_STRUCT + (FFI_ARGS_DD << 4))
++#define FFI_TYPE_STRUCT_FF (FFI_TYPE_STRUCT + (FFI_ARGS_FF << 4))
++#define FFI_TYPE_STRUCT_FD (FFI_TYPE_STRUCT + (FFI_ARGS_FD << 4))
++#define FFI_TYPE_STRUCT_DF (FFI_TYPE_STRUCT + (FFI_ARGS_DF << 4))
++#define FFI_TYPE_STRUCT_SMALL (FFI_TYPE_STRUCT + (5 << 4))
++#define FFI_TYPE_STRUCT_SMALL2 (FFI_TYPE_STRUCT + (6 << 4))
++#define FFI_TYPE_STRUCT_D_SOFT (FFI_TYPE_STRUCT_D + 256)
++#define FFI_TYPE_STRUCT_F_SOFT (FFI_TYPE_STRUCT_F + 256)
++#define FFI_TYPE_STRUCT_DD_SOFT (FFI_TYPE_STRUCT_DD + 256)
++#define FFI_TYPE_STRUCT_FF_SOFT (FFI_TYPE_STRUCT_FF + 256)
++#define FFI_TYPE_STRUCT_FD_SOFT (FFI_TYPE_STRUCT_FD + 256)
++#define FFI_TYPE_STRUCT_DF_SOFT (FFI_TYPE_STRUCT_DF + 256)
++#define FFI_TYPE_STRUCT_SOFT 16
++
++/* ---- Definitions for closures ----------------------------------------- */
++
++#define FFI_CLOSURES 1
++#define FFI_TRAMPOLINE_SIZE 24
++#define FFI_NATIVE_RAW_API 0
++#define FFI_EXTRA_CIF_FIELDS unsigned rstruct_flag; char isvariadic
++#define FFI_TARGET_SPECIFIC_VARIADIC 1
++
++#endif
++
+diff -rupN libffi-3.1-orig/src/riscv/sysv.S libffi-3.1/src/riscv/sysv.S
+--- libffi-3.1-orig/src/riscv/sysv.S	1969-12-31 16:00:00.000000000 -0800
++++ libffi-3.1/src/riscv/sysv.S	2015-04-13 21:46:21.618106772 -0700
+@@ -0,0 +1,782 @@
++/* -----------------------------------------------------------------------
++   ffi.c - Copyright (c) 2015 Michael Knyszek <mknyszek@berkeley.edu>
++                         2015 Andrew Waterman <waterman@cs.berkeley.edu>
++   Based on MIPS N32/64 port
++   
++   RISC-V Foreign Function Interface 
++
++   Permission is hereby granted, free of charge, to any person obtaining
++   a copy of this software and associated documentation files (the
++   ``Software''), to deal in the Software without restriction, including
++   without limitation the rights to use, copy, modify, merge, publish,
++   distribute, sublicense, and/or sell copies of the Software, and to
++   permit persons to whom the Software is furnished to do so, subject to
++   the following conditions:
++
++   The above copyright notice and this permission notice shall be included
++   in all copies or substantial portions of the Software.
++
++   THE SOFTWARE IS PROVIDED ``AS IS'', WITHOUT WARRANTY OF ANY KIND,
++   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++   NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++   HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++   DEALINGS IN THE SOFTWARE.
++   ----------------------------------------------------------------------- */
++
++#define LIBFFI_ASM  
++#include <fficonfig.h>
++#include <ffi.h>
++    
++#define callback a0
++#define ecif     a1
++#define bytes    a2
++#define flags    a3
++#define rvalue   a4
++#define fn       a5
++#define fp       s0
++
++#define FFI_SIZEOF_ARG_X0 (0 * FFI_SIZEOF_ARG)
++#define FFI_SIZEOF_ARG_X1 (1 * FFI_SIZEOF_ARG)
++#define FFI_SIZEOF_ARG_X2 (2 * FFI_SIZEOF_ARG)
++#define FFI_SIZEOF_ARG_X3 (3 * FFI_SIZEOF_ARG)
++#define FFI_SIZEOF_ARG_X4 (4 * FFI_SIZEOF_ARG)
++#define FFI_SIZEOF_ARG_X5 (5 * FFI_SIZEOF_ARG)
++#define FFI_SIZEOF_ARG_X6 (6 * FFI_SIZEOF_ARG)
++#define FFI_SIZEOF_ARG_X7 (7 * FFI_SIZEOF_ARG)
++#define FFI_SIZEOF_ARG_X8 (8 * FFI_SIZEOF_ARG)
++
++#define ARG_MASK 65535
++
++#define FFI_FLAG_BITS_X0 (0 * FFI_FLAG_BITS)
++#define FFI_FLAG_BITS_X1 (1 * FFI_FLAG_BITS)
++#define FFI_FLAG_BITS_X2 (2 * FFI_FLAG_BITS)
++#define FFI_FLAG_BITS_X3 (3 * FFI_FLAG_BITS)
++#define FFI_FLAG_BITS_X4 (4 * FFI_FLAG_BITS)
++#define FFI_FLAG_BITS_X5 (5 * FFI_FLAG_BITS)
++#define FFI_FLAG_BITS_X6 (6 * FFI_FLAG_BITS)
++#define FFI_FLAG_BITS_X7 (7 * FFI_FLAG_BITS)
++
++# Stack pointer needs to be 16-byte aligned, so frame size is rounded up
++#define SIZEOF_FRAME (6 * FFI_SIZEOF_ARG)
++
++    .text
++    .align  2
++    .globl  ffi_call_asm
++    .type   ffi_call_asm, @function
++ffi_call_asm:
++    .cfi_startproc
++    
++    ### Prologue
++    
++    # a0 - ffi_prep_args pointer
++    # a1 - extended_cif pointer
++    # a2 - bytes
++    # a3 - flags
++    # a4 - rvalue
++    # a5 - function ptr
++    
++    add     sp, sp, -SIZEOF_FRAME   # move stack pointer by frame size
++                                    # must be 16-byte aligned 
++    
++    # stack ptr points to first argument on stack,
++    # but there should be no arguments on the stack
++    
++    .cfi_def_cfa_offset SIZEOF_FRAME
++    
++    REG_S   ra,      FFI_SIZEOF_ARG_X5(sp)   # save return address
++    REG_S   fp,      FFI_SIZEOF_ARG_X4(sp)   # save frame pointer
++    REG_S   flags,   FFI_SIZEOF_ARG_X3(sp)   # save flags
++    REG_S   fn,      FFI_SIZEOF_ARG_X2(sp)   # save function pointer
++    REG_S   rvalue,  FFI_SIZEOF_ARG_X1(sp)   # save return value pointer
++    
++    .cfi_offset 1, -8
++    .cfi_offset 8, -16
++    
++    add     fp, sp, SIZEOF_FRAME     # new frame pointer is old stack pointer
++    
++    .cfi_def_cfa 8, 0
++    
++    add     t4, callback, zero       # function ptr to prep_args
++    
++    # Here we're setting up our argspace and its size
++    
++    add     t0, bytes, 15      # make sure it is aligned 
++    andi    t0, t0,   -16      # to a 16 byte boundry
++
++thirtytwo:
++    sub     sp, sp, t0 # move the stack pointer to reflect the arg space
++    
++    # a0 is the stack with proper arg space allocated
++    add     a0, sp, zero
++    
++    # a1 is ecif
++    # a2 is bytes
++    # a3 is flags
++
++    jalr    t4  # call ffi_prep_args
++    
++    REG_L   t0, -FFI_SIZEOF_ARG_X3(fp)  # load the flags word
++    srli    t2, t0, 16                 # shift our return type into t2
++    
++    li      t1, ARG_MASK
++    and     t0, t0, t1                 # mask out the arg types into t0
++
++    # time to load the arguments for the call
++
++#ifndef __riscv_soft_float
++
++####################
++## SET ARGUMENT 0 ##
++####################
++
++set_arg0:
++    srli    t1, t0, FFI_FLAG_BITS_X0 # Shift to get the bits for this argument
++    andi    t1, t1, 3               # Mask out the bits for this argument
++    
++    # when its zero, it means its just a word-sized int/ptr
++    bne     t1, zero, set_arg0_float 
++    REG_L   a0, FFI_SIZEOF_ARG_X0(sp) # load argument
++    j       set_arg1
++    
++set_arg0_float:
++    addi    t1, t1, -2
++    
++    # when its zero, it means its just a word-sized float
++    bne     t1, zero, set_arg0_double
++    flw     fa0, FFI_SIZEOF_ARG_X0(sp) # load argument
++    j       set_arg1
++    
++set_arg0_double:
++    # otherwise it must be a double we're dealing with
++    fld     fa0, FFI_SIZEOF_ARG_X0(sp)
++
++####################
++## SET ARGUMENT 1 ##
++####################
++
++set_arg1:
++    srli    t1, t0, FFI_FLAG_BITS_X1 # Shift to get the bits for this argument
++    andi    t1, t1, 3               # Mask out the bits for this argument
++    
++    # when its zero, it means its just a word-sized int/ptr
++    bne     t1, zero, set_arg1_float 
++    REG_L   a1, FFI_SIZEOF_ARG_X1(sp) # load argument
++    j       set_arg2
++    
++set_arg1_float:
++    addi    t1, t1, -2
++    
++    # when its zero, it means its just a word-sized float
++    bne     t1, zero, set_arg1_double
++    flw     fa1, FFI_SIZEOF_ARG_X1(sp) # load argument
++    j       set_arg2
++    
++set_arg1_double:
++    # otherwise it must be a double we're dealing with
++    fld     fa1, FFI_SIZEOF_ARG_X1(sp)
++
++####################
++## SET ARGUMENT 2 ##
++####################
++
++set_arg2:
++    srli    t1, t0, FFI_FLAG_BITS_X2 # Shift to get the bits for this argument
++    andi    t1, t1, 3               # Mask out the bits for this argument
++    
++    # when its zero, it means its just a word-sized int/ptr
++    bne     t1, zero, set_arg2_float 
++    REG_L   a2, FFI_SIZEOF_ARG_X2(sp) # load argument
++    j       set_arg3
++    
++set_arg2_float:
++    addi    t1, t1, -2
++    
++    # when its zero, it means its just a word-sized float
++    bne     t1, zero, set_arg2_double
++    flw     fa2, FFI_SIZEOF_ARG_X2(sp) # load argument
++    j       set_arg3
++    
++set_arg2_double:
++    # otherwise it must be a double we're dealing with
++    fld     fa2, FFI_SIZEOF_ARG_X2(sp)
++
++####################
++## SET ARGUMENT 3 ##
++####################
++
++set_arg3:
++    srli    t1, t0, FFI_FLAG_BITS_X3 # Shift to get the bits for this argument
++    andi    t1, t1, 3               # Mask out the bits for this argument
++    
++    # when its zero, it means its just a word-sized int/ptr
++    bne     t1, zero, set_arg3_float 
++    REG_L   a3, FFI_SIZEOF_ARG_X3(sp) # load argument
++    j       set_arg4
++    
++set_arg3_float:
++    addi    t1, t1, -2
++    
++    # when its zero, it means its just a word-sized float
++    bne     t1, zero, set_arg3_double
++    flw     fa3, FFI_SIZEOF_ARG_X3(sp) # load argument
++    j       set_arg4
++    
++set_arg3_double:
++    # otherwise it must be a double we're dealing with
++    fld     fa3, FFI_SIZEOF_ARG_X3(sp)
++
++####################
++## SET ARGUMENT 4 ##
++####################
++
++set_arg4:
++    srli    t1, t0, FFI_FLAG_BITS_X4 # Shift to get the bits for this argument
++    andi    t1, t1, 3               # Mask out the bits for this argument
++    
++    # when its zero, it means its just a word-sized int/ptr
++    bne     t1, zero, set_arg4_float 
++    REG_L   a4, FFI_SIZEOF_ARG_X4(sp) # load argument
++    j       set_arg5
++    
++set_arg4_float:
++    addi    t1, t1, -2
++    
++    # when its zero, it means its just a word-sized float
++    bne     t1, zero, set_arg4_double
++    flw     fa4, FFI_SIZEOF_ARG_X4(sp) # load argument
++    j       set_arg5
++    
++set_arg4_double:
++    # otherwise it must be a double we're dealing with
++    fld     fa4, FFI_SIZEOF_ARG_X4(sp)
++
++####################
++## SET ARGUMENT 5 ##
++####################
++
++set_arg5:
++    srli    t1, t0, FFI_FLAG_BITS_X5 # Shift to get the bits for this argument
++    andi    t1, t1, 3               # Mask out the bits for this argument
++    
++    # when its zero, it means its just a word-sized int/ptr
++    bne     t1, zero, set_arg5_float 
++    REG_L   a5, FFI_SIZEOF_ARG_X5(sp) # load argument
++    j       set_arg6
++    
++set_arg5_float:
++    addi    t1, t1, -2
++    
++    # when its zero, it means its just a word-sized float
++    bne     t1, zero, set_arg5_double
++    flw     fa5, FFI_SIZEOF_ARG_X5(sp) # load argument
++    j       set_arg6
++    
++set_arg5_double:
++    # otherwise it must be a double we're dealing with
++    fld     fa5, FFI_SIZEOF_ARG_X5(sp)
++
++####################
++## SET ARGUMENT 6 ##
++####################
++
++set_arg6:
++    srli    t1, t0, FFI_FLAG_BITS_X6 # Shift to get the bits for this argument
++    andi    t1, t1, 3               # Mask out the bits for this argument
++    
++    # when its zero, it means its just a word-sized int/ptr
++    bne     t1, zero, set_arg6_float 
++    REG_L   a6, FFI_SIZEOF_ARG_X6(sp) # load argument
++    j       set_arg7
++    
++set_arg6_float:
++    addi    t1, t1, -2
++    
++    # when its zero, it means its just a word-sized float
++    bne     t1, zero, set_arg6_double
++    flw     fa6, FFI_SIZEOF_ARG_X6(sp) # load argument
++    j       set_arg7
++    
++set_arg6_double:
++    # otherwise it must be a double we're dealing with
++    fld     fa6, FFI_SIZEOF_ARG_X6(sp)
++
++####################
++## SET ARGUMENT 7 ##
++####################
++
++set_arg7:
++    srli    t1, t0, FFI_FLAG_BITS_X7 # Shift to get the bits for this argument
++    andi    t1, t1, 3               # Mask out the bits for this argument
++    
++    # when its zero, it means its just a word-sized int/ptr
++    bne     t1, zero, set_arg7_float 
++    REG_L   a7, FFI_SIZEOF_ARG_X7(sp) # load argument
++    j       call_it
++    
++set_arg7_float:
++    addi    t1, t1, -2
++    
++    # when its zero, it means its just a word-sized float
++    bne     t1, zero, set_arg7_double
++    flw     fa7, FFI_SIZEOF_ARG_X7(sp) # load argument
++    j       call_it
++    
++set_arg7_double:
++    # otherwise it must be a double we're dealing with
++    fld     fa7, FFI_SIZEOF_ARG_X7(sp)
++    
++#else
++
++## START RISCV SOFT-FLOAT LOADING ##
++
++    # In the soft-float case, we have no primitive datatype
++    # that has a size of >8 bytes. Therefore, we can 
++    # just load everything quite easily and nicely.
++
++    REG_L   a0, FFI_SIZEOF_ARG_X0(sp) # load argument
++    REG_L   a1, FFI_SIZEOF_ARG_X1(sp) # load argument
++    REG_L   a2, FFI_SIZEOF_ARG_X2(sp) # load argument
++    REG_L   a3, FFI_SIZEOF_ARG_X3(sp) # load argument
++    REG_L   a4, FFI_SIZEOF_ARG_X4(sp) # load argument
++    REG_L   a5, FFI_SIZEOF_ARG_X5(sp) # load argument
++    REG_L   a6, FFI_SIZEOF_ARG_X6(sp) # load argument
++    REG_L   a7, FFI_SIZEOF_ARG_X7(sp) # load argument
++
++#endif  
++
++call_it:
++    # First, we fix the stack pointer to point to the first argument
++    # passed on the stack.
++    add     sp, sp, FFI_SIZEOF_ARG_X8
++
++    # Load the function pointer
++    REG_L   t4, -FFI_SIZEOF_ARG_X4(fp)
++
++    # When the return value pointer is NULL, assume no return value.
++    REG_L   t1, -FFI_SIZEOF_ARG_X5(fp)
++    beq     t1, zero, return_void
++    
++    # is the return type an int? if not, jump ahead
++    ori     t3, zero, FFI_TYPE_INT
++    bne     t2, t3,   return_int32
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0, -FFI_SIZEOF_ARG_X5(fp)
++    REG_S   a0, 0(t0)
++    j       epilogue
++
++return_int32:
++    ori     t3, zero, FFI_TYPE_SINT32
++#ifndef __riscv_soft_float
++    bne     t2, t3, return_float
++#else
++    bne     t2, t3, return_struct_d_soft
++#endif
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0, -FFI_SIZEOF_ARG_X5(fp)
++    sw      a0, 0(t0)
++    j       epilogue
++    
++#ifndef __riscv_soft_float
++return_float:
++    # is the return type a float? if not, jump ahead
++    ori     t3, zero, FFI_TYPE_FLOAT
++    bne     t2, t3, return_double
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0,  -FFI_SIZEOF_ARG_X5(fp)
++    fsw     fa0, FFI_SIZEOF_ARG_X0(t0)
++    j       epilogue
++
++return_double:
++    # is the return type a double? if not, give up
++    ori     t3, zero, FFI_TYPE_DOUBLE
++    bne     t2, t3, return_struct_d
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0,  -FFI_SIZEOF_ARG_X5(fp)
++    fsd     fa0, FFI_SIZEOF_ARG_X0(t0)
++    j       epilogue
++
++### Handle struct special cases (hard float)
++
++  # Here the struct to return is less than
++  # or equal to 2 pointer-words in size. We
++  # need to specifically handle the floats/doubles.
++
++return_struct_d:
++    # is the return type a struct with a double? if not, give up
++    ori     t3, zero, FFI_TYPE_STRUCT_D
++    bne     t2, t3,   return_struct_f
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0,  -FFI_SIZEOF_ARG_X5(fp)
++    fsd     fa0, FFI_SIZEOF_ARG_X0(t0)
++    j       epilogue
++    
++return_struct_f:
++    # is the return type a struct with a float? if not, give up
++    ori     t3, zero, FFI_TYPE_STRUCT_F
++    bne     t2, t3,   return_struct_d_d
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0,  -FFI_SIZEOF_ARG_X5(fp)
++    fsw     fa0, FFI_SIZEOF_ARG_X0(t0)
++    j       epilogue
++    
++return_struct_d_d:
++    # is the return type a struct with two doubles? if not, give up
++    ori     t3, zero, FFI_TYPE_STRUCT_DD
++    bne     t2, t3,   return_struct_f_f
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0,  -FFI_SIZEOF_ARG_X5(fp)
++    fsd     fa0, FFI_SIZEOF_ARG_X0(t0)
++    fsd     fa1, FFI_SIZEOF_ARG_X1(t0)
++    j       epilogue
++    
++return_struct_f_f:
++    # is the return type a struct with two floats? if not, give up
++    ori     t3, zero, FFI_TYPE_STRUCT_FF
++    bne     t2, t3,   return_struct_d_f
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0,  -FFI_SIZEOF_ARG_X5(fp)
++    fsw     fa0, FFI_SIZEOF_ARG_X0(t0)
++    fsw     fa1, FFI_SIZEOF_ARG_X1(t0)
++    j       epilogue
++    
++return_struct_d_f:
++    # is the return type a struct with a double then float? if not, give up
++    ori     t3, zero, FFI_TYPE_STRUCT_DF
++    bne     t2, t3,   return_struct_f_d
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0,  -FFI_SIZEOF_ARG_X5(fp)
++    fsd     fa0, FFI_SIZEOF_ARG_X0(t0)
++    fsw     fa1, FFI_SIZEOF_ARG_X1(t0)
++    j       epilogue
++    
++return_struct_f_d:
++    # is the return type a struct with a float then double? if not, give up
++    ori     t3, zero, FFI_TYPE_STRUCT_FD
++    bne     t2, t3,   return_struct_small
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0,  -FFI_SIZEOF_ARG_X5(fp)
++    fsw     fa0, FFI_SIZEOF_ARG_X0(t0)
++    fsd     fa1, FFI_SIZEOF_ARG_X1(t0)
++    j       epilogue
++    
++#else
++
++### Handle struct special cases (soft float)
++
++  # Here the struct to return is less than
++  # or equal to 2 pointer-words in size. We
++  # need to specifically handle the floats/doubles.
++
++return_struct_d_soft:
++    # is the return type a struct with a double? if not, give up
++    ori     t3, zero, FFI_TYPE_STRUCT_D_SOFT
++    bne     t2, t3,   return_struct_f_soft
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0,  -FFI_SIZEOF_ARG_X5(fp)
++    sd      a0,  FFI_SIZEOF_ARG_X0(t0)
++    j       epilogue
++    
++return_struct_f_soft:
++    # is the return type a struct with a float? if not, give up
++    ori     t3, zero, FFI_TYPE_STRUCT_F_SOFT
++    bne     t2, t3,   return_struct_d_d_soft
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0,  -FFI_SIZEOF_ARG_X5(fp)
++    sw      a0,  FFI_SIZEOF_ARG_X0(t0)
++    j       epilogue
++    
++return_struct_d_d_soft:
++    # is the return type a struct with two doubles? if not, give up
++    ori     t3, zero, FFI_TYPE_STRUCT_DD_SOFT
++    bne     t2, t3,   return_struct_f_f_soft
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0,  -FFI_SIZEOF_ARG_X5(fp)
++    sd      a0,  FFI_SIZEOF_ARG_X0(t0)
++    sd      a1,  FFI_SIZEOF_ARG_X1(t0)
++    j       epilogue
++    
++return_struct_f_f_soft:
++    # is the return type a struct with two floats? if not, give up
++    ori     t3, zero, FFI_TYPE_STRUCT_FF_SOFT
++    bne     t2, t3,   return_struct_d_f_soft
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0,  -FFI_SIZEOF_ARG_X5(fp)
++    sw      a0,  FFI_SIZEOF_ARG_X0(t0)
++    sw      a1,  FFI_SIZEOF_ARG_X1(t0)
++    j       epilogue
++    
++return_struct_d_f_soft:
++    # is the return type a struct with a double then float? if not, give up
++    ori     t3, zero, FFI_TYPE_STRUCT_DF_SOFT
++    bne     t2, t3,   return_struct_f_d_soft
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0,  -FFI_SIZEOF_ARG_X5(fp)
++    sd      a0,  FFI_SIZEOF_ARG_X0(t0)
++    sw      a1,  FFI_SIZEOF_ARG_X1(t0)
++    j       epilogue
++    
++return_struct_f_d_soft:
++    # is the return type a struct with a float then double? if not, give up
++    ori     t3, zero, FFI_TYPE_STRUCT_FD_SOFT
++    bne     t2, t3,   return_struct_small
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0,  -FFI_SIZEOF_ARG_X5(fp)
++    sw      a0,  FFI_SIZEOF_ARG_X0(t0)
++    sd      a1,  FFI_SIZEOF_ARG_X1(t0)
++    j       epilogue
++    
++#endif    
++
++### Handle struct special cases (tiny structs)
++
++return_struct_small:
++    # is the return type a struct with a float then double? if not, give up
++    ori     t3, zero, FFI_TYPE_STRUCT_SMALL
++    bne     t2, t3,   return_struct_small2
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0,  -FFI_SIZEOF_ARG_X5(fp)
++    REG_S   a0,  FFI_SIZEOF_ARG_X0(t0)
++    j       epilogue
++    
++return_struct_small2:
++    # is the return type a struct with a float then double? if not, give up
++    ori     t3, zero, FFI_TYPE_STRUCT_SMALL2
++    bne     t2, t3,   return_struct
++    
++    jalr    t4 # call the function
++    
++    # We reload the return pointer because it was in a temp reg and
++    # there was just a function call.
++    REG_L   t0,  -FFI_SIZEOF_ARG_X5(fp)
++    REG_S   a0,  FFI_SIZEOF_ARG_X0(t0)
++    REG_S   a1,  FFI_SIZEOF_ARG_X1(t0)
++    j       epilogue
++    
++### Any other struct is returned through memory
++return_struct: 
++return_void:   
++    jalr    t4 # call the function
++   
++epilogue:   
++    add     sp, fp, zero               # Fix stack pointer
++    REG_L   fp, -FFI_SIZEOF_ARG_X2(sp)  # Restore frame pointer
++    REG_L   ra, -FFI_SIZEOF_ARG_X1(sp)  # Restore return address      
++    jr      ra
++    
++    .cfi_endproc
++    .size   ffi_call_asm, .-ffi_call_asm
++
++    
++/* ffi_closure_asm. Expects address of the passed-in ffi_closure in t0. */
++
++#define SIZEOF_FRAME2 (20 * FFI_SIZEOF_ARG)
++#define A7_OFF2       (19 * FFI_SIZEOF_ARG)
++#define A6_OFF2       (18 * FFI_SIZEOF_ARG)
++#define A5_OFF2       (17 * FFI_SIZEOF_ARG)
++#define A4_OFF2       (16 * FFI_SIZEOF_ARG)
++#define A3_OFF2       (15 * FFI_SIZEOF_ARG)
++#define A2_OFF2       (14 * FFI_SIZEOF_ARG)
++#define A1_OFF2       (13 * FFI_SIZEOF_ARG)
++#define A0_OFF2       (12 * FFI_SIZEOF_ARG)
++#define FA7_OFF2      (11 * FFI_SIZEOF_ARG)
++#define FA6_OFF2      (10 * FFI_SIZEOF_ARG)
++#define FA5_OFF2      ( 9 * FFI_SIZEOF_ARG)
++#define FA4_OFF2      ( 8 * FFI_SIZEOF_ARG)
++#define FA3_OFF2      ( 7 * FFI_SIZEOF_ARG)
++#define FA2_OFF2      ( 6 * FFI_SIZEOF_ARG)
++#define FA1_OFF2      ( 5 * FFI_SIZEOF_ARG)
++#define FA0_OFF2      ( 4 * FFI_SIZEOF_ARG)
++#define V1_OFF2       ( 3 * FFI_SIZEOF_ARG)
++#define V0_OFF2       ( 2 * FFI_SIZEOF_ARG)
++#define RA_OFF2       ( 1 * FFI_SIZEOF_ARG)
++
++    .align 2
++    .globl ffi_closure_asm
++    .type ffi_closure_asm, @function
++ffi_closure_asm:
++    .cfi_startproc
++
++    addi    sp,  sp, -SIZEOF_FRAME2
++    
++    .cfi_def_cfa_offset SIZEOF_FRAME2
++    
++    REG_S   ra,  RA_OFF2(sp) # Save return address
++    
++    .cfi_offset  1, -19*FFI_SIZEOF_ARG
++    .cfi_def_cfa 2, SIZEOF_FRAME2
++    
++    # Store all possible argument registers. If there are more than
++    # fit in registers, then they were stored on the stack.
++    REG_S   a0,  A0_OFF2(sp)
++    REG_S   a1,  A1_OFF2(sp)
++    REG_S   a2,  A2_OFF2(sp)
++    REG_S   a3,  A3_OFF2(sp)
++    REG_S   a4,  A4_OFF2(sp)
++    REG_S   a5,  A5_OFF2(sp)
++    REG_S   a6,  A6_OFF2(sp)
++    REG_S   a7,  A7_OFF2(sp)
++    
++    # Store all possible float/double registers.
++    fsd     fa0, FA0_OFF2(sp)
++    fsd     fa1, FA1_OFF2(sp)
++    fsd     fa2, FA2_OFF2(sp)
++    fsd     fa3, FA3_OFF2(sp)
++    fsd     fa4, FA4_OFF2(sp)
++    fsd     fa5, FA5_OFF2(sp)
++    fsd     fa6, FA6_OFF2(sp)
++    fsd     fa7, FA7_OFF2(sp)
++    
++    # Call ffi_closure_riscv_inner to do the real work.
++    move    a0, t0 # Pointer to the ffi_closure
++    addi    a1, sp, V0_OFF2
++    addi    a2, sp, A0_OFF2
++    addi    a3, sp, FA0_OFF2
++    call    ffi_closure_riscv_inner
++    
++    # Return flags are in a0
++    li      t0, FFI_TYPE_INT
++    bne     a0, t0, cls_retint32
++    REG_L   a0, V0_OFF2(sp)
++    j       cls_epilogue
++    
++cls_retint32:
++    li      t0, FFI_TYPE_SINT32
++    bne     a0, t0, cls_retfloat
++    lw      a0, V0_OFF2(sp)
++    j       cls_epilogue
++    
++cls_retfloat:
++    li      t0, FFI_TYPE_FLOAT
++    bne     a0, t0, cls_retdouble
++    flw     fa0, V0_OFF2(sp)
++    j       cls_epilogue
++    
++cls_retdouble:
++    li      t0,  FFI_TYPE_DOUBLE
++    bne     a0,  t0, cls_retstruct_d
++    fld     fa0, V0_OFF2(sp)
++    j       cls_epilogue
++    
++cls_retstruct_d:
++    li      t0,  FFI_TYPE_STRUCT_D
++    bne     a0,  t0, cls_retstruct_f
++    fld     fa0, V0_OFF2(sp)
++    j       cls_epilogue
++    
++cls_retstruct_f:
++    li      t0,  FFI_TYPE_STRUCT_F
++    bne     a0,  t0, cls_retstruct_d_d
++    flw     fa0, V0_OFF2(sp)
++    j       cls_epilogue
++    
++cls_retstruct_d_d:
++    li      t0,  FFI_TYPE_STRUCT_DD
++    bne     a0,  t0, cls_retstruct_f_f
++    fld     fa0, V0_OFF2(sp)
++    fld     fa1, V1_OFF2(sp)
++    j       cls_epilogue
++    
++cls_retstruct_f_f:
++    li      t0,  FFI_TYPE_STRUCT_FF
++    bne     a0,  t0, cls_retstruct_d_f
++    flw     fa0, V0_OFF2(sp)
++    flw     fa1, V1_OFF2(sp)
++    j       cls_epilogue
++    
++cls_retstruct_d_f:
++    li      t0,  FFI_TYPE_STRUCT_DF
++    bne     a0,  t0, cls_retstruct_f_d
++    fld     fa0, V0_OFF2(sp)
++    flw     fa1, V1_OFF2(sp)
++    j       cls_epilogue
++    
++cls_retstruct_f_d:
++    li      t0,  FFI_TYPE_STRUCT_FD
++    bne     a0,  t0, cls_retstruct_small2
++    flw     fa0, V0_OFF2(sp)
++    fld     fa1, V1_OFF2(sp)
++    j       cls_epilogue
++    
++cls_retstruct_small2:
++    REG_L   a0, V0_OFF2(sp)
++    REG_L   a1, V1_OFF2(sp)
++    
++# Epilogue
++cls_epilogue:
++    REG_L   ra, RA_OFF2(sp) # Restore return address
++    addi    sp, sp, SIZEOF_FRAME2
++    ret
++    
++    .cfi_endproc
++    .size ffi_closure_asm, .-ffi_closure_asm
+diff -rupN libffi-3.1-orig/testsuite/libffi.call/many3.c libffi-3.1/testsuite/libffi.call/many3.c
+--- libffi-3.1-orig/testsuite/libffi.call/many3.c	1969-12-31 16:00:00.000000000 -0800
++++ libffi-3.1/testsuite/libffi.call/many3.c	2015-04-13 21:46:21.622106824 -0700
+@@ -0,0 +1,59 @@
++/* Area:	ffi_call
++   Purpose:	Check return value int, with many arguments
++   Limitations:	none.
++   PR:		none.
++   Originator:	From the original ffitest.c  */
++
++/* { dg-do run } */
++#include "ffitest.h"
++
++#include <stdlib.h>
++//#include <int.h>
++#include <math.h>
++
++static int ABI_ATTR many(int f1, int f2, int f3, int f4, int f5, int f6, int f7, int f8, int f9, int f10, int f11, int f12, int f13)
++{
++#if 0
++  printf("%f %f %f %f %f %f %f %f %f %f %f %f %f\n",
++	 (double) f1, (double) f2, (double) f3, (double) f4, (double) f5, 
++	 (double) f6, (double) f7, (double) f8, (double) f9, (double) f10,
++	 (double) f11, (double) f12, (double) f13);
++#endif
++
++  return f1+f2+f3+f4+f5+f6+f7+f8+f9+f10+f11+f12+f13;
++}
++
++int main (void)
++{
++  ffi_cif cif;
++  ffi_type *args[13];
++  void *values[13];
++  int fa[13];
++  int f, ff;
++  int i;
++
++  for (i = 0; i < 13; i++)
++    {
++      args[i] = &ffi_type_sint;
++      values[i] = &fa[i];
++      fa[i] = (int) i;
++    }
++
++    /* Initialize the cif */
++    CHECK(ffi_prep_cif(&cif, ABI_NUM, 13,
++		       &ffi_type_sint, args) == FFI_OK);
++
++    ffi_call(&cif, FFI_FN(many), &f, values);
++
++    ff =  many(fa[0], fa[1],
++	       fa[2], fa[3],
++	       fa[4], fa[5],
++	       fa[6], fa[7],
++	       fa[8], fa[9],
++	       fa[10],fa[11],fa[12]);
++
++    if (f == ff)
++      exit(0);
++    else
++      abort();
++}
+diff -rupN libffi-3.1-orig/testsuite/Makefile.am libffi-3.1/testsuite/Makefile.am
+--- libffi-3.1-orig/testsuite/Makefile.am	2014-04-25 10:45:13.000000000 -0700
++++ libffi-3.1/testsuite/Makefile.am	2015-04-14 01:26:45.084389993 -0700
+@@ -34,7 +34,7 @@ libffi.call/cls_12byte.c libffi.call/cls
+ libffi.call/cls_align_longdouble_split2.c libffi.call/return_dbl2.c	\
+ libffi.call/return_fl3.c libffi.call/stret_medium.c			\
+ libffi.call/nested_struct6.c libffi.call/closure_fn3.c			\
+-libffi.call/float3.c libffi.call/many2.c				\
++libffi.call/float3.c libffi.call/many2.c libffi.call/many3.c		\
+ libffi.call/closure_simple.c libffi.call/cls_align_uint16.c		\
+ libffi.call/cls_9byte1.c libffi.call/closure_fn6.c			\
+ libffi.call/cls_double_va.c libffi.call/cls_align_pointer.c		\
+diff -rupN libffi-3.1-orig/testsuite/Makefile.in libffi-3.1/testsuite/Makefile.in
+--- libffi-3.1-orig/testsuite/Makefile.in	2014-05-19 06:44:04.000000000 -0700
++++ libffi-3.1/testsuite/Makefile.in	2015-04-14 01:26:45.084389993 -0700
+@@ -1,4 +1,4 @@
+-# Makefile.in generated by automake 1.13.4 from Makefile.am.
++# Makefile.in generated by automake 1.14.1 from Makefile.am.
+ # @configure_input@
+ 
+ # Copyright (C) 1994-2013 Free Software Foundation, Inc.
+@@ -297,7 +297,7 @@ libffi.call/cls_12byte.c libffi.call/cls
+ libffi.call/cls_align_longdouble_split2.c libffi.call/return_dbl2.c	\
+ libffi.call/return_fl3.c libffi.call/stret_medium.c			\
+ libffi.call/nested_struct6.c libffi.call/closure_fn3.c			\
+-libffi.call/float3.c libffi.call/many2.c				\
++libffi.call/float3.c libffi.call/many2.c libffi.call/many3.c		\
+ libffi.call/closure_simple.c libffi.call/cls_align_uint16.c		\
+ libffi.call/cls_9byte1.c libffi.call/closure_fn6.c			\
+ libffi.call/cls_double_va.c libffi.call/cls_align_pointer.c		\

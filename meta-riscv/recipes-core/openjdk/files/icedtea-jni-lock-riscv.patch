@@ -1,0 +1,11 @@
+--- openjdk/jdk/src/solaris/native/sun/nio/ch/FileDispatcherImpl.c	2013-07-25 09:10:09.000000000 -0700
++++ openjdk/jdk/src/solaris/native/sun/nio/ch/FileDispatcherImpl.c	2015-06-25 19:31:34.862882600 -0700
+@@ -37,7 +37,7 @@
+ #include "nio.h"
+ #include "nio_util.h"
+ 
+-#ifdef _ALLBSD_SOURCE
++#if defined(_ALLBSD_SOURCE) || defined(__riscv64)
+ #define stat64 stat
+ #define flock64 flock
+ #define off64_t off_t

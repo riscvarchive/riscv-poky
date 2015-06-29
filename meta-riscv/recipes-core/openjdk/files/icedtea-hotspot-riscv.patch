@@ -1,0 +1,36 @@
+--- openjdk/hotspot/src/os/linux/vm/os_linux.cpp	2013-07-26 03:31:42.000000000 -0700
++++ openjdk/hotspot/src/os/linux/vm/os_linux.cpp	2015-06-04 12:39:09.775232928 -0700
+@@ -1878,6 +1878,10 @@ void * os::dll_load(const char *filename
+   #define EM_486          6               /* Intel 80486 */
+   #endif
+ 
++  #ifndef EM_RISCV64
++  #define EM_RISCV64          243           /* RISC-V 64 */
++  #endif
++
+   static const arch_t arch_array[]={
+     {EM_386,         EM_386,     ELFCLASS32, ELFDATA2LSB, (char*)"IA 32"},
+     {EM_486,         EM_386,     ELFCLASS32, ELFDATA2LSB, (char*)"IA 32"},
+@@ -1896,7 +1900,8 @@ void * os::dll_load(const char *filename
+     {EM_PARISC,      EM_PARISC,  ELFCLASS32, ELFDATA2MSB, (char*)"PARISC"},
+     {EM_68K,         EM_68K,     ELFCLASS32, ELFDATA2MSB, (char*)"M68k"},
+     {EM_SH,          EM_SH,      ELFCLASS32, ELFDATA2LSB, (char*)"SH"}, /* Support little endian only*/
+-    {EM_AARCH64,     EM_AARCH64, ELFCLASS64, ELFDATA2LSB, (char*)"AARCH64"} /* Support little endian only*/
++    {EM_AARCH64,     EM_AARCH64, ELFCLASS64, ELFDATA2LSB, (char*)"AARCH64"}, /* Support little endian only*/
++    {EM_RISCV64,     EM_RISCV64, ELFCLASS64, ELFDATA2LSB, (char*)"RISCV64"} /* Support little endian only*/
+   };
+ 
+   #if  (defined IA32)
+@@ -1931,9 +1936,11 @@ void * os::dll_load(const char *filename
+     static  Elf32_Half running_arch_code=EM_SH;
+   #elif  (defined AARCH64)
+     static  Elf32_Half running_arch_code=EM_AARCH64;
++  #elif  (defined __riscv64)
++    static  Elf32_Half running_arch_code=EM_RISCV64;
+   #else
+     #error Method os::dll_load requires that one of following is defined:\
+-         IA32, AMD64, IA64, __sparc, __powerpc__, ARM, S390, ALPHA, MIPS, MIPSEL, PARISC, M68K, SH
++         IA32, AMD64, IA64, __sparc, __powerpc__, ARM, S390, ALPHA, MIPS, MIPSEL, PARISC, M68K, SH, __riscv64
+   #endif
+ 
+   // Identify compatability class for VM's architecture and library's architecture
