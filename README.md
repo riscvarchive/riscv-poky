@@ -104,6 +104,11 @@ This will forward port 12347 on the host to port 22 on the target (SSH). Now you
 ```
 ssh -p 12347 root@localhost
 ```
+JVMs tend to require a fair amount of heap space, so if you are running into Out of Memory errors, append this to your runqemu command:
+```
+runqemu qemuriscv nographic slirp hostfwd="tcp::12347-:22" qemuparams="-m 512M"
+```
+If your Java app requires more heap space to this, consider lowering your -Xmx, -Xms, and -XX:MaxPermSize requirements.
 
 * **GCC Versions**: By default, riscv-poky uses the new `riscv-gnu-toolchain` based on GCC 4.9.1. If for any reason you would like to use the old `riscv-tools` toolchain, you can look at the uncommented lines towards the end of `meta-riscv/conf/distro/poky-riscv-tiny.conf`. Note that the old toolchain is not supported at this point and may cause compilation problems.
 
@@ -119,6 +124,8 @@ Here are some immediate problems that are currently work in progress:
 * There is currently no support for `/dev/misc/rtc`, and the resulting error message is expected.
 * When booting in qemu, there are error messages about rtc not being supported.
 * Occassionally, riscv-linux will crash with `main-loop: WARNING: I/O thread spun for 1000 iterations`
+* When compiling freetype, you will encounter an error regarding string.h in sysroot. Simply edit that file, remove the `inline` keyword (it should be a small file, with only one routine), and rebuild.
+* OpenJDK 7 Hotspot may occasionally crash with a fatal error in `os_linux_zero.cpp`. This is a known issue with the Zero VM. Just try running your application again, or restart QEMU.
 
 Further Reading
 ---------------
