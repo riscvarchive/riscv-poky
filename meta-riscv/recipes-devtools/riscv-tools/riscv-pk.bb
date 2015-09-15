@@ -8,10 +8,14 @@ SRCREV = "69b5de4ffa20d6e2028b1656b2de68fbb929c231"
 SRC_URI = "git://github.com/riscv/riscv-pk.git"
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+SRC_URI += "file://bbl"
 
 inherit autotools
 
 DEPENDS = "riscv-fesvr-native riscv-spike-native"
+DEPENDS_append_class-target = " ${PN}-native"
+
+EXTRA_OEMAKE += 'STRIP="echo'
 
 S = "${WORKDIR}/git"
 
@@ -25,3 +29,21 @@ do_configure_prepend () {
                 cp ${S}/aclocal.m4 ${S}/acinclude.m4
         fi
 }
+
+do_compile_class-native () {
+        :
+}
+
+do_install_class-native () {
+        install -d ${D}/${datadir}/riscv-pk
+        install -m 755 ${WORKDIR}/bbl ${D}/${datadir}/riscv-pk
+}
+
+PROVIDES_${PN}_class-native += "${PN}-bbl"
+PACKAGES_class-native += " ${PN}-bbl"
+
+FILES_${PN}-bbl += "${datadir}/riscv-pk"
+FILES_${PN}-bbl-dbg += "${datadir}/riscv-pk/.debug"
+
+BBCLASSEXTEND = "native"
+

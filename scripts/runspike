@@ -382,7 +382,7 @@ echo "FSTYPE: [$FSTYPE]"
 setup_sysroot
 
 SPIKE_BIN="$OECORE_NATIVE_SYSROOT/usr/bin/spike"
-BBL_PATH="$OE_TMPDIR/work/riscv64-poky-linux/riscv-pk/1.0-r0/bbl"
+BBL_PATH="$OECORE_NATIVE_SYSROOT/usr/share/riscv-pk/bbl"
 
 echo "SPIKE_BIN: [$SPIKE_BIN]"
 echo "BBL_PATH: [$BBL_PATH]"
