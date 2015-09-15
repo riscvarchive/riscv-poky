@@ -9,10 +9,12 @@ do_install() {
     do
 	j=`echo ${i} | sed s/\;/\ /g`
 	label=`echo ${i} | sed -e 's/^.*;tty//' -e 's/;.*//'`
-    # handle HTIFN names for RISC-V, will be named HN due to 4 char limit
-    if [[ $label == HTIF* ]]; then
-        label=${label:0:1}${label:4}
-    fi
+	# handle HTIFN names for RISC-V, will be named HN due to 4 char limit
+	case "$label" in
+		HTIF*)
+			label="$(echo ${label} | cut -c1,5-)"
+		;;
+	esac
 	echo "$label:12345:respawn:${base_sbindir}/getty ${j}" >> ${D}${sysconfdir}/inittab
     done
 
