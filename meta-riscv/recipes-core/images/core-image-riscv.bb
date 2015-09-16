@@ -12,7 +12,7 @@ IMAGE_INSTALL += "riscv-pk"
 IMAGE_INSTALL += "dropbear apt libffi libffi-dev"
 
 # Python
-#IMAGE_INSTALL += "python-numpy python-subprocess python-ctypes python-html python-netserver python-compile"
+IMAGE_INSTALL += "python-numpy python-subprocess python-ctypes python-html python-netserver python-compile"
 
 # Basic toolchain on target
 #IMAGE_INSTALL += "gcc binutils glibc glibc-dev libgcc libgcc-dev libstdc++ libstdc++-dev"
