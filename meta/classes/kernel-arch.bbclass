@@ -14,6 +14,7 @@ valid_archs = "alpha cris ia64 \
                parisc s390  v850 \
                avr32 blackfin \
                microblaze \
+               nios2 \
                riscv"
 
 def map_kernel_arch(a, d):
