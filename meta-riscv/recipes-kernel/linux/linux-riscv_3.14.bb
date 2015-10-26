@@ -37,7 +37,7 @@ KERNEL_IMAGETYPE = "vmlinux"
 # Pick up shared functions
 inherit kernel
 
-SRC_URI += "git://github.com/riscv/riscv-linux.git;branch=new_privileged_isa;destsuffix=${S} \
+SRC_URI += "git://github.com/riscv/riscv-linux.git;branch=master;destsuffix=${S} \
             https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.14.41.tar.xz;name=kernel"
 
 do_overlay_kernel() {
@@ -58,7 +58,7 @@ SRC_URI[kernel.sha256sum] = "22a2291279ec075c37a66f372333a235328a1ae0a313d205d47
 # uncomment and replace these SRCREVs with the real commit ids once you've had
 # the appropriate changes committed to the upstream linux-yocto repo
 #SRCREV_machine_pn-linux-yocto_riscv ?= "840bb8c059418c4753415df56c9aff1c0d5354c8"
-SRCREV_pn-linux-riscv ?= "4da7416c2a0d07221678c1f0afff7be87af2e728"
+SRCREV_pn-linux-riscv ?= "886e5f99498baa2c4d1c1e3e1db801e6f4ae68c1"
 LINUX_VERSION = "3.14"
 
 do_patch[depends] = "kern-tools-native:do_populate_sysroot"
