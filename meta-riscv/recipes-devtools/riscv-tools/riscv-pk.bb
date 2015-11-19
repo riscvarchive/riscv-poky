@@ -4,11 +4,10 @@ LICENSE = "GPLv2+"
 
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/COPYING.GPLv2;md5=751419260aa954499f7abaabaa882bbe"
 
-SRCREV = "027ba300cbeaa425218fd472e1fcf45c785f645c"
+SRCREV = "69b5de4ffa20d6e2028b1656b2de68fbb929c231"
 SRC_URI = "git://github.com/riscv/riscv-pk.git"
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
-SRC_URI += "file://bbl"
 
 inherit autotools
 

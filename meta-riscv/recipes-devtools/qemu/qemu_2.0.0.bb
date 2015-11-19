@@ -8,9 +8,14 @@ LIC_FILES_CHKSUM = "file://${S}/COPYING;md5=441c28d2cf86e15a37fa47e15a72fbac"
 
 QEMU_TARGETS = "riscv"
 
-EXTRA_OECONF_remove = "--disable-numa --disable-lzo"
+EXTRA_OECONF_remove = "--disable-numa --disable-lzo --disable-opengl --disable-gnutls"
 
 EXTRA_OECONF += "--disable-riscv-htif"
+
+SRC_URI_remove_class-native = "\
+    file://fix-libcap-header-issue-on-some-distro.patch \
+    file://cpus.c-qemu_cpu_kick_thread_debugging.patch \
+    "
 
 do_sanitize_sources() {
     # These .git files point to a nonexistent path "../.git/modules" and will confuse git

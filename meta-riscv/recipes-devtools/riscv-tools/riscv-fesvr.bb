@@ -4,9 +4,8 @@ LICENSE = "GPLv2+"
 
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/COPYING.GPLv2;md5=751419260aa954499f7abaabaa882bbe"
 
-SRCREV = "0e5c3748dfc1dbb777f88d9768e508559ca75ad1"
-SRC_URI = "git://github.com/riscv/riscv-fesvr.git \
-           file://fesvr-makefile.patch"
+SRCREV = "06f6f675bd8b9d697fbe5dcc1ee70fca778c6780"
+SRC_URI = "git://github.com/riscv/riscv-fesvr.git"
 
 inherit autotools gettext cross-canadian
 
