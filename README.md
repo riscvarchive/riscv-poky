@@ -34,12 +34,17 @@ The large number of available packages makes Yocto a very good starting point fo
 Getting Started
 ---------------
 
-** The current version only supports the Spike ISA simulator; QEMU is unsupported as it does not support the new privileged ISA yet. If you need QEMU, please use the January-2015 release for now. We anticipate this problem to be resolved within the next weeks.  **
+** As of 12/1/2015 The yocto bitbake only supports the Spike ISA simulator - and that (riscv64) is the default target for the bitbake **
 
-To get started, clone the `usb-bar/riscv-poky` repository (poky is the name of the distribution that Yocto generates):
+Call for help:  QEMU is still unsupported - work needs to still be done to support the new privileged ISA. 
+If you wish to work with the (likely broken) QEMU build on yocto, use the January-2015 releases for now. 
+If you can help fix the QEMU/yocto build, please contact the maintainer **
+**
+
+To get started, clone the `riscv/riscv-poky` repository (poky is the name of the distribution that Yocto generates):
 
 >```
-git clone git@github.com:riscv/riscv-poky.git
+git clone https://github.com/riscv/riscv-poky.git
 cd riscv-poky
 ```
 
@@ -63,25 +68,22 @@ bitbake core-image-riscv
 
 **Warning**: This will download a large amount of data over the network and use up a significant amount of space on disk.
 
-The local.conf file is preconfigured to build for the `qemuriscv64` machine by default. `core-image-minimal` is an image target, which contains a list of packages to build as well as instructions how to install them into an image.
+The local.conf file is preconfigured to build for the spike simulator compatible `riscv64` machine by default. `core-image-minimal` is an image target, which contains a list of packages to build as well as instructions how to install them into an image.
 
 Depending on the machine, the build process can take a very long time (remember that this downloads and builds dozens of packages, including riscv-tools, riscv-qemu and riscv-linux). Note that bitbake is very efficient at utilizing highly parallel machines since it can spawn off many jobs in parallel.
 
-Once compilation has finished, you can run the resulting image from the build directory by calling:
+Once compilation has finished, you can run the resulting spike image from the build directory by calling:
 
-```
-runqemu qemuriscv64 nographic slirp
-```
-
-### Targeting real hardware
-
-The qemuriscv target uses VirtIO for console, block devices and network. As these are not available on real hardware, you can build a version that uses the HTIF instead by changing `MACHINE` in local.conf to **riscv64** instead of **qemuriscv64**.
-
-Note that this will cause an error when trying to run in QEMU, but it will work in the Spike simulator:
 
 ```
 <...>/build$ runspike riscv64
 ```
+
+NOTE: If you want to change the yocto configs and re-run the bitbake, do the following equivalent of "make clean" 
+that does not require one to re-download all the packages again:
+
+<PROVIDE EXAMPLE HERE>
+
 
 Maintaining the RISC-V Port
 ---------------------------
@@ -97,15 +99,6 @@ A good policy would be to work completely in the meta-riscv layer and move recip
 
 Details and HOWTOs
 ------------------
-
-* **Networking**: To SSH into a QEMU instance, build `core-image-riscv` and run it in QEMU with a command such as the following:
-```
-runqemu qemuriscv64 nographic slirp hostfwd="tcp::12347-:22"
-```
-This will forward port 12347 on the host to port 22 on the target (SSH). Now you can SSH into the QEMU instance with:
-```
-ssh -p 12347 root@localhost
-```
 
 * **GCC Versions**: By default, riscv-poky uses the `riscv-gnu-toolchain` based on GCC 4.9.2. If for any reason you would like to use the old `riscv-tools` toolchain, you can look at the uncommented lines towards the end of `meta-riscv/conf/distro/poky-riscv-tiny.conf`. Note that the old toolchain is not supported at this point and may cause compilation problems.
 
