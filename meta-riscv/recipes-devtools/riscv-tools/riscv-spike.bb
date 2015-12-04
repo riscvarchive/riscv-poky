@@ -5,7 +5,8 @@ LICENSE = "GPLv2+"
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/COPYING.GPLv2;md5=751419260aa954499f7abaabaa882bbe"
 
 SRCREV = "e78da5da4a6e6a38953cda9b35992c421768c776"
-SRC_URI = "git://github.com/riscv/riscv-isa-sim.git"
+SRC_URI = "git://github.com/riscv/riscv-isa-sim.git \
+           file://spike-makefile.patch"
 
 DEPENDS = "riscv-fesvr"
 RDEPENDS_nativesdk-riscv-spike = "nativesdk-riscv-fesvr"

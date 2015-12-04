@@ -15,7 +15,8 @@ inherit autotools
 DEPENDS = "riscv-fesvr-native riscv-spike-native"
 DEPENDS_append_class-target = " ${PN}-native"
 
-EXTRA_OEMAKE += 'STRIP="echo'
+EXTRA_OEMAKE += 'STRIP=echo'
+INHIBIT_PACKAGE_STRIP = "1"
 
 S = "${WORKDIR}/git"
 
