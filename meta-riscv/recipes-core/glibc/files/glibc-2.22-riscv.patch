@@ -2216,7 +2216,7 @@
 +}
 --- original-glibc/sysdeps/riscv/fpu_control.h
 +++ glibc/sysdeps/riscv/fpu_control.h
-@@ -0,0 +1,96 @@
+@@ -0,0 +1,84 @@
 +/* FPU control word bits.  Mips version.
 +   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2006, 2008
 +   Free Software Foundation, Inc.
@@ -2258,20 +2258,8 @@
 +
 +#else /* __riscv_soft_float */
 +
-+/* rounding control */
-+#define _FPU_RC_NEAREST 0x0
-+#define _FPU_RC_ZERO    0x1
-+#define _FPU_RC_DOWN    0x2
-+#define _FPU_RC_UP      0x3
-+
-+#define _FPU_RESERVED   0    /* No reserved bits in FSR */
-+
-+/* The fdlibm code requires strict IEEE double precision arithmetic,
-+   and no interrupts for exceptions, rounding to nearest.  */
-+
++#define _FPU_RESERVED 0
 +#define _FPU_DEFAULT  0
-+
-+/* IEEE:  same as above */
 +#define _FPU_IEEE     _FPU_DEFAULT
 +
 +/* Type of the control word.  */
@@ -2338,6 +2326,47 @@
 +#define FIRST_PSEUDO_REGISTER 76
 +
 +#include <sysdeps/generic/gccframe.h>
+--- original-glibc/sysdeps/riscv/get-rounding-mode.h
++++ glibc/sysdeps/riscv/get-rounding-mode.h
+@@ -0,0 +1,38 @@
++/* Determine floating-point rounding mode within libc.  RISC-V version.
++
++   Copyright (C) 2015 Free Software Foundation, Inc.
++
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, see
++   <http://www.gnu.org/licenses/>.  */
++
++#ifndef _RISCV_GET_ROUNDING_MODE_H
++#define _RISCV_GET_ROUNDING_MODE_H
++
++#include <fenv.h>
++#include <fpu_control.h>
++
++/* Return the floating-point rounding mode.  */
++
++static inline int
++get_rounding_mode (void)
++{
++  fpu_control_t fpcr;
++
++  _FPU_GETROUND (fpcr);
++  return fpcr;
++}
++
++#endif /* get-rounding-mode.h */
 --- original-glibc/sysdeps/riscv/ieee754.h
 +++ glibc/sysdeps/riscv/ieee754.h
 @@ -0,0 +1,325 @@
