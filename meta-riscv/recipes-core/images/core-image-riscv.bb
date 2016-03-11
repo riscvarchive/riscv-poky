@@ -1,6 +1,6 @@
 SUMMARY = "A small image just capable of allowing a device to boot."
 
-DEPENDS += "riscv-pk-native"
+DEPENDS += "riscv-pk"
 
 IMAGE_FEATURES += "package-management"
 
