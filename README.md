@@ -34,13 +34,6 @@ The large number of available packages makes Yocto a very good starting point fo
 Getting Started
 ---------------
 
-** As of 12/1/2015 The yocto bitbake only supports the Spike ISA simulator - and that (riscv64) is the default target for the bitbake **
-
-Call for help:  QEMU is still unsupported - work needs to still be done to support the new privileged ISA. 
-If you wish to work with the (likely broken) QEMU build on yocto, use the January-2015 releases for now. 
-If you can help fix the QEMU/yocto build, please contact the maintainer **
-**
-
 To get started, clone the `riscv/riscv-poky` repository (poky is the name of the distribution that Yocto generates):
 
 >```
@@ -68,22 +61,21 @@ bitbake core-image-riscv
 
 **Warning**: This will download a large amount of data over the network and use up a significant amount of space on disk.
 
-The local.conf file is preconfigured to build for the spike simulator compatible `riscv64` machine by default. `core-image-minimal` is an image target, which contains a list of packages to build as well as instructions how to install them into an image.
+The local.conf file is preconfigured to build for the `qemuriscv64` machine by default (to use the Spike simulator instead, or to target real hardware, change this to `riscv64`). `core-image-minimal` is an image target, which contains a list of packages to build as well as instructions how to install them into an image.
 
 Depending on the machine, the build process can take a very long time (remember that this downloads and builds dozens of packages, including riscv-tools, riscv-qemu and riscv-linux). Note that bitbake is very efficient at utilizing highly parallel machines since it can spawn off many jobs in parallel.
 
-Once compilation has finished, you can run the resulting spike image from the build directory by calling:
+Once compilation has finished, you can run the resulting image from the build directory by calling:
 
+```
+<...>/build$ runqemu qemuriscv64 nographic slirp
+```
+
+If you built the `riscv64` configuration and would prefer to run in Spike instead of QEMU, you can call the following:
 
 ```
 <...>/build$ runspike riscv64
 ```
-
-NOTE: If you want to change the yocto configs and re-run the bitbake, do the following equivalent of "make clean" 
-that does not require one to re-download all the packages again:
-
-<PROVIDE EXAMPLE HERE>
-
 
 Maintaining the RISC-V Port
 ---------------------------
@@ -110,9 +102,9 @@ Details and HOWTOs
 
 Here are some immediate problems that are currently work in progress:
 
+* There is currently no networking support in either QEMU or Spike. It should be relatively simple to restore this by adding a VirtIO network device to the QEMU setup. If you make this change, please consider submitting a pull request.
 * There are currently some warnings about sysconf being skipped -- this is expected.
 * There is currently no support for `/dev/misc/rtc`, and the resulting error message is expected.
-* When booting in qemu, there are error messages about rtc not being supported.
 * Occassionally, riscv-linux will crash with `main-loop: WARNING: I/O thread spun for 1000 iterations`
 
 Further Reading

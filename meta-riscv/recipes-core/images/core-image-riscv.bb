@@ -9,7 +9,7 @@ inherit core-image
 IMAGE_INSTALL = "packagegroup-core-boot ${ROOTFS_PKGMANAGE_BOOTSTRAP} ${CORE_IMAGE_EXTRA_INSTALL}"
 
 # Basic packages
-IMAGE_INSTALL += "dropbear apt libffi libffi-dev"
+IMAGE_INSTALL += "apt libffi libffi-dev"
 
 # Python
 IMAGE_INSTALL += "python-numpy python-subprocess python-ctypes python-html python-netserver python-compile"

@@ -112,14 +112,6 @@ process_filename() {
 while true; do
     arg=${1}
     case "$arg" in
-        "qemuriscv" | "qemuriscv64")
-            echo
-            echo "ERROR: RISC-V QEMU is currently broken, a fix is on the way."
-            echo "Until then, please use Spike (you can run it with \"runspike\")!"
-            echo
-            exit
-          ;;
-
         "qemux86" | "qemux86-64" | "qemuarm" | "qemuarm64" | "qemumips" | "qemumipsel" | \
         "qemumips64" | "qemush4"  | "qemuppc" | "qemumicroblaze" | "qemuzynq" | "qemuriscv" | "qemuriscv64")
             [ -z "$MACHINE" -o "$MACHINE" = "$arg" ] && MACHINE=$arg || \

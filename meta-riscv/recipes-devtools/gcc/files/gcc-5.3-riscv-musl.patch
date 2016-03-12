@@ -1,0 +1,26 @@
+diff -rupN gcc-5.3.0/gcc/config/riscv/linux64.h gcc-5.3.0-new/gcc/config/riscv/linux64.h
+--- gcc-5.3.0/gcc/config/riscv/linux64.h	2016-03-09 13:44:14.331800821 -0800
++++ gcc-5.3.0-new/gcc/config/riscv/linux64.h	2016-03-09 14:26:29.011019063 -0800
+@@ -30,6 +30,10 @@ along with GCC; see the file COPYING3.
+ #define GLIBC_DYNAMIC_LINKER32 "/lib32/ld.so.1"
+ #define GLIBC_DYNAMIC_LINKER64 "/lib/ld.so.1"
+ 
++#define MUSL_DYNAMIC_LINKERN32 "/lib32/ld-musl-riscv.so.1"
++#define MUSL_DYNAMIC_LINKER32 "/lib32/ld-musl-riscv.so.1"
++#define MUSL_DYNAMIC_LINKER64 "/lib/ld-musl-riscv.so.1"
++
+ #undef LINK_SPEC
+ #define LINK_SPEC "\
+ %{shared} \
+diff -rupN gcc-5.3.0/gcc/config/riscv/linux.h gcc-5.3.0-new/gcc/config/riscv/linux.h
+--- gcc-5.3.0/gcc/config/riscv/linux.h	2016-03-09 13:44:14.331800821 -0800
++++ gcc-5.3.0-new/gcc/config/riscv/linux.h	2016-03-09 14:26:45.867149246 -0800
+@@ -37,6 +37,8 @@ along with GCC; see the file COPYING3.
+ 
+ #define GLIBC_DYNAMIC_LINKER "/lib/ld.so.1"
+ 
++#define MUSL_DYNAMIC_LINKER "/lib/ld-musl-riscv.so.1"
++
+ /* Borrowed from sparc/linux.h */
+ #undef LINK_SPEC
+ #define LINK_SPEC \
