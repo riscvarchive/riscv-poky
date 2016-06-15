@@ -359,8 +359,7 @@ QEMURISCV_DEFAULT_FSTYPE=ext2
 QEMURISCV64_DEFAULT_KERNEL=vmlinux-qemuriscv64.bin
 QEMURISCV64_DEFAULT_FSTYPE=ext2
 
-# Default to booting u-boot as a direct Linux boot isn't supported yet.
-QEMUZYNQMP_DEFAULT_KERNEL=u-boot-qemuzynqmp.elf
+QEMUZYNQMP_DEFAULT_KERNEL=Image
 QEMUZYNQMP_DEFAULT_FSTYPE=cpio
 
 setup_path_vars() {
