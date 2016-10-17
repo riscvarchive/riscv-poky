@@ -1,0 +1,12 @@
+diff -rupN numpy-1.10.4/numpy/core/include/numpy/npy_cpu.h numpy-1.10.4-new/numpy/core/include/numpy/npy_cpu.h
+--- numpy-1.10.4/numpy/core/include/numpy/npy_cpu.h	2016-03-09 13:44:18.531830778 -0800
++++ numpy-1.10.4-new/numpy/core/include/numpy/npy_cpu.h	2016-03-09 13:49:25.858015375 -0800
+@@ -74,6 +74,8 @@
+     #define NPY_CPU_OR1K
+ #elif defined(__aarch64__)
+     #define NPY_CPU_AARCH64
++#elif defined(__riscv__)
++    #define NPY_CPU_RISCV
+ #elif defined(__mc68000__)
+     #define NPY_CPU_M68K
+ #else

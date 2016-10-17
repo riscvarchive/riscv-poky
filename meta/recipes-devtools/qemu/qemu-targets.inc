@@ -7,7 +7,7 @@ def get_qemu_target_list(d):
     archs = d.getVar('QEMU_TARGETS', True).split()
     tos = d.getVar('HOST_OS', True)
     softmmuonly = ""
-    for arch in ['ppcemb', 'riscv']:
+    for arch in ['ppcemb', 'riscv64']:
         if arch in archs:
             softmmuonly += arch + "-softmmu,"
             archs.remove(arch)

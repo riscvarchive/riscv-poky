@@ -528,6 +528,12 @@ config_qemumicroblaze() {
 }
 
 config_qemuriscv64() {
+    echo
+    echo "ERROR: QEMU cannot run riscv-poky images at the moment, due to a missing block"
+    echo "device driver. Please contact maas@eecs.berkeley.edu if you are interested in"
+    echo "helping us restore the block device driver support."
+    echo
+    exit 1
     set_mem_size 128
     BBL_PATH="$OECORE_NATIVE_SYSROOT/usr/share/riscv-pk/bbl"
     QEMU=qemu-system-riscv

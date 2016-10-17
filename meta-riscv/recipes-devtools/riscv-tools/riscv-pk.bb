@@ -4,7 +4,7 @@ LICENSE = "GPLv2+"
 
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/COPYING.GPLv2;md5=751419260aa954499f7abaabaa882bbe"
 
-SRCREV = "85ae17aa149b9ea114bdd70cc30ea7e73813fb48"
+SRCREV = "f73dee6f2cc37cafc4b6949dac9ac2d71cf84d10"
 SRC_URI = "git://github.com/riscv/riscv-pk.git"
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
@@ -16,6 +16,8 @@ inherit autotools
 DEPENDS = "riscv-fesvr-native riscv-spike-native"
 
 INHIBIT_PACKAGE_STRIP = "1"
+
+INSANE_SKIP_${PN} += "installed-vs-shipped"
 
 S = "${WORKDIR}/git"
 
