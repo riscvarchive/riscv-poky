@@ -77,6 +77,13 @@ If you built the `riscv64` configuration and would prefer to run in Spike instea
 <...>/build$ runspike riscv64
 ```
 
+Spike can also be configured to execute a multi-core SMP kernel as follows (you may also pass other Spike args in the same manner):
+
+```
+<...>/build$ export SPIKE_ARGS=-p2
+<...>/build$ runspike riscv64
+```
+
 Maintaining the RISC-V Port
 ---------------------------
 

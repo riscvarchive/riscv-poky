@@ -385,11 +385,12 @@ SPIKE_BIN="$OECORE_NATIVE_SYSROOT/usr/bin/spike"
 BBL_PATH="$OECORE_NATIVE_SYSROOT/usr/share/riscv-pk/bbl"
 
 echo "SPIKE_BIN: [$SPIKE_BIN]"
+echo "SPIKE_ARGS: [$SPIKE_ARGS]"
 echo "BBL_PATH: [$BBL_PATH]"
 
 echo
 
 # OECORE_NATIVE_SYSROOT is now set for all cases
 
-$SPIKE_BIN +disk=$ROOTFS $BBL_PATH $KERNEL
+$SPIKE_BIN $SPIKE_ARGS +disk=$ROOTFS $BBL_PATH $KERNEL
 exit $?
