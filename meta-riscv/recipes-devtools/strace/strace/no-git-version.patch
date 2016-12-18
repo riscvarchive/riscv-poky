@@ -1,0 +1,11 @@
+diff -Naur riscv-strace/configure.ac new-strace/configure.ac
+--- riscv-strace/configure.ac	2016-02-26 18:33:48.263437007 -0800
++++ new-strace/configure.ac	2016-02-26 18:34:44.351888843 -0800
+@@ -1,7 +1,6 @@
+ dnl Process this file with autoconf to create configure.  Use autoreconf.
+ AC_PREREQ(2.57)
+ AC_INIT([strace],
+-	m4_esyscmd([./git-version-gen .tarball-version]),
+ 	[strace-devel@lists.sourceforge.net])
+ AC_CONFIG_SRCDIR([strace.c])
+ AC_CONFIG_AUX_DIR([.])
