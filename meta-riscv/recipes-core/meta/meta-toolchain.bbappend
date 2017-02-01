@@ -1,1 +1,1 @@
-TOOLCHAIN_HOST_TASK += "nativesdk-riscv-fesvr nativesdk-riscv-spike"
+TOOLCHAIN_HOST_TASK += "nativesdk-riscv-fesvr nativesdk-riscv-spike nativesdk-riscvemu"

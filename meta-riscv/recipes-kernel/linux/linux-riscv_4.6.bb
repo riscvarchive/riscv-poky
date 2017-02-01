@@ -27,11 +27,14 @@ KERNEL_OUTPUT = "vmlinux"
 KERNEL_IMAGETYPE = "vmlinux"
 KERNEL_OUTPUT_DIR = "."
 
+PROVIDES = "riscv-linux"
+
 # Pick up shared functions
 inherit kernel
 
-SRC_URI += "git://github.com/riscv/riscv-linux.git;branch=priv-1.9;destsuffix=${S} \
-            https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.6.2.tar.xz;name=kernel"
+SRC_URI += "git://github.com/riscv/riscv-linux.git;branch=master;destsuffix=${S} \
+            https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.6.2.tar.xz;name=kernel \
+            file://riscvemu.patch"
 
 do_overlay_kernel() {
   cp -R ${WORKDIR}/linux-4.6.2/* ${S}
@@ -50,7 +53,7 @@ SRC_URI[kernel.sha256sum] = "e158f3c69da87c2ec28d0f194dbe18b05e0d0b9e1142566615c
 # uncomment and replace these SRCREVs with the real commit ids once you've had
 # the appropriate changes committed to the upstream linux-yocto repo
 #SRCREV_machine_pn-linux-yocto_riscv ?= "840bb8c059418c4753415df56c9aff1c0d5354c8"
-SRCREV_pn-linux-riscv ?= "3d0905acd286a26dd59f00a4dfc78c5c95dfc019"
+SRCREV_pn-linux-riscv ?= "849317594f03930a09e5139c6196c9930e06035b"
 LINUX_VERSION = "4.6"
 
 do_patch[depends] = "kern-tools-native:do_populate_sysroot"

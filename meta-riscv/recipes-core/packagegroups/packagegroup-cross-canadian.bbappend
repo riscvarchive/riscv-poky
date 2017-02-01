@@ -4,4 +4,5 @@ RDEPENDS_${PN} := "\
     meta-environment-${MACHINE} \
     nativesdk-riscv-fesvr \
     nativesdk-riscv-spike \
+    nativesdk-riscvemu \
     "

@@ -1,6 +1,6 @@
 SUMMARY = "A small image just capable of allowing a device to boot."
 
-DEPENDS += "riscv-pk"
+DEPENDS += "riscv-pk riscvemu-native"
 
 IMAGE_FEATURES += "package-management"
 
@@ -22,4 +22,3 @@ IMAGE_LINGUAS = " "
 LICENSE = "MIT"
 
 IMAGE_ROOTFS_SIZE ?= "8192"
-

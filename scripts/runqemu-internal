@@ -530,8 +530,11 @@ config_qemumicroblaze() {
 config_qemuriscv64() {
     echo
     echo "ERROR: QEMU cannot run riscv-poky images at the moment, due to a missing block"
-    echo "device driver. Please contact maas@eecs.berkeley.edu if you are interested in"
-    echo "helping us restore the block device driver support."
+    echo "device driver. For now, please use RISCVEMU instead. You can run it using the"
+    echo "runriscvemu script included with riscv-poky."
+    echo
+    echo "Please contact maas@eecs.berkeley.edu if you are interested in helping us"
+    echo "restore the block device driver support in QEMU."
     echo
     exit 1
     set_mem_size 128

@@ -68,6 +68,14 @@ Depending on the machine, the build process can take a very long time (remember 
 Once compilation has finished, you can run the resulting image from the build directory by calling:
 
 ```
+<...>/build$ runriscvemu qemuriscv64
+```
+
+**Warning**: Due to missing Virtio support in riscv-qemu and Spike, we do not currently support these emulators. If you need a different emulator than RISCVEMU, please consider using the master branch (which is out of date and using privilieged spec 1.7) or helping us add Virtio support to QEMU and Spike. 
+
+To run with QEMU, please use the command below:
+
+```
 <...>/build$ runqemu qemuriscv64 nographic slirp
 ```
 
