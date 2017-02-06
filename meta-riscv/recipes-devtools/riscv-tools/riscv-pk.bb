@@ -26,6 +26,8 @@ TARGET_CFLAGS = ""
 
 S = "${WORKDIR}/git"
 
+do_configure[depends] = "virtual/kernel:do_deploy"
+
 do_configure_prepend () {
         if [ ! -e ${S}/acinclude.m4 ]; then
                 cp ${S}/aclocal.m4 ${S}/acinclude.m4
