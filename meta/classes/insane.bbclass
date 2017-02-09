@@ -912,7 +912,6 @@ def package_qa_check_rdepends(pkg, pkgdest, skip, taskdeps, packages, d):
     if not "-dbg" in pkg and not "packagegroup-" in pkg and not "-image" in pkg:
         localdata = bb.data.createCopy(d)
         localdata.setVar('OVERRIDES', pkg)
-        bb.data.update_data(localdata)
 
         # Now check the RDEPENDS
         rdepends = bb.utils.explode_deps(localdata.getVar('RDEPENDS') or "")
@@ -1019,7 +1018,6 @@ def package_qa_check_deps(pkg, pkgdest, skip, d):
 
     localdata = bb.data.createCopy(d)
     localdata.setVar('OVERRIDES', pkg)
-    bb.data.update_data(localdata)
 
     def check_valid_deps(var):
         try:
