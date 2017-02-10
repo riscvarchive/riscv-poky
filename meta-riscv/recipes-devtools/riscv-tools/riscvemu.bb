@@ -10,6 +10,10 @@ SRC_URI[sha256sum] = "fdc5505a7f5e1d8cd33687eaf8a164eb978a120d15ac9ff611fe238382
 
 S = "${WORKDIR}/riscvemu-2017-01-12"
 
+inherit cross-canadian
+
+BBCLASSEXTEND = "native nativesdk"
+
 do_configure_prepend () {
   sed -i 's/-Werror/ /' ${B}/Makefile
 }
@@ -17,7 +21,3 @@ do_configure_prepend () {
 # Nothing to do, just leave riscvemu in the build directory
 do_install () {
 }
-
-inherit cross-canadian
-
-BBCLASSEXTEND = "native nativesdk"
