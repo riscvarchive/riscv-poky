@@ -25,8 +25,9 @@ RUNTIMELIBITM_riscv64 = ""
 RUNTIMETARGET = "libssp libstdc++-v3 libgomp libatomic ${RUNTIMELIBITM} \
     ${@bb.utils.contains_any('FORTRAN', [',fortran',',f77'], 'libquadmath', '', d)} \
 "
+RUNTIMETARGET_append_x86 = " libmpx"
+RUNTIMETARGET_remove_libc-musl = "libmpx"
 
-#  ?
 # libiberty
 # libmudflap
 # libgfortran needs separate recipe due to libquadmath dependency
@@ -140,6 +141,11 @@ PACKAGES = "\
     libitm-dev \
     libitm-staticdev \
 "
+PACKAGES_append_x86 = "\
+    libmpx \
+    libmpx-dev \
+    libmpx-staticdev \
+"
 
 # The base package doesn't exist, so we clear the recommends.
 RRECOMMENDS_${PN}-dbg = ""
@@ -243,6 +249,19 @@ FILES_libitm-dev = "\
 SUMMARY_libitm-dev = "GNU transactional memory support library - development files"
 FILES_libitm-staticdev = "${libdir}/libitm.a"
 SUMMARY_libitm-staticdev = "GNU transactional memory support library - static development files"
+
+
+FILES_libmpx = "${libdir}/libmpx.so.* ${libdir}/libmpxwrappers.so.*"
+SUMMARY_libmpx = "Intel Memory Protection Extension library"
+FILES_libmpx-dev = "\
+    ${libdir}/libmpxwrappers.so \
+    ${libdir}/libmpx.so \
+    ${libdir}/libmpx.la \
+    ${libdir}/libmpx.spec \
+"
+SUMMARY_libmpx-dev = "Intel Memory Protection Extension library - development files"
+FILES_libmpx-staticdev = "${libdir}/libmpx.a ${libdir}/libmpxwrappers.a"
+SUMMARY_libmpx-staticdev = "Intel Memory Protection Extension library - static development files"
 
 do_package_write_ipk[depends] += "virtual/${MLPREFIX}libc:do_packagedata"
 do_package_write_deb[depends] += "virtual/${MLPREFIX}libc:do_packagedata"
