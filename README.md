@@ -36,7 +36,7 @@ Getting Started
 
 To get started, clone the `riscv/riscv-poky` repository (poky is the name of the distribution that Yocto generates):
 
->```
+```
 git clone https://github.com/riscv/riscv-poky.git
 cd riscv-poky
 ```
