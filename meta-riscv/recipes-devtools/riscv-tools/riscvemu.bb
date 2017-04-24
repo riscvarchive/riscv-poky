@@ -15,7 +15,7 @@ inherit cross-canadian
 BBCLASSEXTEND = "native nativesdk"
 
 do_configure_prepend () {
-  sed -i 's/-Werror/ /' ${B}/Makefile
+  sed -i 's/-Werror/-Wno-unused-value/' ${B}/Makefile
 }
 
 # Nothing to do, just leave riscvemu in the build directory
