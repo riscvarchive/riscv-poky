@@ -4,7 +4,7 @@ require recipes-kernel/linux-libc-headers/linux-libc-headers.inc
 
 S = "${WORKDIR}/linux-4.6.2"
 
-SRC_URI = "git://github.com/riscv/riscv-linux.git;branch=master;destsuffix=${S} \
+SRC_URI = "git://github.com/riscv/riscv-linux.git;branch=riscv-next;destsuffix=${S} \
            https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.6.2.tar.xz;name=kernel \
            file://riscvemu.patch"
 

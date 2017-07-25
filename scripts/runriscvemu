@@ -559,7 +559,7 @@ fi
 
 # This is quite a messy approach right now. Clean this up once RISCVEMU is properly integrated
 # (at the moment, this is mainly a temporary workaround until QEMU is back).
-RISCVEMU_BIN="$OECORE_NATIVE_SYSROOT/../../work/x86_64-linux/riscvemu-native/1.0-r0/riscvemu-2017-01-12/riscvemu"
+RISCVEMU_BIN="$OECORE_NATIVE_SYSROOT/../../work/x86_64-linux/riscvemu-native/1.0-r0/riscvemu-2017-06-10/riscvemu"
 BBL_PATH="$OECORE_NATIVE_SYSROOT/../../work/riscv64-poky-linux/riscv-pk/1.0-r0/build/bbl_linux.bin"
 
 echo "RISCVEMU_BIN: [$RISCVEMU_BIN]"

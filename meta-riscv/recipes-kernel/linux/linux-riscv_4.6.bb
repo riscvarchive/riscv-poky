@@ -32,7 +32,7 @@ PROVIDES = "riscv-linux"
 # Pick up shared functions
 inherit kernel
 
-SRC_URI += "git://github.com/riscv/riscv-linux.git;branch=master;destsuffix=${S} \
+SRC_URI += "git://github.com/riscv/riscv-linux.git;branch=riscv-next;destsuffix=${S} \
             https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.6.2.tar.xz;name=kernel \
             file://riscvemu.patch"
 
