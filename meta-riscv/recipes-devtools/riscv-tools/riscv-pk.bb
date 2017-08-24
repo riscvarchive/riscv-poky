@@ -4,9 +4,9 @@ LICENSE = "GPLv2+"
 
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/COPYING.GPLv2;md5=751419260aa954499f7abaabaa882bbe"
 
-SRCREV = "f6b2274af4a91763ecdb94600d7d54d5f7f262b5"
+SRCREV = "57bb80fb7df07b40295a70a5aca6e110ba4dcbb0"
 SRC_URI = "git://github.com/riscv/riscv-pk.git \
-           file://riscvemu-pk.patch"
+           file://riscvemu-pk.patch;striplevel=0"
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
