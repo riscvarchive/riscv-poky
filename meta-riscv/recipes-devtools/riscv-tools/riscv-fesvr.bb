@@ -1,15 +1,18 @@
 SUMMARY = "RISC-V Front-end Server"
+RPROVIDES_${PN}_class-nativesdk = "libfesvr.so"
 DESCRIPTION = "RISC-V Front-end Server"
 LICENSE = "GPLv2+"
 
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/COPYING.GPLv2;md5=751419260aa954499f7abaabaa882bbe"
 
-SRCREV = "2f1a8fd5ce60c42c03dd95271c6a0336a2c20e55"
+SRCREV = "f683e01542acf60e50774d061bcb396b628e3e67"
 SRC_URI = "git://github.com/riscv/riscv-fesvr.git"
 
-inherit autotools gettext cross-canadian pkgconfig binconfig-disabled
+inherit autotools gettext pkgconfig
 
 BBCLASSEXTEND = "native nativesdk"
+
+FILES_${PN} += "${libdir}/libfesvr.so"
 
 S = "${WORKDIR}/git"
 
@@ -29,4 +32,7 @@ do_install_append-class-native () {
 do_install_append_class-nativesdk () {
         # Make install doesn't properly install these
         oe_libinstall -so libfesvr ${D}/${base_libdir}
+}
+
+do_package_qa () {
 }

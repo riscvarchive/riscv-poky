@@ -58,6 +58,10 @@ error() {
     usage
 }
 
+echo
+echo "ERROR: riscv-poky does not currently support RISCVEMU."
+echo
+
 MACHINE=${MACHINE:=""}
 KERNEL=${KERNEL:=""}
 ROOTFS=${ROOTFS:=""}
@@ -559,7 +563,7 @@ fi
 
 # This is quite a messy approach right now. Clean this up once RISCVEMU is properly integrated
 # (at the moment, this is mainly a temporary workaround until QEMU is back).
-RISCVEMU_BIN="$OE_TMPDIR/work/x86_64-linux/riscvemu-native/1.0-r0/riscvemu-2017-06-10/riscvemu"
+RISCVEMU_BIN="$OE_TMPDIR/work/x86_64-linux/riscvemu-native/1.0-r0/riscvemu-2017-08-06/riscvemu"
 BBL_PATH="$OE_TMPDIR/work/riscv64-poky-linux/riscv-pk/1.0-r0/build/bbl_linux.bin"
 
 echo "RISCVEMU_BIN: [$RISCVEMU_BIN]"

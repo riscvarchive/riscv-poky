@@ -1,5 +1,5 @@
---- dpkg-1.17.4-old/cputable	2014-11-04 23:19:36.728203608 -0800
-+++ dpkg-1.17.4/cputable	2014-11-04 23:24:50.553377660 -0800
+--- dpkg-1.17.4-old/data/cputable	2014-11-04 23:19:36.728203608 -0800
++++ dpkg-1.17.4/data/cputable	2014-11-04 23:24:50.553377660 -0800
 @@ -32,6 +32,7 @@ mips64el	mips64el	mips64el		64	little
  powerpc		powerpc		(powerpc|ppc)		32	big
  ppc64		powerpc64	(powerpc|ppc)64		64	big

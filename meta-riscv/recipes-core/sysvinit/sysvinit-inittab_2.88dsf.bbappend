@@ -15,8 +15,10 @@ do_install() {
 			label="$(echo ${label} | cut -c1,5-)"
 		;;
 	esac
-	echo "$label:12345:respawn:${base_sbindir}/getty ${j}" >> ${D}${sysconfdir}/inittab
+	echo "h0:12345:respawn:${base_sbindir}/getty -L ${j}" >> ${D}${sysconfdir}/inittab
     done
+
+    #sed -i 's,^.*sulogin.*$,,' ${D}${sysconfdir}/inittab
 
     if [ "${USE_VT}" = "1" ]; then
         cat <<EOF >>${D}${sysconfdir}/inittab

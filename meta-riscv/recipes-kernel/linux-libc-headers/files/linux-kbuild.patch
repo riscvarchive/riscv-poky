@@ -1,0 +1,47 @@
+From 2f263d145140ea4b9f5762b15886ae26195a764a Mon Sep 17 00:00:00 2001
+From: Richard Genoud <richard.genoud@gmail.com>
+Date: Thu, 15 Jun 2017 10:36:22 +0200
+Subject: [PATCH] kbuild: fix header installation under fakechroot environment
+
+Since commit fcc8487d477a ("uapi: export all headers under uapi
+directories") fakechroot make bindeb-pkg fails, mismatching files for
+directories:
+touch: cannot touch 'usr/include/video/uvesafb.h/.install': Not a
+directory
+
+This due to a bug in fakechroot:
+when using the function $(wildcard $(srcdir)/*/.) in a makefile, under a
+fakechroot environment, not only directories but also files are
+returned.
+
+To circumvent that, we are using the functions:
+$(sort $(dir $(wildcard $(srcdir)/*/))))
+
+Fixes: fcc8487d477a ("uapi: export all headers under uapi directories")
+Signed-off-by: Richard Genoud <richard.genoud@gmail.com>
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+---
+ scripts/Makefile.headersinst | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
+index ce753a408c568..c583a1e1bd3c1 100644
+--- a/scripts/Makefile.headersinst
++++ b/scripts/Makefile.headersinst
+@@ -14,7 +14,15 @@ __headers:
+ include scripts/Kbuild.include
+ 
+ srcdir        := $(srctree)/$(obj)
+-subdirs       := $(patsubst $(srcdir)/%/.,%,$(wildcard $(srcdir)/*/.))
++
++# When make is run under a fakechroot environment, the function
++# $(wildcard $(srcdir)/*/.) doesn't only return directories, but also regular
++# files. So, we are using a combination of sort/dir/wildcard which works
++# with fakechroot.
++subdirs       := $(patsubst $(srcdir)/%/,%,\
++		 $(filter-out $(srcdir)/,\
++		 $(sort $(dir $(wildcard $(srcdir)/*/)))))
++
+ # caller may set destination dir (when installing to asm/)
+ _dst          := $(if $(dst),$(dst),$(obj))
+ 

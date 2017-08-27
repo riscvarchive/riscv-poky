@@ -68,10 +68,10 @@ Depending on the machine, the build process can take a very long time (remember 
 Once compilation has finished, you can run the resulting image from the build directory by calling:
 
 ```
-<...>/build$ runriscvemu qemuriscv64
+<...>/build$ runspike riscv64
 ```
 
-**Warning**: Due to missing Virtio support in riscv-qemu and Spike, we do not currently support these emulators. If you need a different emulator than RISCVEMU, please consider using the master branch (which is out of date and using privilieged spec 1.7) or helping us add Virtio support to QEMU and Spike. 
+**Warning**: The current version of riscv-poky is incompatible with RISCVEMU, and support for this emulator has therefore been disabled (we hope to bring it back as soon as possible). Please use Spike for now. If you need a different emulator, please consider using the master branch (which is out of date and using privilieged spec 1.7) or helping us add Virtio support to riscv-qemu.
 
 To run with QEMU, please use the command below:
 
@@ -79,10 +79,10 @@ To run with QEMU, please use the command below:
 <...>/build$ runqemu qemuriscv64 nographic slirp
 ```
 
-If you built the `riscv64` configuration and would prefer to run in Spike instead of QEMU, you can call the following:
+If you would prefer to run in RISCVEMU instead of Spike, you can call the following:
 
 ```
-<...>/build$ runspike riscv64
+<...>/build$ runriscvemu qemuriscv64
 ```
 
 Maintaining the RISC-V Port

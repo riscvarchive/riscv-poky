@@ -110,13 +110,6 @@ while true; do
     arg=${1}
     case "$arg" in
         "riscv64")
-            echo
-            echo "ERROR: Spike cannot run riscv-poky images at the moment, due to a missing block"
-            echo "device driver. Please contact maas@eecs.berkeley.edu if you are interested in"
-            echo "helping us restore the block device driver support."
-            echo
-            exit 1
-
             [ -z "$MACHINE" ] && MACHINE=$arg || \
                 error "conflicting MACHINE types [$MACHINE] and [$arg]"
             ;;
@@ -388,8 +381,8 @@ echo "FSTYPE: [$FSTYPE]"
 
 setup_sysroot
 
-SPIKE_BIN="$OECORE_NATIVE_SYSROOT/usr/bin/spike"
-BBL_PATH="$OECORE_NATIVE_SYSROOT/usr/share/riscv-pk/bbl"
+SPIKE_BIN="$OE_TMPDIR/work/riscv64-poky-linux/core-image-riscv/1.0-r0/recipe-sysroot-native/usr/bin/spike"
+BBL_PATH="$OE_TMPDIR/work/riscv64-poky-linux/riscv-pk/1.0-r0/build/bbl"
 
 echo "SPIKE_BIN: [$SPIKE_BIN]"
 echo "BBL_PATH: [$BBL_PATH]"
@@ -398,5 +391,5 @@ echo
 
 # OECORE_NATIVE_SYSROOT is now set for all cases
 
-$SPIKE_BIN +disk=$ROOTFS $BBL_PATH $KERNEL
+$SPIKE_BIN +disk=$ROOTFS $BBL_PATH
 exit $?

@@ -1,0 +1,39 @@
+From ae6ebfc0701758b53d8e403dd9fd2397940142d0 Mon Sep 17 00:00:00 2001
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Date: Mon, 21 Aug 2017 12:24:54 -0700
+Subject: [PATCH] Let the headers build again
+
+---
+ arch/riscv/include/uapi/asm/Kbuild | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/arch/riscv/include/uapi/asm/Kbuild b/arch/riscv/include/uapi/asm/Kbuild
+index a20ed2ccc5ae..5ded96b06352 100644
+--- a/arch/riscv/include/uapi/asm/Kbuild
++++ b/arch/riscv/include/uapi/asm/Kbuild
+@@ -3,2 +3,25 @@ include  include/uapi/asm-generic/Kbuild.asm
+ 
+ generic-y += setup.h
++generic-y += unistd.h
++generic-y += errno.h
++generic-y += fcntl.h
++generic-y += ioctl.h
++generic-y += ioctls.h
++generic-y += ipcbuf.h
++generic-y += mman.h
++generic-y += msgbuf.h
++generic-y += param.h
++generic-y += poll.h
++generic-y += posix_types.h
++generic-y += resource.h
++generic-y += sembuf.h
++generic-y += shmbuf.h
++generic-y += signal.h
++generic-y += socket.h
++generic-y += sockios.h
++generic-y += stat.h
++generic-y += statfs.h
++generic-y += swab.h
++generic-y += termbits.h
++generic-y += termios.h
++generic-y += types.h

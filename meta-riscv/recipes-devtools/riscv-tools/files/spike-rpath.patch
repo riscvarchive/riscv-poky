@@ -1,0 +1,48 @@
+diff --git a/riscv-dummy_rocc.pc.in b/riscv-dummy_rocc.pc.in
+index 31635f6..3888b12 100644
+--- a/riscv-dummy_rocc.pc.in
++++ b/riscv-dummy_rocc.pc.in
+@@ -6,6 +6,6 @@ includedir=${prefix}/@includedir@
+ Name: riscv-dummy_rocc
+ Description: Example RISC-V ROCC accelerator
+ Version: git
+-Libs: -Wl,-rpath,${libdir} -L${libdir} -ldummy_rocc
++Libs: -L${libdir} -ldummy_rocc
+ Cflags: -I${includedir}
+ URL: http://riscv.org/download.html#tab_spike
+diff --git a/riscv-riscv.pc.in b/riscv-riscv.pc.in
+index 5e86b1c..24314e1 100644
+--- a/riscv-riscv.pc.in
++++ b/riscv-riscv.pc.in
+@@ -6,6 +6,6 @@ includedir=${prefix}/@includedir@
+ Name: riscv-riscv
+ Description: RISC-V 
+ Version: git
+-Libs: -Wl,-rpath,${libdir} -L${libdir} -lriscv
++Libs: -L${libdir} -lriscv
+ Cflags: -I${includedir}
+ URL: http://riscv.org/download.html#tab_spike
+diff --git a/riscv-softfloat.pc.in b/riscv-softfloat.pc.in
+index 6b18e88..e68da2b 100644
+--- a/riscv-softfloat.pc.in
++++ b/riscv-softfloat.pc.in
+@@ -6,6 +6,6 @@ includedir=${prefix}/@includedir@
+ Name: riscv-softfloat
+ Description: RISC-V softfloat library
+ Version: git
+-Libs: -Wl,-rpath,${libdir} -L${libdir} -lsoftfloat
++Libs: -L${libdir} -lsoftfloat
+ Cflags: -I${includedir}
+ URL: http://riscv.org/download.html#tab_spike
+diff --git a/riscv-spike_main.pc.in b/riscv-spike_main.pc.in
+index c9b0ecc..596b442 100644
+--- a/riscv-spike_main.pc.in
++++ b/riscv-spike_main.pc.in
+@@ -7,6 +7,6 @@ Name: riscv-spike_main
+ Description: RISC-V ISA simulator library
+ Version: git
+ Depends: riscv-riscv riscv-softfloat
+-Libs: -Wl,-rpath,${libdir} -L${libdir} -lspike_main
++Libs: -L${libdir} -lspike_main
+ Cflags: -I${includedir}
+ URL: http://riscv.org/download.html#tab_spike

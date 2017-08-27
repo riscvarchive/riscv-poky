@@ -4,9 +4,8 @@ LICENSE = "GPLv2+"
 
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/COPYING.GPLv2;md5=751419260aa954499f7abaabaa882bbe"
 
-SRCREV = "57bb80fb7df07b40295a70a5aca6e110ba4dcbb0"
-SRC_URI = "git://github.com/riscv/riscv-pk.git \
-           file://riscvemu-pk.patch;striplevel=0"
+SRCREV = "1768ef5096cca41963367b7b4e50b4e47c2639fa"
+SRC_URI = "git://github.com/riscv/riscv-pk.git;branch=sbi-disk"
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
@@ -16,7 +15,7 @@ EXTRA_OECONF += "--with-payload=${TMPDIR}/deploy/images/qemuriscv64/vmlinux"
 
 inherit autotools
 
-DEPENDS = "riscv-fesvr-native riscv-spike-native riscv-linux riscvemu-native"
+DEPENDS = "riscv-fesvr-native riscv-spike-native riscv-linux"
 
 INHIBIT_PACKAGE_STRIP = "1"
 

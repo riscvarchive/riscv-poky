@@ -1,10 +1,10 @@
 Index: bbl/bbl.lds
 ===================================================================
---- bbl/bbl.lds
-+++ bbl/bbl.lds
+--- bbl/bbl.lds	(revision 475)
++++ bbl/bbl.lds	(working copy)
 @@ -43,12 +43,10 @@
    /*--------------------------------------------------------------------*/
-   /* HTKF, isolated onto separate page                                  */
+   /* HTIF, isolated onto separate page                                  */
    /*--------------------------------------------------------------------*/
 +  tohost = 0x40008000;
 +  fromhost = 0x40008008;
@@ -18,10 +18,89 @@ Index: bbl/bbl.lds
  
    /*--------------------------------------------------------------------*/
    /* Initialized data segment                                           */
+Index: configure
+===================================================================
+--- configure	(revision 475)
++++ configure	(working copy)
+@@ -644,7 +644,6 @@
+ docdir
+ oldincludedir
+ includedir
+-runstatedir
+ localstatedir
+ sharedstatedir
+ sysconfdir
+@@ -728,7 +727,6 @@
+ sysconfdir='${prefix}/etc'
+ sharedstatedir='${prefix}/com'
+ localstatedir='${prefix}/var'
+-runstatedir='${localstatedir}/run'
+ includedir='${prefix}/include'
+ oldincludedir='/usr/include'
+ docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
+@@ -981,15 +979,6 @@
+   | -silent | --silent | --silen | --sile | --sil)
+     silent=yes ;;
+ 
+-  -runstatedir | --runstatedir | --runstatedi | --runstated \
+-  | --runstate | --runstat | --runsta | --runst | --runs \
+-  | --run | --ru | --r)
+-    ac_prev=runstatedir ;;
+-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+-  | --run=* | --ru=* | --r=*)
+-    runstatedir=$ac_optarg ;;
+-
+   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
+     ac_prev=sbindir ;;
+   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
+@@ -1127,7 +1116,7 @@
+ for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
+ 		datadir sysconfdir sharedstatedir localstatedir includedir \
+ 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
+-		libdir localedir mandir runstatedir
++		libdir localedir mandir
+ do
+   eval ac_val=\$$ac_var
+   # Remove trailing slashes.
+@@ -1280,7 +1269,6 @@
+   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
+   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
+   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
+   --libdir=DIR            object code libraries [EPREFIX/lib]
+   --includedir=DIR        C header files [PREFIX/include]
+   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
+@@ -4078,8 +4066,8 @@
+ case "${BUILD_32BIT}" in
+   yes|default)
+ 	echo "Building 32-bit pk"
+-	CFLAGS="$default_CFLAGS -m32"
+-	LDFLAGS="-m32"
++	CFLAGS="$default_CFLAGS -march=rv32gc -mabi=ilp32"
++	LDFLAGS="-march=rv32gc -mabi=ilp32"
+ 	install_subdir="riscv32-unknown-elf"
+ 	;;
+   *)
+Index: configure.ac
+===================================================================
+--- configure.ac	(revision 475)
++++ configure.ac	(working copy)
+@@ -88,8 +88,8 @@
+ case "${BUILD_32BIT}" in
+   yes|default)
+ 	echo "Building 32-bit pk"
+-	CFLAGS="$default_CFLAGS -m32"
+-	LDFLAGS="-m32"
++	CFLAGS="$default_CFLAGS -march=rv32gc -mabi=ilp32"
++	LDFLAGS="-march=rv32gc -mabi=ilp32"
+ 	install_subdir="riscv32-unknown-elf"
+ 	;;
+   *)
 Index: machine/htif.c
 ===================================================================
---- machine/htif.c
-+++ machine/htif.c
+--- machine/htif.c	(revision 475)
++++ machine/htif.c	(working copy)
 @@ -2,8 +2,8 @@
  #include "atomic.h"
  #include "mtrap.h"
@@ -33,10 +112,30 @@ Index: machine/htif.c
  volatile int htif_console_buf;
  static spinlock_t htif_lock = SPINLOCK_INIT;
  
+Index: machine/htif.h
+===================================================================
+--- machine/htif.h	(revision 475)
++++ machine/htif.h	(working copy)
+@@ -3,14 +3,9 @@
+ 
+ #include <stdint.h>
+ 
+-#if __riscv_xlen == 64
+ # define TOHOST_CMD(dev, cmd, payload) \
+   (((uint64_t)(dev) << 56) | ((uint64_t)(cmd) << 48) | (uint64_t)(payload))
+-#else
+-# define TOHOST_CMD(dev, cmd, payload) ({ \
+-  if ((dev) || (cmd)) __builtin_trap(); \
+-  (payload); })
+-#endif
++
+ #define FROMHOST_DEV(fromhost_value) ((uint64_t)(fromhost_value) >> 56)
+ #define FROMHOST_CMD(fromhost_value) ((uint64_t)(fromhost_value) << 8 >> 56)
+ #define FROMHOST_DATA(fromhost_value) ((uint64_t)(fromhost_value) << 16 >> 16)
 Index: machine/mentry.S
 ===================================================================
---- machine/mentry.S
-+++ machine/mentry.S
+--- machine/mentry.S	(revision 475)
++++ machine/mentry.S	(working copy)
 @@ -210,6 +210,47 @@
    jal trap_from_machine_mode
    j restore_regs
@@ -129,8 +228,8 @@ Index: machine/mentry.S
    csrw mtvec, t0
 Index: machine/mtrap.c
 ===================================================================
---- machine/mtrap.c
-+++ machine/mtrap.c
+--- machine/mtrap.c	(revision 475)
++++ machine/mtrap.c	(working copy)
 @@ -33,8 +33,13 @@
  
  void putstring(const char* s)
@@ -149,8 +248,8 @@ Index: machine/mtrap.c
  void printm(const char* s, ...)
 Index: pk/pk.lds
 ===================================================================
---- pk/pk.lds
-+++ pk/pk.lds
+--- pk/pk.lds	(revision 475)
++++ pk/pk.lds	(working copy)
 @@ -46,7 +46,10 @@
    . = ALIGN(0x1000);
    .htif :
