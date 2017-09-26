@@ -11,7 +11,7 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
 LDFLAGS_append = " -Wl,--build-id=none -Wl,--strip-debug"
 
-EXTRA_OECONF += "--with-payload=${TMPDIR}/deploy/images/qemuriscv64/vmlinux"
+EXTRA_OECONF += "--with-payload=${TMPDIR}/deploy/images/riscv64/vmlinux"
 
 inherit autotools
 

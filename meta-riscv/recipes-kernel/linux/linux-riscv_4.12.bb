@@ -14,7 +14,7 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
 PR := "${PR}.1"
 
-COMPATIBLE_MACHINE = "(qemuriscv64|riscv64)"
+COMPATIBLE_MACHINE = "riscv64"
 
 LINUX_KERNEL_TYPE ?= "standard"
 

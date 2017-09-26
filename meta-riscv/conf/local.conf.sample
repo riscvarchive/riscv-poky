@@ -57,7 +57,7 @@ PARALLEL_MAKE ?= "-j ${@oe.utils.cpu_count()}"
 # This sets the default machine to be qemux86 if no other machine is selected:
 
 # Use QEMU by default (to use spike instead, pick "riscv64")
-MACHINE = "qemuriscv64"
+MACHINE = "riscv64"
 
 # This is the MACHINE declaration for the spike version for riscv64:
 #MACHINE = "riscv64"

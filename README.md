@@ -61,7 +61,7 @@ bitbake core-image-riscv
 
 **Warning**: This will download a large amount of data over the network and use up a significant amount of space on disk.
 
-The local.conf file is preconfigured to build for the `qemuriscv64` machine by default (to use the Spike simulator instead, or to target real hardware, change this to `riscv64`). `core-image-minimal` is an image target, which contains a list of packages to build as well as instructions how to install them into an image.
+The local.conf file is preconfigured to build for the `riscv64` machine by default. `core-image-minimal` is an image target, which contains a list of packages to build as well as instructions how to install them into an image.
 
 Depending on the machine, the build process can take a very long time (remember that this downloads and builds dozens of packages, including riscv-tools, riscv-qemu and riscv-linux). Note that bitbake is very efficient at utilizing highly parallel machines since it can spawn off many jobs in parallel.
 
@@ -76,13 +76,13 @@ Once compilation has finished, you can run the resulting image from the build di
 To run with QEMU, please use the command below:
 
 ```
-<...>/build$ runqemu qemuriscv64 nographic slirp
+<...>/build$ runqemu riscv64 nographic slirp
 ```
 
 If you would prefer to run in RISCVEMU instead of Spike, you can call the following:
 
 ```
-<...>/build$ runriscvemu qemuriscv64
+<...>/build$ runriscvemu riscv64
 ```
 
 Maintaining the RISC-V Port
@@ -105,6 +105,8 @@ Details and HOWTOs
 * **Distributions**: In addition to the default distrbiution (poky-riscv with core-image-riscv), it is also possible to build a minimal distribution using BusyBox, without SysV boot, package management and most applications. To do this, set the distribution to `poky-riscv-tiny` in local.conf (`DISTRO ?= "poky-riscv-tiny"`), and build `core-image-minimal`.
 
 * **Adding packages**: To add a package to the generated image, edit `meta-riscv/recipes-core/images/core-image-riscv.bb` and add the desired package to the `IMAGE_INSTALL` list.
+
+* **Building an SDK**: A useful feature of riscv-poky is the ability to build an SDK, which is a package containing the cross-compile toolchain and all of its dependencies, which can be installed on any x86-64 Linux machine. Use `bitbake meta-toolchain` to build an SDK.
 
 ### TODO List/Known Problems
 
