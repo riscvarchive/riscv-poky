@@ -5,7 +5,7 @@ diff -rupN numpy-1.10.4/numpy/core/include/numpy/npy_cpu.h numpy-1.10.4-new/nump
      #define NPY_CPU_OR1K
  #elif defined(__aarch64__)
      #define NPY_CPU_AARCH64
-+#elif defined(__riscv__)
++#elif defined(__riscv)
 +    #define NPY_CPU_RISCV
  #elif defined(__mc68000__)
      #define NPY_CPU_M68K
