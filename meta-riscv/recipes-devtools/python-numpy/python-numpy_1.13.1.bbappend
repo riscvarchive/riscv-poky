@@ -5,4 +5,4 @@ CONFIGFILESURI_riscv64 = " \
     file://_numpyconfig.h \
 "
 
-SRC_URI_append_riscv64 += "file://numpy-riscv.patch"
+SRC_URI_append += "file://numpy-riscv.patch"
