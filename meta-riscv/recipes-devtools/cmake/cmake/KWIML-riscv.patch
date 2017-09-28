@@ -1,0 +1,13 @@
+--- cmake-3.8.2/Utilities/KWIML/include/kwiml/abi.h	2017-05-31 14:00:10.000000000 +0000
++++ cmake-3.8.2-new/Utilities/KWIML/include/kwiml/abi.h	2017-09-28 16:49:14.555492638 +0000
+@@ -461,6 +461,10 @@
+ #  define KWIML_ABI_ENDIAN_ID KWIML_ABI_ENDIAN_ID_BIG
+ # endif
+ 
++/* riscv64 */
++#elif defined(__riscv)
++#  define KWIML_ABI_ENDIAN_ID KWIML_ABI_ENDIAN_ID_LITTLE
++
+ /* Xtensa */
+ #elif defined(__XTENSA_EB__)
+ # define KWIML_ABI_ENDIAN_ID KWIML_ABI_ENDIAN_ID_BIG
