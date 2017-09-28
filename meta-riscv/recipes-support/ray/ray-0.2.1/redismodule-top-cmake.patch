@@ -1,0 +1,7 @@
+--- ray-ray-0.2.1/src/common/redis_module/CMakeLists.txt	2017-10-01 19:33:13.000000000 +0000
++++ ray-ray-0.2.1-new/src/common/redis_module/CMakeLists.txt	2017-11-27 20:17:46.292933993 +0000
+@@ -15,3 +15,4 @@
+ 
+ target_compile_options(ray_redis_module PUBLIC ${REDIS_MODULE_CFLAGS} -fPIC)
+ target_link_libraries(ray_redis_module ${REDIS_MODULE_LDFLAGS})
++install(TARGETS ray_redis_module DESTINATION ${CMAKE_INSTALL_LIBDIR}/ray/core/src/common/redis_module/)

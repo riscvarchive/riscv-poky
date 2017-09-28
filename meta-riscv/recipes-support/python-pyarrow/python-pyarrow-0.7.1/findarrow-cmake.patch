@@ -1,0 +1,21 @@
+--- arrow-apache-arrow-0.7.1/python/cmake_modules/FindArrow.cmake	2017-09-27 13:19:05.000000000 +0000
++++ arrow-apache-arrow-0.7.1-new/python/cmake_modules/FindArrow.cmake	2017-11-27 01:21:57.813814768 +0000
+@@ -33,9 +33,15 @@
+     message(STATUS "Arrow ABI version: ${ARROW_ABI_VERSION}")
+     pkg_get_variable(ARROW_SO_VERSION arrow so_version)
+     message(STATUS "Arrow SO version: ${ARROW_SO_VERSION}")
+-    set(ARROW_INCLUDE_DIR ${ARROW_INCLUDE_DIRS})
+-    set(ARROW_LIBS ${ARROW_LIBRARY_DIRS})
+-    set(ARROW_SEARCH_LIB_PATH ${ARROW_LIBRARY_DIRS})
++    #set(ARROW_INCLUDE_DIR ${ARROW_INCLUDE_DIRS})
++    set(ARROW_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../recipe-sysroot/${ARROW_INCLUDEDIR})
++  MESSAGE( STATUS "ARROW_INCLUDE_DIR: " ${ARROW_INCLUDE_DIR} )
++    #set(ARROW_LIBS ${ARROW_LIBRARY_DIRS})
++    set(ARROW_LIBS ${CMAKE_CURRENT_SOURCE_DIR}/../../recipe-sysroot/${ARROW_LIBDIR})
++  MESSAGE( STATUS "ARROW_LIBS: " ${ARROW_LIBS} )
++    #set(ARROW_SEARCH_LIB_PATH ${ARROW_LIBRARY_DIRS})
++    set(ARROW_SEARCH_LIB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../recipe-sysroot/${ARROW_LIBDIR})
++  MESSAGE( STATUS "ARROW_SEARCH_LIB_PATH: " ${ARROW_SEARCH_LIB_PATH} )
+   endif()
+ else()
+   set(ARROW_HOME "$ENV{ARROW_HOME}")
