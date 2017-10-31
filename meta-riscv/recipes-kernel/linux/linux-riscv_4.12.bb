@@ -36,8 +36,7 @@ PROVIDES = "riscv-linux"
 # Pick up shared functions
 inherit kernel
 
-SRC_URI = "git://github.com/riscv/riscv-linux.git;branch=firesim;destsuffix=${S} \
-           file://mstrict-align.patch"
+SRC_URI = "git://github.com/riscv/riscv-linux.git;branch=ucbbar-v8;destsuffix=${S}"
 
 SRC_URI += "file://defconfig"
 
@@ -46,7 +45,7 @@ SRC_URI[kernel.sha256sum] = "e158f3c69da87c2ec28d0f194dbe18b05e0d0b9e1142566615c
 
 # uncomment and replace these SRCREVs with the real commit ids once you've had
 # the appropriate changes committed to the upstream linux-yocto repo
-SRCREV_pn-linux-riscv ?= "7633e79728ebcc2ba5fc6e291b7bbf1f7374f282"
+SRCREV_pn-linux-riscv ?= "b66d2dffbaf95e50fdc378f47fc871e1823d6229"
 LINUX_VERSION = "4.12"
 
 do_patch[depends] = "kern-tools-native:do_populate_sysroot"
