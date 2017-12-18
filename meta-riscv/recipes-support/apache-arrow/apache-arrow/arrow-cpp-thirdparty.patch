@@ -1,0 +1,23 @@
+--- arrow-apache-arrow-0.7.1/cpp/cmake_modules/ThirdpartyToolchain.cmake	2017-09-27 13:19:05.000000000 +0000
++++ arrow-apache-arrow-0.7.1-mod/cpp/cmake_modules/ThirdpartyToolchain.cmake	2017-10-11 07:57:38.258472389 +0000
+@@ -429,9 +429,10 @@
+       "-DCMAKE_INSTALL_PREFIX:PATH=${FLATBUFFERS_PREFIX}"
+       "-DFLATBUFFERS_BUILD_TESTS=OFF"
+       ${EP_LOG_OPTIONS})
+-
++ 
++    add_definitions(-DFLATBUFFERS_COMPILER)
+     set(FLATBUFFERS_INCLUDE_DIR "${FLATBUFFERS_PREFIX}/include")
+-    set(FLATBUFFERS_COMPILER "${FLATBUFFERS_PREFIX}/bin/flatc")
++    #set(FLATBUFFERS_COMPILER "${FLATBUFFERS_PREFIX}/bin/flatc")
+     set(FLATBUFFERS_VENDORED 1)
+   else()
+     find_package(Flatbuffers REQUIRED)
+@@ -569,7 +570,6 @@
+ if (ARROW_WITH_SNAPPY)
+ # ----------------------------------------------------------------------
+ # Snappy
+-
+   if("${SNAPPY_HOME}" STREQUAL "")
+     set(SNAPPY_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/snappy_ep/src/snappy_ep-install")
+     set(SNAPPY_HOME "${SNAPPY_PREFIX}")

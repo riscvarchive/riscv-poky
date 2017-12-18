@@ -1,0 +1,15 @@
+--- ray-ray-0.2.1/python/ray/__init__.py	2017-11-27 02:15:06.002324408 +0000
++++ ray-ray-0.2.1-new/python/ray/__init__.py	2017-11-27 02:14:42.170284005 +0000
+@@ -6,9 +6,9 @@
+ import sys
+ # Add the directory containing pyarrow to the Python path so that we find the
+ # pyarrow version packaged with ray and not a pre-existing pyarrow.
+-pyarrow_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+-                            "pyarrow_files")
+-sys.path.insert(0, pyarrow_path)
++#pyarrow_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
++#                            "pyarrow_files")
++#sys.path.insert(0, pyarrow_path)
+ 
+ # See https://github.com/ray-project/ray/issues/131.
+ helpful_message = """

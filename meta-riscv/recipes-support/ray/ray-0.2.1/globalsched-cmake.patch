@@ -1,0 +1,8 @@
+--- ray-ray-0.2.1/src/global_scheduler/CMakeLists.txt	2017-10-01 19:33:13.000000000 +0000
++++ ray-ray-0.2.1-new/src/global_scheduler/CMakeLists.txt	2017-11-27 20:13:19.584336629 +0000
+@@ -6,3 +6,5 @@
+ 
+ add_executable(global_scheduler global_scheduler.cc global_scheduler_algorithm.cc)
+ target_link_libraries(global_scheduler common ${HIREDIS_LIB})
++install(TARGETS global_scheduler DESTINATION ${CMAKE_INSTALL_BINDIR}/ray/core/src/global_scheduler)
++#install(TARGETS global_scheduler DESTINATION ${CMAKE_BINARY_DIR}/ray/core/src/global_scheduler)

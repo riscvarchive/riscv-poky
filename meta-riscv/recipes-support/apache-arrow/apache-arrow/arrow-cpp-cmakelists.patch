@@ -1,0 +1,58 @@
+--- arrow-apache-arrow-0.7.1/cpp/CMakeLists.txt	2017-09-27 13:19:05.000000000 +0000
++++ arrow-apache-arrow-0.7.1/cpp/CMakeLists-new.txt	2017-10-11 07:57:38.267472393 +0000
+@@ -35,6 +35,8 @@
+ # We require a C++11 compliant compiler
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ 
++set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-I ") #for gcc 6 and higher
++
+ include(GNUInstallDirs)
+ 
+ # Compatibility with CMake 3.1
+@@ -84,7 +86,7 @@
+ 
+   option(ARROW_BUILD_TESTS
+     "Build the Arrow googletest unit tests"
+-    ON)
++    OFF)
+ 
+   option(ARROW_BUILD_BENCHMARKS
+     "Build the Arrow micro benchmarks"
+@@ -156,7 +158,7 @@
+ 
+   option(ARROW_PLASMA
+     "Build the plasma object store along with Arrow"
+-    OFF)
++    ON)
+ 
+   option(ARROW_USE_SSE
+     "Build with SSE4 optimizations"
+@@ -164,23 +166,23 @@
+ 
+   option(ARROW_WITH_BROTLI
+     "Build with Brotli compression"
+-    ON)
++    OFF)
+ 
+   option(ARROW_WITH_LZ4
+     "Build with lz4 compression"
+-    ON)
++    OFF)
+ 
+   option(ARROW_WITH_SNAPPY
+     "Build with Snappy compression"
+-    ON)
++    OFF)
+ 
+   option(ARROW_WITH_ZLIB
+     "Build with zlib compression"
+-    ON)
++    OFF)
+ 
+   option(ARROW_WITH_ZSTD
+     "Build with zstd compression"
+-    ON)
++    OFF)
+ 
+   option(ARROW_VERBOSE_THIRDPARTY_BUILD
+     "If off, output from ExternalProjects will be logged to files rather than shown"

@@ -1,0 +1,24 @@
+--- arrow-apache-arrow-0.7.1/python/cmake_modules/FindPlasma.cmake	2017-09-27 13:19:05.000000000 +0000
++++ arrow-apache-arrow-0.7.1-new/python/cmake_modules/FindPlasma.cmake	2017-11-27 01:20:12.867623416 +0000
+@@ -34,13 +34,16 @@
+     message(STATUS "Plasma ABI version: ${PLASMA_ABI_VERSION}")
+     pkg_get_variable(PLASMA_SO_VERSION plasma so_version)
+     message(STATUS "Plasma SO version: ${PLASMA_SO_VERSION}")
+-    set(PLASMA_INCLUDE_DIR ${PLASMA_INCLUDE_DIRS})
+-    set(PLASMA_LIBS ${PLASMA_LIBRARY_DIRS})
+-    set(PLASMA_SEARCH_LIB_PATH ${PLASMA_LIBRARY_DIRS})
++    #set(PLASMA_INCLUDE_DIR ${PLASMA_INCLUDE_DIRS})
++    set(PLASMA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../recipe-sysroot/${PLASMA_INCLUDEDIR})
++    #set(PLASMA_LIBS ${PLASMA_LIBRARY_DIRS})
++    set(PLASMA_LIBS ${CMAKE_CURRENT_SOURCE_DIR}/../../recipe-sysroot/${PLASMA_LIBDIR})
++    #set(PLASMA_SEARCH_LIB_PATH ${PLASMA_LIBRARY_DIRS})
++    set(PLASMA_SEARCH_LIB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../recipe-sysroot/${PLASMA_LIBDIR})
+   endif()
+ else()
+-  set(PLASMA_HOME "$ENV{ARROW_HOME}")
+-
++  #set(PLASMA_HOME "$ENV{ARROW_HOME}")
++   set(PLASMA_HOME ${CMAKE_CURRENT_SOURCE_DIR}/../../recipe-sysroot/)
+   set(PLASMA_EXECUTABLE ${PLASMA_HOME}/bin/plasma_store)
+ 
+   set(PLASMA_SEARCH_HEADER_PATHS
