@@ -25,7 +25,7 @@ IMAGE_INSTALL += "cmake boost python-pip python-setuptools python-cython python-
 IMAGE_INSTALL += "jemalloc apache-arrow python-pyarrow"
 IMAGE_INSTALL += "redis python-redis python-cloudpickle python-click python-funcsigs python-psutil python-colorama"
 IMAGE_INSTALL += "python-ray python-flatbuffers"
-IMAGE_INSTALL += ""
+IMAGE_INSTALL += "openblas"
 
 IMAGE_LINGUAS = " "
 
